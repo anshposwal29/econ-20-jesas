@@ -1,0 +1,524 @@
+----------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/project/logs/01_build_data.log
+  log type:  text
+ opened on:  20 Oct 2026, 17:19:41
+
+. 
+. *-------------------------------------------------------------------------------
+. * STEP 1. BoardEx: one row per company per year with board size and # of women
+. *-------------------------------------------------------------------------------
+. 
+. * 1a. Link table: keep the "preferred" BoardEx-to-Compustat match.
+. *     If a BoardEx company still maps to more than one gvkey, keep the best score
+. *     (score 1 = strongest match).
+. use "raw/link_boardex_crsp_compustat.dta", clear
+
+. keep if preferred == 1
+(430 observations deleted)
+
+. sort companyid score
+
+. by companyid: keep if _n == 1
+(690 observations deleted)
+
+. rename GVKEY gvkey
+
+. keep companyid gvkey
+
+. save "temp/link.dta", replace
+(file temp/link.dta not found)
+file temp/link.dta saved
+
+. 
+. * 1b. Board data. Each row is one director; the board-level variables
+. *     (genderratio, numberdirectors) repeat on every director row.
+. use "raw/boardex_orgsummary.dta", clear
+((null))
+
+. keep if hocountryname == "United States"
+(131,484 observations deleted)
+
+. keep companyid annualreportdate genderratio numberdirectors
+
+. duplicates drop companyid annualreportdate, force   // one row per board per annual report
+
+Duplicates in terms of companyid annualreportdate
+
+(641,536 observations deleted)
+
+. 
+. gen yr = year(annualreportdate)
+
+. * if a company files two annual reports in one calendar year, keep the later one
+. sort companyid yr annualreportdate
+
+. by companyid yr: keep if _n == _N
+(453 observations deleted)
+
+. 
+. merge m:1 companyid using "temp/link.dta", keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                            63,335  
+    -----------------------------------------
+
+. sort gvkey yr annualreportdate
+
+. by gvkey yr: keep if _n == _N
+(89 observations deleted)
+
+. 
+. * BoardEx genderratio = share of directors who are MALE
+. gen women     = round(numberdirectors * (1 - genderratio))
+(24 missing values generated)
+
+. gen zerowomen = (women == 0) if women < .
+(24 missing values generated)
+
+. rename numberdirectors boardsize
+
+. keep gvkey yr boardsize women zerowomen
+
+. label var boardsize "Board size (number of directors)"
+
+. label var women     "Number of women on the board"
+
+. label var zerowomen "=1 if board has no women"
+
+. save "temp/board.dta", replace
+(file temp/board.dta not found)
+file temp/board.dta saved
+
+. 
+. *-------------------------------------------------------------------------------
+. * STEP 2. Compustat: shares outstanding supplement
+. *-------------------------------------------------------------------------------
+. use "raw/compustat_annual_csho.dta", clear
+((null))
+
+. keep if indfmt == "INDL"
+(0 observations deleted)
+
+. duplicates tag gvkey fyear, gen(dup)
+
+Duplicates in terms of gvkey fyear
+
+. drop if dup > 0                       // 11 firm-years with a fiscal-year change
+(22 observations deleted)
+
+. keep gvkey fyear csho apdedate gsector
+
+. save "temp/csho.dta", replace
+(file temp/csho.dta not found)
+file temp/csho.dta saved
+
+. 
+. *-------------------------------------------------------------------------------
+. * STEP 3. Compustat main file and sample restrictions
+. *-------------------------------------------------------------------------------
+. use "raw/compustat_annual_main.dta", clear
+((null))
+
+. 
+. keep if indfmt == "INDL"              // drop the duplicate financial-services format
+(16,826 observations deleted)
+
+. keep if loc == "USA"                  // headquartered in the US
+(23,476 observations deleted)
+
+. drop if state == ""
+(88 observations deleted)
+
+. duplicates tag gvkey fyear, gen(dup)
+
+Duplicates in terms of gvkey fyear
+
+. drop if dup > 0
+(22 observations deleted)
+
+. drop dup add2 add4 prch_f prcl_f prcl_c   // variables selected by mistake
+
+. 
+. merge 1:1 gvkey fyear using "temp/csho.dta", keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                           133,492  
+    -----------------------------------------
+
+. 
+. * listed on NYSE (11), NYSE American/AMEX (12) or Nasdaq (14)
+. keep if inlist(exchg, 11, 12, 14)
+(52,128 observations deleted)
+
+. * drop funds, trusts and shell companies (SIC 67xx)
+. drop if substr(sic, 1, 2) == "67"
+(18,621 observations deleted)
+
+. 
+. *-------------------------------------------------------------------------------
+. * STEP 4. Fiscal year-end date and the treatment timing
+. *-------------------------------------------------------------------------------
+. * apdedate = actual fiscal period end date. If missing (about 2%), rebuild it
+. * from fyear and fyr: Compustat assigns fiscal years ending Jan-May to the
+. * previous year.
+. gen fye_yr  = cond(fyr >= 6, fyear, fyear + 1)
+
+. gen fye_alt = dofm(ym(fye_yr, fyr) + 1) - 1          // last day of month fyr
+
+. gen fye     = apdedate
+(1,136 missing values generated)
+
+. replace fye = fye_alt if fye == .
+(1,136 real changes made)
+
+. format fye %td
+
+. drop fye_yr fye_alt
+
+. label var fye "Fiscal year-end date"
+
+. 
+. * POST = fiscal year ended on or after 1 Oct 2018 (SB 826 signed 30 Sep 2018).
+. * Market value is measured at fiscal year-end, so for these firm-years the
+. * price already reflects the law.
+. gen post = (fye >= td(01oct2018)) if fye < .
+
+. label var post "=1 if fiscal year ended on/after 1 Oct 2018"
+
+. 
+. *-------------------------------------------------------------------------------
+. * STEP 5. Treatment and comparison groups (HQ state from Compustat)
+. *   NOTE: Compustat 'state' is the CURRENT headquarters state. Firms that left
+. *   California after 2018 are coded by their new state. To be fixed later.
+. *-------------------------------------------------------------------------------
+. gen ca    = (state == "CA")
+
+. gen tx    = (state == "TX")
+
+. gen wa    = (state == "WA")
+
+. gen ca_post = ca * post
+
+. label var ca      "=1 if HQ in California"
+
+. label var tx      "=1 if HQ in Texas"
+
+. label var wa      "=1 if HQ in Washington"
+
+. label var ca_post "California x Post"
+
+. 
+. *-------------------------------------------------------------------------------
+. * STEP 6. Outcome and control variables
+. *-------------------------------------------------------------------------------
+. * Market cap in $ millions = fiscal-year-end price x shares outstanding (millions)
+. gen mktcap   = prcc_f * csho
+(6,018 missing values generated)
+
+. gen lnmktcap = ln(mktcap) if mktcap > 0
+(6,020 missing values generated)
+
+. label var mktcap   "Market cap ($ millions)"
+
+. label var lnmktcap "ln(market cap)"
+
+. 
+. gen lnassets = ln(at) if at > 0
+(1,158 missing values generated)
+
+. gen roa      = ni / at if at > 0
+(1,428 missing values generated)
+
+. gen leverage = lt / at if at > 0
+(1,289 missing values generated)
+
+. label var lnassets "ln(total assets)"
+
+. label var roa      "Net income / assets"
+
+. label var leverage "Total liabilities / assets"
+
+. 
+. * Multinational: reports nonzero foreign pretax income (missing treated as 0)
+. gen multinational = (pifo != 0 & pifo < .)
+
+. label var multinational "=1 if reports foreign pretax income"
+
+. 
+. * Firm age since IPO (Compustat ipodate; often missing)
+. gen age = year(fye) - year(ipodate)
+(25,902 missing values generated)
+
+. replace age = . if age < 0
+(4,084 real changes made, 4,084 to missing)
+
+. label var age "Years since IPO"
+
+. 
+. gen nyse = (exchg == 11)
+
+. gen tech = (gsector == "45")
+
+. label var nyse "=1 if listed on NYSE"
+
+. label var tech "=1 if Information Technology sector (GICS 45)"
+
+. 
+. gen sic2 = substr(sic, 1, 2)
+
+. label var sic2 "2-digit SIC industry"
+
+. 
+. * Winsorize ratios at the 1st/99th percentile (a few firms have tiny assets)
+. foreach v in roa leverage {
+  2.     quietly _pctile `v', p(1 99)
+  3.     replace `v' = r(r1) if `v' < r(r1)
+  4.     replace `v' = r(r2) if `v' > r(r2) & `v' < .
+  5. }
+(613 real changes made)
+(613 real changes made)
+(614 real changes made)
+(614 real changes made)
+
+. 
+. *-------------------------------------------------------------------------------
+. * STEP 7. Merge board composition (match on gvkey and calendar year of FYE)
+. *-------------------------------------------------------------------------------
+. gen yr = year(fye)
+
+. merge m:1 gvkey yr using "temp/board.dta", keep(master match)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                        13,723
+        from master                    13,723  (_merge==1)
+        from using                          0  (_merge==2)
+
+    Matched                            49,020  (_merge==3)
+    -----------------------------------------
+
+. gen board_matched = (_merge == 3)
+
+. drop _merge
+
+. 
+. *-------------------------------------------------------------------------------
+. * STEP 8. Time windows and save
+. *-------------------------------------------------------------------------------
+. keep if fye >= td(01jan2010) & fye <= td(31dec2025)
+(518 observations deleted)
+
+. 
+. * Calendar year of the fiscal year-end, used for year-by-year tables/graphs
+. gen fyeyear = year(fye)
+
+. label var fyeyear "Calendar year of fiscal year-end"
+
+. 
+. * Main window: fiscal year-ends Jan 2010 - Dec 2019 (before COVID)
+. gen mainwindow = (fye <= td(31dec2019))
+
+. label var mainwindow "=1 if fiscal year ended Jan 2010 - Dec 2019"
+
+. 
+. compress
+  variable ipodate was long now int
+  variable apdedate was long now int
+  variable fye was float now int
+  variable post was float now byte
+  variable ca was float now byte
+  variable tx was float now byte
+  variable wa was float now byte
+  variable ca_post was float now byte
+  variable multinational was float now byte
+  variable age was float now byte
+  variable nyse was float now byte
+  variable tech was float now byte
+  variable yr was float now int
+  variable women was float now byte
+  variable zerowomen was float now byte
+  variable board_matched was float now byte
+  variable fyeyear was float now int
+  variable mainwindow was float now byte
+  variable fyear was double now int
+  variable exchg was double now byte
+  variable fyr was double now byte
+  variable sich was double now int
+  variable boardsize was double now byte
+  variable tic was str8 now str7
+  variable conm was str30 now str28
+  variable city was str23 now str22
+  (5,351,350 bytes saved)
+
+. * Full file, ALL states incl. Washington (needed later for WA-vs-TX placebo)
+. save "final_data_full.dta", replace
+(file final_data_full.dta not found)
+file final_data_full.dta saved
+
+. 
+. * Main analysis file: drop Washington firms (WA passed its own board-diversity
+. * law in 2020, so WA is not a clean comparison state). All years 2010-2025 kept.
+. drop if wa == 1
+(1,162 observations deleted)
+
+. save "final_data.dta", replace
+(file final_data.dta not found)
+file final_data.dta saved
+
+. 
+. describe
+
+Contains data from final_data.dta
+ Observations:        61,063                  (null)
+    Variables:            58                  20 Oct 2026 17:19
+----------------------------------------------------------------------------------------------------------------------------------------
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+----------------------------------------------------------------------------------------------------------------------------------------
+costat          str1    %-9s                  (costat) Active/Inactive Status Marker
+curcd           str3    %-9s                  (curcd) ISO Currency Code
+datafmt         str3    %-9s                  (datafmt) Data Format
+indfmt          str4    %-9s                  (indfmt) Industry Format
+consol          str1    %-9s                  (consol) Level of Consolidation - Company Annual Descriptor
+tic             str7    %-9s                  (tic) Ticker Symbol
+fyear           int     %9.0f                 (fyear) Data Year - Fiscal
+gvkey           str6    %-9s                  (gvkey) Global Company Key
+conm            str28   %-28s                 (conm) Company Name
+cusip           str9    %-9s                  (cusip) CUSIP
+cik             str10   %-9s                  (cik) CIK Number
+exchg           byte    %9.0f                 (exchg) Stock Exchange Code
+fyr             byte    %9.0f                 (fyr) Fiscal Year-end Month
+fic             str3    %-9s                  (fic) Current ISO Country Code - Incorporation
+city            str22   %-22s                 (city) City
+incorp          str2    %-9s                  (incorp) Current State/Province of Incorporation Code
+ipodate         int     %td                   (ipodate) Company Initial Public Offering Date
+loc             str3    %-9s                  (loc) Current ISO Country Code - Headquarters
+naics           str6    %-9s                  (naics) North American Industry Classification Code
+sic             str4    %-9s                  (sic) Standard Industry Classification Code
+state           str2    %-9s                  (state) State/Province
+at              double  %9.4f                 (at) Assets - Total
+ceq             double  %9.4f                 (ceq) Common/Ordinary Equity - Total
+lt              double  %9.4f                 (lt) Liabilities - Total
+ni              double  %9.4f                 (ni) Net Income (Loss)
+pifo            double  %9.4f                 (pifo) Pretax Income - Foreign
+sale            double  %9.4f                 (sale) Sales/Turnover (Net)
+xrd             double  %9.4f                 (xrd) Research and Development Expense
+emp             double  %9.4f                 (emp) Employees
+mkvalt          double  %9.4f                 (mkvalt) Market Value - Total - Fiscal
+prcc_f          double  %9.12f                (prcc_f) Price Close - Annual - Fiscal
+sich            int     %9.0f                 (sich) Standard Industrial Classification - Historical
+gsector         str2    %-9s                  (gsector) GIC Sectors
+apdedate        int     %td                   (apdedate) Actual Period End date
+csho            double  %9.4f                 (csho) Common Shares Outstanding
+fye             int     %td                   Fiscal year-end date
+post            byte    %9.0g                 =1 if fiscal year ended on/after 1 Oct 2018
+ca              byte    %9.0g                 =1 if HQ in California
+tx              byte    %9.0g                 =1 if HQ in Texas
+wa              byte    %9.0g                 =1 if HQ in Washington
+ca_post         byte    %9.0g                 California x Post
+mktcap          float   %9.0g                 Market cap ($ millions)
+lnmktcap        float   %9.0g                 ln(market cap)
+lnassets        float   %9.0g                 ln(total assets)
+roa             float   %9.0g                 Net income / assets
+leverage        float   %9.0g                 Total liabilities / assets
+multinational   byte    %9.0g                 =1 if reports foreign pretax income
+age             byte    %9.0g                 Years since IPO
+nyse            byte    %9.0g                 =1 if listed on NYSE
+tech            byte    %9.0g                 =1 if Information Technology sector (GICS 45)
+sic2            str2    %9s                   2-digit SIC industry
+yr              int     %9.0g                 
+boardsize       byte    %9.0f                 Board size (number of directors)
+women           byte    %9.0g                 Number of women on the board
+zerowomen       byte    %9.0g                 =1 if board has no women
+board_matched   byte    %9.0g                 
+fyeyear         int     %9.0g                 Calendar year of fiscal year-end
+mainwindow      byte    %9.0g                 =1 if fiscal year ended Jan 2010 - Dec 2019
+----------------------------------------------------------------------------------------------------------------------------------------
+Sorted by: 
+
+. summarize
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+      costat |          0
+       curcd |          0
+     datafmt |          0
+      indfmt |          0
+      consol |          0
+-------------+---------------------------------------------------------
+         tic |          0
+       fyear |     61,063    2017.479    4.568235       2010       2025
+       gvkey |          0
+        conm |          0
+       cusip |          0
+-------------+---------------------------------------------------------
+         cik |          0
+       exchg |     61,063     12.8224    1.437853         11         14
+         fyr |     61,063    10.72016    2.865284          1         12
+         fic |          0
+        city |          0
+-------------+---------------------------------------------------------
+      incorp |          0
+     ipodate |     35,754    17078.35    4168.969      -5100      24379
+         loc |          0
+       naics |          0
+         sic |          0
+-------------+---------------------------------------------------------
+       state |          0
+          at |     59,953    11966.44    91990.48          0    4424900
+         ceq |     59,836     2454.69    13061.65     -22884     717419
+          lt |     59,829     9359.21    81996.23          0    4062462
+          ni |     59,673    325.5027    2376.701     -23119     132170
+-------------+---------------------------------------------------------
+        pifo |     28,797    304.5179    1987.731     -11194      82000
+        sale |     59,675    4240.619    18993.12      -1408     678338
+         xrd |     32,210    200.1148    1261.192    -18.542      61087
+         emp |     56,098    10.56507    49.24642          0       2300
+      mkvalt |     53,489    8224.754    53970.05      .0005    3787887
+-------------+---------------------------------------------------------
+      prcc_f |     55,373    49.13893    415.2331   1.00e-06      31950
+        sich |     59,203    4765.164    2010.503        100       9997
+     gsector |          0
+    apdedate |     59,944    21354.17    1672.627      18437      24106
+        csho |     59,048    141.9106    528.4942          0   29058.36
+-------------+---------------------------------------------------------
+         fye |     61,063    21349.32    1670.026      18437      24106
+        post |     61,063    .4957012    .4999856          0          1
+          ca |     61,063    .1660908    .3721651          0          1
+          tx |     61,063    .1148158    .3188022          0          1
+          wa |     61,063           0           0          0          0
+-------------+---------------------------------------------------------
+     ca_post |     61,063    .0886298    .2842109          0          1
+      mktcap |     55,143    8489.557    54085.65          0    3783544
+    lnmktcap |     55,141    6.638351    2.249447  -12.55308   15.14617
+    lnassets |     59,921    6.659172    2.451997  -6.907755   15.30276
+         roa |     59,654   -.1267274    .4707831  -3.105741   .3161863
+-------------+---------------------------------------------------------
+    leverage |     59,797     .607372    .3901356   .0358827   2.672699
+multinatio~l |     61,063    .4332247    .4955251          0          1
+         age |     31,745    13.10777    10.39721          0         79
+        nyse |     61,063    .3663102    .4817996          0          1
+        tech |     61,063     .140134    .3471288          0          1
+-------------+---------------------------------------------------------
+        sic2 |          0
+          yr |     61,063    2017.569     4.56161       2010       2025
+   boardsize |     48,020    8.650791    2.502416          1         34
+       women |     48,016    1.587096    1.314691          0          9
+   zerowomen |     48,016    .2326933    .4225528          0          1
+-------------+---------------------------------------------------------
+board_matc~d |     61,063    .7864009    .4098503          0          1
+     fyeyear |     61,063    2017.569     4.56161       2010       2025
+  mainwindow |     61,063    .6193276    .4855562          0          1
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/project/logs/01_build_data.log
+  log type:  text
+ closed on:  20 Oct 2026, 17:19:47
+----------------------------------------------------------------------------------------------------------------------------------------

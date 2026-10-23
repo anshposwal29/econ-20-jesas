@@ -1,0 +1,423 @@
+----------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/project/logs/02_table1_means.log
+  log type:  text
+ opened on:  20 Oct 2026, 17:25:14
+
+. 
+. use "final_data.dta", clear          // Washington already excluded in 01_build_data.do
+((null))
+
+. assert wa == 0
+
+. 
+. local vars lnmktcap mktcap lnassets roa leverage multinational age nyse tech ///
+>            boardsize women zerowomen
+
+. 
+. *===============================================================================
+. * TABLE 1a. Before vs after, main window (fiscal year-ends 2010 - 2019)
+. *===============================================================================
+. preserve
+
+. keep if mainwindow == 1
+(23,245 observations deleted)
+
+. 
+. display _newline "===== BEFORE the law: fiscal year ended Jan 2010 - 30 Sep 2018 ====="
+
+===== BEFORE the law: fiscal year ended Jan 2010 - 30 Sep 2018 =====
+
+. display "ca = 0: all other states (excl. WA)    ca = 1: California"
+ca = 0: all other states (excl. WA)    ca = 1: California
+
+. tabstat `vars' if post == 0, by(ca) stat(mean sd n) columns(statistics) longstub
+
+ca           Variable |      Mean        SD         N
+----------------------+------------------------------
+0            lnmktcap |  6.514668  2.144956     23456
+               mktcap |  5508.819  20605.66     23456
+             lnassets |  6.671506  2.386296     25583
+                  roa | -.0715045  .4132445     25481
+             leverage |  .6182228  .3737998     25537
+         multinatio~l |  .3987109  .4896424     26064
+                  age |   13.0887  8.954284     12649
+                 nyse |  .4099524   .491834     26064
+                 tech |  .1167127  .3210838     26064
+            boardsize |  8.738752  2.553495     21160
+                women |  1.113658  1.084973     21160
+            zerowomen |  .3452741  .4754688     21160
+----------------------+------------------------------
+1            lnmktcap |  6.333611   2.14402      4003
+               mktcap |  7574.662  42505.53      4003
+             lnassets |  5.747119  2.352908      4632
+                  roa | -.2117735  .5632724      4613
+             leverage |  .5590045  .4481556      4608
+         multinatio~l |   .512685  .4998919      4730
+                  age |  10.95548  8.596926      2763
+                 nyse |  .2217759  .4154851      4730
+                 tech |  .3424947  .4745943      4730
+            boardsize |  7.982045  1.939473      3453
+                women |  .9165943  .9679061      3453
+            zerowomen |  .4054445   .491049      3453
+----------------------+------------------------------
+Total        lnmktcap |  6.488273  2.145732     27459
+               mktcap |   5809.98  25031.06     27459
+             lnassets |  6.529796  2.404347     30215
+                  roa | -.0930058  .4424615     30094
+             leverage |  .6091706  .3866737     30145
+         multinatio~l |  .4162174  .4929385     30794
+                  age |  12.70627  8.928578     15412
+                 nyse |  .3810483  .4856523     30794
+                 tech |  .1513931  .3584375     30794
+            boardsize |  8.632593  2.490422     24613
+                women |  1.086011  1.071492     24613
+            zerowomen |  .3537155  .4781319     24613
+-----------------------------------------------------
+
+. 
+. display _newline "===== AFTER the law: fiscal year ended 1 Oct 2018 - 31 Dec 2019 ====="
+
+===== AFTER the law: fiscal year ended 1 Oct 2018 - 31 Dec 2019 =====
+
+. tabstat `vars' if post == 1, by(ca) stat(mean sd n) columns(statistics) longstub
+
+ca           Variable |      Mean        SD         N
+----------------------+------------------------------
+0            lnmktcap |  6.687412  2.217096      5174
+               mktcap |  7169.351  26776.81      5174
+             lnassets |  6.771203  2.578519      5681
+                  roa | -.1244561  .4668408      5627
+             leverage |  .6231151  .3827126      5672
+         multinatio~l |  .3973024  .4893813      5857
+                  age |  13.71513  10.65322      2875
+                 nyse |   .386546  .4869997      5857
+                 tech |  .0993683  .2991814      5857
+            boardsize |   8.77003  2.642243      4718
+                women |  1.605598  1.248916      4716
+            zerowomen |   .197201  .3979276      4716
+----------------------+------------------------------
+1            lnmktcap |  6.656477   2.27607       892
+               mktcap |  11476.59  62306.36       892
+             lnassets |  5.914023  2.386302      1125
+                  roa |  -.257618  .5699539      1114
+             leverage |   .557912  .4273543      1122
+         multinatio~l |  .4841474  .4999629      1167
+                  age |  10.04923  9.593946       650
+                 nyse |  .2193659  .4139944      1167
+                 tech |  .2322194  .4224292      1167
+            boardsize |  8.173101  1.940171       803
+                women |  1.600249  1.096742       803
+            zerowomen |   .135741  .3427268       803
+----------------------+------------------------------
+Total        lnmktcap |  6.682863  2.225702      6066
+               mktcap |  7802.726  34411.98      6066
+             lnassets |  6.629516  2.567401      6806
+                  roa |  -.146462  .4878611      6741
+             leverage |  .6123471  .3911538      6794
+         multinatio~l |  .4117312   .492182      7024
+                  age |  13.03915  10.56082      3525
+                 nyse |  .3587699  .4796737      7024
+                 tech |  .1214408  .3266621      7024
+            boardsize |   8.68321  2.560674      5521
+                women |   1.60482  1.227857      5519
+            zerowomen |  .1882587  .3909541      5519
+-----------------------------------------------------
+
+. 
+. * Number of firms in each cell
+. egen firmtag = tag(gvkey ca post)
+
+. display _newline "Number of FIRMS by group (rows: ca, columns: post)"
+
+Number of FIRMS by group (rows: ca, columns: post)
+
+. tab ca post if firmtag
+
+           |   =1 if fiscal year
+  =1 if HQ | ended on/after 1 Oct
+        in |         2018
+California |         0          1 |     Total
+-----------+----------------------+----------
+         0 |     4,334      3,414 |     7,748 
+         1 |       882        714 |     1,596 
+-----------+----------------------+----------
+     Total |     5,216      4,128 |     9,344 
+
+. display _newline "Number of FIRM-YEARS by group"
+
+Number of FIRM-YEARS by group
+
+. tab ca post
+
+           |   =1 if fiscal year
+  =1 if HQ | ended on/after 1 Oct
+        in |         2018
+California |         0          1 |     Total
+-----------+----------------------+----------
+         0 |    26,064      5,857 |    31,921 
+         1 |     4,730      1,167 |     5,897 
+-----------+----------------------+----------
+     Total |    30,794      7,024 |    37,818 
+
+. 
+. * CSV for Excel: means and standard deviations, built-in commands only
+. * (no add-ons needed). One row per variable.
+. *   ca_pre = California before, oth_pre = all other states before, etc.
+. tempname h
+
+. postfile `h' str20 variable ///
+>     mean_ca_pre sd_ca_pre mean_oth_pre sd_oth_pre ///
+>     mean_ca_post sd_ca_post mean_oth_post sd_oth_post ///
+>     using "temp/table1a_post.dta", replace
+
+. foreach v of local vars {
+  2.     quietly summarize `v' if ca == 1 & post == 0
+  3.     local m1 = r(mean)
+  4.     local s1 = r(sd)
+  5.     quietly summarize `v' if ca == 0 & post == 0
+  6.     local m2 = r(mean)
+  7.     local s2 = r(sd)
+  8.     quietly summarize `v' if ca == 1 & post == 1
+  9.     local m3 = r(mean)
+ 10.     local s3 = r(sd)
+ 11.     quietly summarize `v' if ca == 0 & post == 1
+ 12.     local m4 = r(mean)
+ 13.     local s4 = r(sd)
+ 14.     post `h' ("`v'") (`m1') (`s1') (`m2') (`s2') (`m3') (`s3') (`m4') (`s4')
+ 15. }
+
+. postclose `h'
+
+. 
+. * Preliminary balance test: California minus other states, BEFORE the law.
+. * Standard errors clustered by firm (each firm appears in several years).
+. tempname b
+
+. postfile `b' str20 variable diff se pvalue nobs ///
+>     using "temp/balance_post.dta", replace
+
+. foreach v of local vars {
+  2.     quietly reg `v' ca if post == 0, vce(cluster gvkey)
+  3.     local d  = _b[ca]
+  4.     local se = _se[ca]
+  5.     local p  = 2 * ttail(e(df_r), abs(`d' / `se'))
+  6.     post `b' ("`v'") (`d') (`se') (`p') (e(N))
+  7. }
+
+. postclose `b'
+
+. 
+. restore
+
+. 
+. display _newline "===== TABLE 1a: means [sd], before vs after, excl. WA ====="
+
+===== TABLE 1a: means [sd], before vs after, excl. WA =====
+
+. use "temp/table1a_post.dta", clear
+
+. format mean_* sd_* %9.3f
+
+. list, clean noobs abbreviate(14)
+
+         variable   mean_ca_pre   sd_ca_pre   mean_oth_pre   sd_oth_pre   mean_ca_post   sd_ca_post   mean_oth_post   sd_oth_post  
+         lnmktcap         6.334       2.144          6.515        2.145          6.656        2.276           6.687         2.217  
+           mktcap      7574.662   42505.531       5508.819    20605.660      11476.586    62306.363        7169.351     26776.809  
+         lnassets         5.747       2.353          6.672        2.386          5.914        2.386           6.771         2.579  
+              roa        -0.212       0.563         -0.072        0.413         -0.258        0.570          -0.124         0.467  
+         leverage         0.559       0.448          0.618        0.374          0.558        0.427           0.623         0.383  
+    multinational         0.513       0.500          0.399        0.490          0.484        0.500           0.397         0.489  
+              age        10.955       8.597         13.089        8.954         10.049        9.594          13.715        10.653  
+             nyse         0.222       0.415          0.410        0.492          0.219        0.414           0.387         0.487  
+             tech         0.342       0.475          0.117        0.321          0.232        0.422           0.099         0.299  
+        boardsize         7.982       1.939          8.739        2.553          8.173        1.940           8.770         2.642  
+            women         0.917       0.968          1.114        1.085          1.600        1.097           1.606         1.249  
+        zerowomen         0.405       0.491          0.345        0.475          0.136        0.343           0.197         0.398  
+
+. export delimited using "output/table1a_means.csv", replace
+file output/table1a_means.csv saved
+
+. 
+. display _newline "===== Balance test: California minus other states, before the law ====="
+
+===== Balance test: California minus other states, before the law =====
+
+. display "(SE clustered by firm)"
+(SE clustered by firm)
+
+. use "temp/balance_post.dta", clear
+
+. format diff se pvalue %9.3f
+
+. list, clean noobs
+
+         variable       diff         se   pvalue    nobs  
+         lnmktcap     -0.181      0.095    0.058   27459  
+           mktcap   2065.843   1836.103    0.261   27459  
+         lnassets     -0.924      0.095    0.000   30215  
+              roa     -0.140      0.018    0.000   30094  
+         leverage     -0.059      0.014    0.000   30145  
+    multinational      0.114      0.019    0.000   30794  
+              age     -2.133      0.455    0.000   15412  
+             nyse     -0.188      0.018    0.000   30794  
+             tech      0.226      0.019    0.000   30794  
+        boardsize     -0.757      0.090    0.000   24613  
+            women     -0.197      0.043    0.000   24613  
+        zerowomen      0.060      0.020    0.002   24613  
+
+. export delimited using "output/balance_prelaw.csv", replace
+file output/balance_prelaw.csv saved
+
+. 
+. use "final_data.dta", clear
+((null))
+
+. 
+. *===============================================================================
+. * TABLE 1b. Year-by-year means, all years kept (2010 - 2025)
+. *   fyeyear = calendar year of the fiscal year-end
+. *   The law was signed 30 Sep 2018, so for December year-end firms
+. *   2018 is the first "after" year.
+. *===============================================================================
+. * (tabstat works in every Stata version)
+. display _newline "===== Year-by-year means: CALIFORNIA ====="
+
+===== Year-by-year means: CALIFORNIA =====
+
+. tabstat lnmktcap zerowomen women boardsize if ca == 1, by(fyeyear) stat(mean) format(%9.3f)
+
+Summary statistics: Mean
+Group variable: fyeyear (Calendar year of fiscal year-end)
+
+ fyeyear |  lnmktcap  zerowo~n     women  boards~e
+---------+----------------------------------------
+    2010 |     6.129     0.501     0.691     8.006
+    2011 |     6.066     0.493     0.733     7.949
+    2012 |     6.070     0.477     0.773     8.043
+    2013 |     6.366     0.448     0.813     8.019
+    2014 |     6.477     0.408     0.908     7.986
+    2015 |     6.356     0.371     0.984     7.900
+    2016 |     6.349     0.348     1.029     7.903
+    2017 |     6.594     0.279     1.208     8.042
+    2018 |     6.597     0.222     1.346     8.068
+    2019 |     6.827     0.072     1.789     8.247
+    2020 |     7.186     0.046     2.038     8.089
+    2021 |     7.328     0.030     2.541     8.300
+    2022 |     6.700     0.019     2.718     8.310
+    2023 |     6.644     0.033     2.651     8.193
+    2024 |     6.672     0.030     2.673     8.193
+    2025 |     6.776     0.031     2.912     9.075
+---------+----------------------------------------
+   Total |     6.603     0.217     1.689     8.123
+--------------------------------------------------
+
+. 
+. display _newline "===== Year-by-year means: ALL OTHER STATES (excl. WA) ====="
+
+===== Year-by-year means: ALL OTHER STATES (excl. WA) =====
+
+. tabstat lnmktcap zerowomen women boardsize if ca == 0, by(fyeyear) stat(mean) format(%9.3f)
+
+Summary statistics: Mean
+Group variable: fyeyear (Calendar year of fiscal year-end)
+
+ fyeyear |  lnmktcap  zerowo~n     women  boards~e
+---------+----------------------------------------
+    2010 |     6.227     0.424     0.907     8.806
+    2011 |     6.176     0.394     0.963     8.748
+    2012 |     6.297     0.373     1.011     8.777
+    2013 |     6.621     0.354     1.056     8.763
+    2014 |     6.675     0.342     1.101     8.729
+    2015 |     6.575     0.320     1.178     8.739
+    2016 |     6.675     0.299     1.272     8.752
+    2017 |     6.806     0.283     1.325     8.689
+    2018 |     6.643     0.233     1.492     8.719
+    2019 |     6.731     0.177     1.684     8.733
+    2020 |     6.828     0.136     1.848     8.677
+    2021 |     7.057     0.099     2.046     8.697
+    2022 |     6.700     0.086     2.192     8.690
+    2023 |     6.695     0.084     2.293     8.653
+    2024 |     6.727     0.063     2.468     8.809
+    2025 |     6.816     0.032     2.969     9.616
+---------+----------------------------------------
+   Total |     6.645     0.236     1.568     8.747
+--------------------------------------------------
+
+. 
+. * Save the year-by-year means to a CSV (one row per year)
+. preserve
+
+. collapse (mean) lnmktcap zerowomen women boardsize lnassets ///
+>          (count) n_firmyears = lnmktcap, by(fyeyear ca)
+
+. reshape wide lnmktcap zerowomen women boardsize lnassets n_firmyears, i(fyeyear) j(ca)
+(j = 0 1)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations               32   ->   16          
+Number of variables                   8   ->   13          
+j variable (2 values)                ca   ->   (dropped)
+xij variables:
+                               lnmktcap   ->   lnmktcap0 lnmktcap1
+                              zerowomen   ->   zerowomen0 zerowomen1
+                                  women   ->   women0 women1
+                              boardsize   ->   boardsize0 boardsize1
+                               lnassets   ->   lnassets0 lnassets1
+                            n_firmyears   ->   n_firmyears0 n_firmyears1
+-----------------------------------------------------------------------------
+
+. * suffix 1 = California, suffix 0 = all other states (excl. WA)
+. order fyeyear lnmktcap1 lnmktcap0 zerowomen1 zerowomen0 women1 women0 ///
+>       boardsize1 boardsize0 lnassets1 lnassets0 n_firmyears1 n_firmyears0
+
+. export delimited using "output/table1b_means_by_year.csv", replace
+file output/table1b_means_by_year.csv saved
+
+. list, clean noobs
+
+    fyeyear   lnmktc~1   lnmktc~0   zerowo~1   zerowo~0     women1     women0   boards~1   boards~0   lnasse~1   lnasse~0   n_firm~1   n
+> _firm~0  
+       2010   6.128737   6.227262   .5014837   .4235346   .6913947   .9074482          8          9   5.782154   6.632642        400    
+>    2551  
+       2011   6.066296   6.175593   .4926471   .3938473   .7328432   .9631599          8          9   5.683292   6.599956        471    
+>    2937  
+       2012     6.0704   6.296922   .4771084   .3725107    .773494   1.010933          8          9   5.553988   6.600001        486    
+>    2873  
+       2013   6.366417   6.620897   .4484412   .3536019   .8129497   1.056158          8          9   5.568066   6.624881        495    
+>    2882  
+       2014   6.476744   6.675044   .4076577   .3423664   .9076577   1.101145          8          9   5.782468   6.735867        517    
+>    2891  
+       2015   6.356264   6.575074   .3705357   .3197609    .984375   1.178185          8          9   5.824813   6.747359        515    
+>    2930  
+       2016   6.349259   6.675079   .3484163     .29858   1.029412   1.271674          8          9   5.819283   6.726861        505    
+>    2960  
+       2017   6.594132   6.806205   .2794457   .2834974   1.207852   1.324754          8          9   5.854506   6.735944        493    
+>    2896  
+       2018   6.596946   6.642651   .2217195   .2328347   1.346154   1.492137          8          9   5.991673   6.757687        496    
+>    2861  
+       2019   6.826674   6.731002   .0723404   .1774626   1.789362    1.68417          8          9   5.923926   6.733312        517    
+>    2849  
+       2020    7.18565   6.828413   .0456274   .1356822   2.038023   1.848201          8          9    6.22711   6.795076        547    
+>    2876  
+       2021   7.328172   7.056962   .0302067   .0985867    2.54054   2.045501          8          9   6.497521   7.010642        645    
+>    3049  
+       2022   6.699994   6.699925   .0188976   .0857143    2.71811   2.191837          8          9   6.362083   6.979372        656    
+>    3059  
+       2023   6.644264   6.694778   .0332805   .0843206   2.651347   2.292683          8          9   6.301775   6.933586        659    
+>    3001  
+       2024   6.671892   6.727459   .0295652   .0634982   2.673043   2.468251          8          9   6.310789   6.923695        655    
+>    2958  
+       2025   6.775502   6.815516   .0314465   .0319285    2.91195   2.969349          9         10   6.378558   7.052622        647    
+>    2864  
+
+. restore
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/project/logs/02_table1_means.log
+  log type:  text
+ closed on:  20 Oct 2026, 17:25:15
+----------------------------------------------------------------------------------------------------------------------------------------
