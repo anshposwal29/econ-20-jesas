@@ -91,6 +91,29 @@ Change the `cd` line at the top of each `.do` file to your project folder before
 | `preferred`, `score` | Link quality flags in BoardEx–Compustat link (keep `preferred == 1`, best `score`) |
 | `GVKEY` | Compustat ID in link file (renamed `gvkey`) |
 
+## Merges (in `01_build_data.do`)
+
+Counts below are from `logs/01_build_data.log`.
+
+| # | Master | Using | Type & keys | Kept | Result |
+|---|---|---|---|---|---|
+| 1 | BoardEx board file (one row per `companyid` × `yr`) | `temp/link.dta` | `m:1` on `companyid` | `keep(match)` | 63,335 matched, 0 unmatched |
+| 2 | Compustat main (`raw/compustat_annual_main.dta`) | `temp/csho.dta` | `1:1` on `gvkey` `fyear` | `keep(master match)` | 133,492 matched, 0 unmatched |
+| 3 | Compustat firm-years | `temp/board.dta` | `m:1` on `gvkey` `yr` | `keep(master match)` | 49,020 matched (78%), 13,723 master-only; flagged by `board_matched` |
+
+**1. BoardEx → Compustat link (`temp/link.dta`).** From `raw/link_boardex_crsp_compustat.dta`, keep `preferred == 1`. If a `companyid` still maps to several `gvkey`s, keep the best `score` (1 = strongest match), so each `companyid` has one `gvkey`. `GVKEY` is renamed `gvkey`.
+
+**Board file (`temp/board.dta`).** From `raw/boardex_orgsummary.dta`, keep US-HQ companies (`hocountryname == "United States"`). The raw file has one row per director, and the board-level fields repeat on each row, so it is collapsed to one row per `companyid` × `annualreportdate`. `yr = year(annualreportdate)`. If a company files two annual reports in one calendar year, the later one is kept. After merging in `gvkey` (merge 1), duplicates on `gvkey` × `yr` are resolved the same way, by keeping the latest report.
+
+**2. Shares-outstanding supplement (`temp/csho.dta`).** From `raw/compustat_annual_csho.dta` (`indfmt == "INDL"`), 11 `gvkey` × `fyear` duplicate pairs are dropped (these are fiscal-year changes). This file adds `csho`, `apdedate` and `gsector` to the main Compustat file. Exchange and SIC filters are applied after this merge.
+
+**3. Board composition → firm-years.** The merge key `yr` is the calendar year of the fiscal year-end (`year(fye)`) on the Compustat side and the calendar year of `annualreportdate` on the BoardEx side. Unmatched firm-years are kept, with `boardsize`, `women` and `zerowomen` missing and `board_matched = 0`. Board-variable means therefore cover only matched firm-years.
+
+**Caveats**
+- `state` is the *current* HQ state in Compustat, not the historical one, so firms that moved out of California after 2018 are miscoded (to be fixed).
+- The `yr` key assumes the BoardEx annual report date falls in the same calendar year as the Compustat fiscal year-end. A report dated early in the next year would be matched to the wrong year or not matched at all.
+- Washington firms are dropped *after* all merges. `final_data_full.dta` keeps them for the WA-vs-TX placebo.
+
 ## Sample restrictions
 
 US-HQ (`loc == "USA"`), `indfmt == "INDL"`, nonmissing `state`, listed on NYSE/AMEX/Nasdaq (`exchg` ∈ {11, 12, 14}), SIC 67xx (funds/trusts/shells) dropped, duplicate `gvkey`–`fyear` rows dropped, fiscal year-ends 1 Jan 2010 – 31 Dec 2025.
