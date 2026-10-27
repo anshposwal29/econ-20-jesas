@@ -2,6 +2,23 @@
 
 ECON 20 project: California SB 826 (board gender quota, signed 30 Sep 2018) and firm value.
 
+## TL;DR: `final_data.dta`
+
+- **One row = one firm-year.** 61,063 rows, 6,614 firms, fiscal year-ends from 2010 to 2025, Washington firms excluded (`final_data_full.dta` includes them).
+- **ID:** `gvkey` + `fyear` is unique. `conm`, `tic`, `cusip` and `cik` are also available.
+- **Time:** `fye` is the fiscal year-end date and `fyeyear` is its calendar year. `post` = 1 if the fiscal year ended on or after 1 Oct 2018. `mainwindow` = 1 for 2010–2019, the default sample.
+- **Groups:** `ca` (treatment) vs. all other states. The coefficient on `ca_post` is the diff-in-diff estimate. `tx` is for robustness checks.
+- **Outcome:** `lnmktcap` = ln(price × shares outstanding, $M).
+- **Controls:** `lnassets`, `roa`, `leverage`, `multinational`, `age`, `nyse`, `tech`, `sic2` (for industry fixed effects).
+- **Board (about 80% of rows):** `boardsize`, `women`, `zerowomen`. These are missing when `board_matched` = 0.
+
+```stata
+use "final_data.dta", clear
+reg lnmktcap ca post ca_post if mainwindow == 1, vce(cluster gvkey)
+```
+
+**Rules:** never overwrite `final_data.dta` (only `01_build_data.do` creates it). Create new variables in your own do-file. Always use `vce(cluster gvkey)`. Missing (`.`) counts as +∞, so write `gen x = (age > 10) if age < .`.
+
 ## Pipeline
 
 | Step | File | What it does |
