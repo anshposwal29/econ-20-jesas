@@ -1,0 +1,625 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/02_balance_test.log
+  log type:  text
+ opened on:   1 Nov 2026, 15:34:17
+
+. 
+. use "final_data.dta", clear
+((null))
+
+. keep if mainwindow == 1
+(6,188 observations deleted)
+
+. 
+. * Variables in the balance test (see 01b_collinearity_tests.do for the choice
+> ).
+. * age_missing and pifo_missing show how often age and foreign income are blan
+> k.
+. local balance lnassets roa leverage multinational pifo_missing age age_missin
+> g ///
+>               nyse tech energy boardsize
+
+. * Shown in the means columns only: the outcome and the board outcomes
+. local meansonly lnmktcap women zerowomen pharma
+
+. 
+. * Short labels for the table (outsum keys on the label and cannot take commas
+> )
+. label var lnmktcap      "Ln(Market Cap)"
+
+. label var women         "Women on Board"
+
+. label var zerowomen     "No Women on Board"
+
+. label var pharma        "Pharma or Biotech"
+
+. label var lnassets      "Ln(Total Assets)"
+
+. label var roa           "Net Income / Assets"
+
+. label var leverage      "Liabilities / Assets"
+
+. label var multinational "Multinational"
+
+. label var pifo_missing  "Foreign Income Not Reported"
+
+. label var age           "Years Since IPO"
+
+. label var age_missing   "IPO Date Missing"
+
+. label var nyse          "Listed on NYSE"
+
+. label var tech          "Tech Sector"
+
+. label var energy        "Oil and Gas"
+
+. label var boardsize     "Board Size"
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * Columns (1)-(2): means and SDs before the law, by state (outsum)
+. *----------------------------------------------------------------------------
+> ---
+. outsum `meansonly' `balance' using "output/table1_means.csv" ///
+>     if post == 0 & ca == 1, replace comma bracket ctitle("California")
+
+. outsum `meansonly' `balance' using "output/table1_means.csv" ///
+>     if post == 0 & ca == 0, append comma bracket ctitle("Texas")
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * Column (3): CA - TX difference before the law (outreg2)
+. *----------------------------------------------------------------------------
+> ---
+. local app replace
+
+. foreach v of local balance {
+  2.     reg `v' ca if post == 0, vce(cluster gvkey)
+  3.     outreg2 ca using "output/balance_prelaw", `app' excel noaster ///
+>         ctitle("`v'") label
+  4.     local app append
+  5. }
+
+Linear regression                               Number of obs     =      7,140
+                                                F(1, 1282)        =      33.75
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0316
+                                                Root MSE          =     2.1743
+
+                              (Std. err. adjusted for 1,283 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    lnassets | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.7921855   .1363626    -5.81   0.000    -1.059704   -.5246671
+       _cons |   6.959481   .1034085    67.30   0.000     6.756612    7.162349
+------------------------------------------------------------------------------
+output/balance_prelaw.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      7,132
+                                                F(1, 1280)        =      21.25
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0067
+                                                Root MSE          =     .62666
+
+                              (Std. err. adjusted for 1,281 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+         roa | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.1038654   .0225303    -4.61   0.000    -.1480657    -.059665
+       _cons |  -.0348893   .0169604    -2.06   0.040    -.0681626   -.0016159
+------------------------------------------------------------------------------
+output/balance_prelaw.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      7,114
+                                                F(1, 1282)        =       8.39
+                                                Prob > F          =     0.0038
+                                                R-squared         =     0.0048
+                                                Root MSE          =     .36875
+
+                              (Std. err. adjusted for 1,283 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    leverage | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.0515167    .017782    -2.90   0.004    -.0864017   -.0166318
+       _cons |   .5571939   .0135758    41.04   0.000     .5305607    .5838272
+------------------------------------------------------------------------------
+output/balance_prelaw.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      7,140
+                                                F(1, 1282)        =      36.99
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0308
+                                                Root MSE          =     .49198
+
+                              (Std. err. adjusted for 1,283 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+multinatio~l | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .1768621   .0290788     6.08   0.000     .1198148    .2339094
+       _cons |   .3819176    .022113    17.27   0.000     .3385359    .4252994
+------------------------------------------------------------------------------
+output/balance_prelaw.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      7,140
+                                                F(1, 1282)        =      35.13
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0294
+                                                Root MSE          =     .49231
+
+                              (Std. err. adjusted for 1,283 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+pifo_missing | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.1726794   .0291341    -5.93   0.000    -.2298351   -.1155236
+       _cons |   .5781853   .0222954    25.93   0.000     .5344459    .6219247
+------------------------------------------------------------------------------
+output/balance_prelaw.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      4,534
+                                                F(1, 850)         =       0.67
+                                                Prob > F          =     0.4141
+                                                R-squared         =     0.0010
+                                                Root MSE          =     8.7305
+
+                                (Std. err. adjusted for 851 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+         age | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.5548061   .6789431    -0.82   0.414    -1.887408    .7777955
+       _cons |   11.58154   .5430281    21.33   0.000     10.51571    12.64737
+------------------------------------------------------------------------------
+output/balance_prelaw.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      7,140
+                                                F(1, 1282)        =      15.20
+                                                Prob > F          =     0.0001
+                                                R-squared         =     0.0148
+                                                Root MSE          =     .47791
+
+                              (Std. err. adjusted for 1,283 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+ age_missing | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.1182969   .0303458    -3.90   0.000    -.1778297    -.058764
+       _cons |   .4317889   .0235952    18.30   0.000     .3854994    .4780785
+------------------------------------------------------------------------------
+output/balance_prelaw.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      7,140
+                                                F(1, 1282)        =     104.35
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0956
+                                                Root MSE          =     .45469
+
+                              (Std. err. adjusted for 1,283 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+        nyse | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.2981687   .0291885   -10.22   0.000    -.3554311   -.2409063
+       _cons |    .521879   .0237178    22.00   0.000     .4753491    .5684089
+------------------------------------------------------------------------------
+output/balance_prelaw.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      7,120
+                                                F(1, 1269)        =     108.86
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0838
+                                                Root MSE          =      .4097
+
+                              (Std. err. adjusted for 1,270 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+        tech | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .2498067   .0239422    10.43   0.000      .202836    .2967774
+       _cons |    .100355   .0139597     7.19   0.000     .0729683    .1277416
+------------------------------------------------------------------------------
+output/balance_prelaw.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      7,140
+                                                F(1, 1282)        =     128.49
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1402
+                                                Root MSE          =     .28733
+
+                              (Std. err. adjusted for 1,283 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+      energy | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.2339996   .0206436   -11.34   0.000    -.2744985   -.1935007
+       _cons |    .239704   .0204274    11.73   0.000     .1996292    .2797787
+------------------------------------------------------------------------------
+output/balance_prelaw.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      6,244
+                                                F(1, 1133)        =       1.06
+                                                Prob > F          =     0.3027
+                                                R-squared         =     0.0011
+                                                Root MSE          =     2.1336
+
+                              (Std. err. adjusted for 1,134 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+   boardsize | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.1401786   .1359599    -1.03   0.303    -.4069401    .1265829
+       _cons |    8.16394   .1098039    74.35   0.000     7.948499    8.379382
+------------------------------------------------------------------------------
+output/balance_prelaw.xml
+dir : seeout
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * Column (4): diff-in-diff in each control (outreg2)
+. *----------------------------------------------------------------------------
+> ---
+. local app replace
+
+. foreach v of local balance {
+  2.     reg `v' ca post ca_post, vce(cluster gvkey)
+  3.     outreg2 ca_post using "output/balance_did", `app' excel noaster ///
+>         ctitle("`v'") label
+  4.     local app append
+  5. }
+
+Linear regression                               Number of obs     =      8,762
+                                                F(3, 1407)        =      14.84
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0304
+                                                Root MSE          =     2.1872
+
+                              (Std. err. adjusted for 1,408 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    lnassets | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.7921855   .1363717    -5.81   0.000    -1.059699   -.5246718
+        post |   .0906847   .0691041     1.31   0.190    -.0448735    .2262429
+     ca_post |   .1274503   .0951931     1.34   0.181    -.0592855    .3141861
+       _cons |   6.959481   .1034154    67.30   0.000     6.756616    7.162346
+------------------------------------------------------------------------------
+output/balance_did.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      8,749
+                                                F(3, 1403)        =      13.85
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0093
+                                                Root MSE          =     .60287
+
+                              (Std. err. adjusted for 1,404 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+         roa | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.1038654   .0225318    -4.61   0.000     -.148065   -.0596657
+        post |  -.0054635   .0201006    -0.27   0.786     -.044894    .0339669
+     ca_post |  -.0497704   .0292898    -1.70   0.089    -.1072269    .0076861
+       _cons |  -.0348893   .0169616    -2.06   0.040    -.0681621   -.0016165
+------------------------------------------------------------------------------
+output/balance_did.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      8,733
+                                                F(3, 1407)        =       3.56
+                                                Prob > F          =     0.0138
+                                                R-squared         =     0.0051
+                                                Root MSE          =     .36242
+
+                              (Std. err. adjusted for 1,408 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    leverage | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.0515167   .0177831    -2.90   0.004    -.0864011   -.0166324
+        post |   .0123156   .0144442     0.85   0.394    -.0160188      .04065
+     ca_post |  -.0006893    .019323    -0.04   0.972    -.0385944    .0372158
+       _cons |   .5571939   .0135767    41.04   0.000     .5305612    .5838267
+------------------------------------------------------------------------------
+output/balance_did.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      8,762
+                                                F(3, 1407)        =      12.47
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0295
+                                                Root MSE          =     .49233
+
+                              (Std. err. adjusted for 1,408 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+multinatio~l | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .1768621   .0290808     6.08   0.000     .1198158    .2339085
+        post |   .0091438   .0176237     0.52   0.604    -.0254277    .0437154
+     ca_post |  -.0226697   .0245483    -0.92   0.356    -.0708249    .0254855
+       _cons |   .3819176   .0221145    17.27   0.000     .3385367    .4252986
+------------------------------------------------------------------------------
+output/balance_did.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      8,762
+                                                F(3, 1407)        =      12.26
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0286
+                                                Root MSE          =     .49247
+
+                              (Std. err. adjusted for 1,408 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+pifo_missing | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.1726794    .029136    -5.93   0.000    -.2298341   -.1155246
+        post |  -.0167328   .0181883    -0.92   0.358    -.0524119    .0189463
+     ca_post |   .0129929   .0246576     0.53   0.598    -.0353768    .0613625
+       _cons |   .5781853   .0222969    25.93   0.000     .5344467     .621924
+------------------------------------------------------------------------------
+output/balance_did.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      5,600
+                                                F(3, 955)         =       3.92
+                                                Prob > F          =     0.0085
+                                                R-squared         =     0.0040
+                                                Root MSE          =     8.9516
+
+                                (Std. err. adjusted for 956 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+         age | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.5548061   .6790063    -0.82   0.414    -1.887323    .7777106
+        post |   1.025256    .480644     2.13   0.033     .0820156    1.968496
+     ca_post |  -1.853213   .5973704    -3.10   0.002    -3.025523   -.6809031
+       _cons |   11.58154   .5430786    21.33   0.000     10.51577    12.64731
+------------------------------------------------------------------------------
+output/balance_did.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      8,762
+                                                F(3, 1407)        =       8.95
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0167
+                                                Root MSE          =     .47633
+
+                              (Std. err. adjusted for 1,408 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+ age_missing | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.1182969   .0303478    -3.90   0.000    -.1778287    -.058765
+        post |  -.0072079   .0152571    -0.47   0.637    -.0371371    .0227212
+     ca_post |  -.0281384   .0202201    -1.39   0.164    -.0678033    .0115264
+       _cons |   .4317889   .0235968    18.30   0.000     .3855002    .4780777
+------------------------------------------------------------------------------
+output/balance_did.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      8,762
+                                                F(3, 1407)        =      34.89
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0924
+                                                Root MSE          =     .45543
+
+                              (Std. err. adjusted for 1,408 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+        nyse | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.2981687   .0291904   -10.21   0.000    -.3554301   -.2409073
+        post |  -.0204824   .0158312    -1.29   0.196    -.0515378     .010573
+     ca_post |   .0296639   .0196844     1.51   0.132    -.0089501    .0682779
+       _cons |    .521879   .0237193    22.00   0.000     .4753499    .5684081
+------------------------------------------------------------------------------
+output/balance_did.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      8,717
+                                                F(3, 1377)        =      45.01
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0813
+                                                Root MSE          =     .40304
+
+                              (Std. err. adjusted for 1,378 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+        tech | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .2498067   .0239439    10.43   0.000     .2028362    .2967772
+        post |  -.0153691   .0099601    -1.54   0.123    -.0349078    .0041696
+     ca_post |   -.087879   .0175936    -4.99   0.000    -.1223922   -.0533657
+       _cons |    .100355   .0139607     7.19   0.000     .0729684    .1277415
+------------------------------------------------------------------------------
+output/balance_did.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      8,762
+                                                F(3, 1407)        =      46.50
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1429
+                                                Root MSE          =     .28871
+
+                              (Std. err. adjusted for 1,408 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+      energy | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.2339996   .0206449   -11.33   0.000    -.2744978   -.1935014
+        post |   .0172793   .0135855     1.27   0.204    -.0093708    .0439293
+     ca_post |  -.0185686   .0137865    -1.35   0.178    -.0456129    .0084757
+       _cons |    .239704   .0204287    11.73   0.000     .1996299     .279778
+------------------------------------------------------------------------------
+output/balance_did.xml
+dir : seeout
+
+Linear regression                               Number of obs     =      7,701
+                                                F(3, 1249)        =       3.32
+                                                Prob > F          =     0.0193
+                                                R-squared         =     0.0016
+                                                Root MSE          =     2.1419
+
+                              (Std. err. adjusted for 1,250 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+   boardsize | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.1401786     .13597    -1.03   0.303    -.4069333    .1265761
+        post |   .0452904    .088944     0.51   0.611    -.1292057    .2197865
+     ca_post |   .1862142   .1166198     1.60   0.111    -.0425781    .4150065
+       _cons |    8.16394    .109812    74.34   0.000     7.948504    8.379377
+------------------------------------------------------------------------------
+output/balance_did.xml
+dir : seeout
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * One combined file: variable, CA mean, CA sd, TX mean, TX sd,
+. * pre-law diff, se, p, N, DiD b3, se, p, N
+. *----------------------------------------------------------------------------
+> ---
+. tempname h
+
+. postfile `h' str20 variable mean_ca sd_ca mean_tx sd_tx ///
+>     diff diff_se diff_p diff_n did did_se did_p did_n ///
+>     using "temp/table1_balance.dta", replace
+
+. 
+. foreach v in `meansonly' `balance' {
+  2.     quietly summarize `v' if post == 0 & ca == 1
+  3.     local m1 = r(mean)
+  4.     local s1 = r(sd)
+  5.     quietly summarize `v' if post == 0 & ca == 0
+  6.     local m0 = r(mean)
+  7.     local s0 = r(sd)
+  8.     * balance regressions for the balance variables only
+.     local isbal : list v in balance
+  9.     if `isbal' {
+ 10.         quietly reg `v' ca if post == 0, vce(cluster gvkey)
+ 11.         local b  = _b[ca]
+ 12.         local se = _se[ca]
+ 13.         local p  = 2 * ttail(e(df_r), abs(`b' / `se'))
+ 14.         local n  = e(N)
+ 15.         quietly reg `v' ca post ca_post, vce(cluster gvkey)
+ 16.         local b3  = _b[ca_post]
+ 17.         local se3 = _se[ca_post]
+ 18.         local p3  = 2 * ttail(e(df_r), abs(`b3' / `se3'))
+ 19.         local n3  = e(N)
+ 20.     }
+ 21.     else {
+ 22.         local b   = .
+ 23.         local se  = .
+ 24.         local p   = .
+ 25.         local n   = .
+ 26.         local b3  = .
+ 27.         local se3 = .
+ 28.         local p3  = .
+ 29.         local n3  = .
+ 30.     }
+ 31.     post `h' ("`v'") (`m1') (`s1') (`m0') (`s0') ///
+>         (`b') (`se') (`p') (`n') (`b3') (`se3') (`p3') (`n3')
+ 32. }
+
+. postclose `h'
+
+. 
+. * firm and firm-year counts for the table notes
+. count if post == 0 & ca == 1
+  4,032
+
+. local fy_ca = r(N)
+
+. count if post == 0 & ca == 0
+  3,108
+
+. local fy_tx = r(N)
+
+. quietly tab gvkey if post == 0 & ca == 1
+
+. local f_ca = r(r)
+
+. quietly tab gvkey if post == 0 & ca == 0
+
+. local f_tx = r(r)
+
+. display "Pre-law firm-years: CA `fy_ca', TX `fy_tx'. Firms: CA `f_ca', TX `f_
+> tx'."
+Pre-law firm-years: CA 4032, TX 3108. Firms: CA 748, TX 535.
+
+. 
+. use "temp/table1_balance.dta", clear
+
+. format mean_* sd_* diff* did* %9.3f
+
+. format diff_n did_n %9.0f
+
+. list, noobs clean
+
+         variable   mean_ca   sd_ca   mean_tx   sd_tx     diff   diff_se   diff
+> _p   diff_n      did   did_se   did_p   did_n  
+         lnmktcap     6.430   2.159     6.770   2.091        .         .       
+>  .        .        .        .       .       .  
+            women     0.932   0.980     0.830   0.939        .         .       
+>  .        .        .        .       .       .  
+        zerowomen     0.401   0.490     0.451   0.498        .         .       
+>  .        .        .        .       .       .  
+           pharma     0.185   0.388     0.025   0.156        .         .       
+>  .        .        .        .       .       .  
+         lnassets     6.167   2.168     6.959   2.183   -0.792     0.136    0.0
+> 00     7140    0.127    0.095   0.181    8762  
+              roa    -0.139   0.539    -0.035   0.725   -0.104     0.023    0.0
+> 00     7132   -0.050    0.029   0.089    8749  
+         leverage     0.506   0.376     0.557   0.359   -0.052     0.018    0.0
+> 04     7114   -0.001    0.019   0.972    8733  
+    multinational     0.559   0.497     0.382   0.486    0.177     0.029    0.0
+> 00     7140   -0.023    0.025   0.356    8762  
+     pifo_missing     0.406   0.491     0.578   0.494   -0.173     0.029    0.0
+> 00     7140    0.013    0.025   0.598    8762  
+              age    11.027   8.580    11.582   8.962   -0.555     0.679    0.4
+> 14     4534   -1.853    0.597   0.002    5600  
+      age_missing     0.313   0.464     0.432   0.495   -0.118     0.030    0.0
+> 00     7140   -0.028    0.020   0.164    8762  
+             nyse     0.224   0.417     0.522   0.500   -0.298     0.029    0.0
+> 00     7140    0.030    0.020   0.132    8762  
+             tech     0.350   0.477     0.100   0.301    0.250     0.024    0.0
+> 00     7120   -0.088    0.018   0.000    8717  
+           energy     0.006   0.075     0.240   0.427   -0.234     0.021    0.0
+> 00     7140   -0.019    0.014   0.178    8762  
+        boardsize     8.024   1.969     8.164   2.326   -0.140     0.136    0.3
+> 03     6244    0.186    0.117   0.111    7701  
+
+. export delimited using "output/table1_balance.csv", replace
+file output/table1_balance.csv saved
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/02_balance_test.log
+  log type:  text
+ closed on:   1 Nov 2026, 15:34:21
+-------------------------------------------------------------------------------

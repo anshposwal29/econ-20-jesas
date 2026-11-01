@@ -1,0 +1,277 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/01b_collinearity_tests.log
+  log type:  text
+ opened on:   1 Nov 2026, 15:30:53
+
+. 
+. use "temp/balance_candidates.dta", clear
+((null))
+
+. keep if mainwindow == 1 & post == 0
+(7,810 observations deleted)
+
+. 
+. local final lnassets roa leverage multinational age nyse tech energy boardsiz
+> e
+
+. local cand  lnsale lnemp `final' pharma fin rd women zerowomen
+
+. local file  "output/collinearity_tests.xlsx"
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * TEST 1. Pairwise correlations (lnmktcap is the outcome, shown for reference
+> )
+. *----------------------------------------------------------------------------
+> ---
+. pwcorr lnmktcap `cand'
+
+             | lnmktcap   lnsale    lnemp lnassets      roa leverage multin~l
+-------------+---------------------------------------------------------------
+    lnmktcap |   1.0000 
+      lnsale |   0.7979   1.0000 
+       lnemp |   0.7428   0.8845   1.0000 
+    lnassets |   0.8638   0.8606   0.7799   1.0000 
+         roa |   0.2369   0.4381   0.3824   0.2998   1.0000 
+    leverage |  -0.0413   0.0393   0.0667   0.0829  -0.2544   1.0000 
+multinatio~l |   0.3188   0.3141   0.3772   0.2014   0.1048  -0.1451   1.0000 
+         age |   0.1350   0.2279   0.2973   0.2013   0.1114   0.0505   0.1094 
+        nyse |   0.4095   0.4477   0.3996   0.4660   0.1169   0.0686   0.0310 
+        tech |   0.0153  -0.0018   0.0643  -0.0940   0.0441  -0.1434   0.3950 
+      energy |   0.1299   0.1164  -0.0386   0.1806   0.0183   0.0130  -0.1240 
+   boardsize |   0.5366   0.4881   0.4790   0.6093   0.0802   0.2462   0.1056 
+      pharma |  -0.1729  -0.3847  -0.3960  -0.3163  -0.2388  -0.0817  -0.1370 
+         fin |  -0.0670  -0.0820  -0.0659   0.1626   0.0605   0.1909  -0.2597 
+          rd |  -0.2911  -0.4783  -0.4325  -0.4147  -0.6302   0.1834  -0.1819 
+       women |   0.4225   0.3726   0.3675   0.4004   0.0489   0.1262   0.1200 
+   zerowomen |  -0.3390  -0.2838  -0.2861  -0.3198  -0.0325  -0.1172  -0.0988 
+
+             |      age     nyse     tech   energy boards~e   pharma      fin
+-------------+---------------------------------------------------------------
+         age |   1.0000 
+        nyse |  -0.0705   1.0000 
+        tech |   0.0213  -0.2066   1.0000 
+      energy |  -0.0513   0.2161  -0.1962   1.0000 
+   boardsize |   0.1101   0.2731  -0.1237   0.0311   1.0000 
+      pharma |  -0.0823  -0.2548  -0.2038  -0.1252  -0.0979   1.0000 
+         fin |  -0.0209   0.0072  -0.1951  -0.1225   0.1816  -0.1272   1.0000 
+          rd |  -0.1299  -0.2262  -0.0049  -0.0960  -0.1731   0.4107  -0.0536 
+       women |   0.1482   0.1711  -0.0775  -0.0590   0.4883  -0.0132   0.0779 
+   zerowomen |  -0.0972  -0.1443   0.0805   0.0670  -0.4138  -0.0080  -0.0935 
+
+             |       rd    women zerowo~n
+-------------+---------------------------
+          rd |   1.0000 
+       women |  -0.1035   1.0000 
+   zerowomen |   0.0639  -0.7892   1.0000 
+
+. matrix C = r(C)
+
+. putexcel set "`file'", replace sheet("Correlations")
+note: file will be replaced when the first putexcel command is issued.
+
+. putexcel A1 = matrix(C), names nformat("0.00")
+file output/collinearity_tests.xlsx saved
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * TEST 2. Variance inflation factors. A VIF depends only on the right-hand-si
+> de
+. *   variables, so the outcome used here does not matter. rd is left out of th
+> e
+. *   all-candidates run because it is missing for 43% of firm-years.
+. *----------------------------------------------------------------------------
+> ---
+. putexcel set "`file'", modify sheet("VIF")
+
+. putexcel A1 = "Specification" B1 = "Variable" C1 = "VIF" D1 = "Observations"
+file output/collinearity_tests.xlsx saved
+
+. 
+. local row = 2
+
+. local rdname rd
+
+. local allcand : list cand - rdname
+
+. 
+. foreach spec in allcand final finalnoage {
+  2.     if "`spec'" == "allcand" {
+  3.         local xs `allcand'
+  4.         local name "All candidates except rd"
+  5.     }
+  6.     if "`spec'" == "final" {
+  7.         local xs `final'
+  8.         local name "Final list"
+  9.     }
+ 10.     if "`spec'" == "finalnoage" {
+ 11.         local noage age
+ 12.         local xs : list final - noage
+ 13.         local name "Final list without age (larger sample)"
+ 14.     }
+ 15.     quietly regress lnmktcap `xs'
+ 16.     local n = e(N)
+ 17.     estat vif
+ 18.     local k : word count `xs'
+ 19.     forvalues i = 1/`k' {
+ 20.         putexcel A`row' = "`name'" B`row' = "`r(name_`i')'" ///
+>                  C`row' = `r(vif_`i')' D`row' = `n'
+ 21.         local ++row
+ 22.     }
+ 23. }
+
+    Variable |       VIF       1/VIF  
+-------------+----------------------
+      lnsale |      7.92    0.126334
+    lnassets |      4.68    0.213902
+       lnemp |      4.37    0.228727
+       women |      3.12    0.320462
+   zerowomen |      2.98    0.335525
+         fin |      1.67    0.598109
+   boardsize |      1.64    0.610578
+      pharma |      1.58    0.633817
+multinatio~l |      1.55    0.646782
+         roa |      1.53    0.654874
+        tech |      1.50    0.666766
+        nyse |      1.31    0.766131
+      energy |      1.30    0.769172
+    leverage |      1.25    0.802226
+         age |      1.16    0.858638
+-------------+----------------------
+    Mean VIF |      2.50
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+
+    Variable |       VIF       1/VIF  
+-------------+----------------------
+    lnassets |      1.79    0.558366
+multinatio~l |      1.41    0.710023
+   boardsize |      1.40    0.713483
+        tech |      1.37    0.727332
+        nyse |      1.27    0.786610
+    leverage |      1.14    0.879937
+      energy |      1.12    0.895527
+         age |      1.11    0.902670
+         roa |      1.09    0.915989
+-------------+----------------------
+    Mean VIF |      1.30
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+
+    Variable |       VIF       1/VIF  
+-------------+----------------------
+    lnassets |      2.09    0.478903
+   boardsize |      1.65    0.606071
+        nyse |      1.32    0.756032
+        tech |      1.32    0.756575
+multinatio~l |      1.31    0.763903
+    leverage |      1.15    0.871546
+      energy |      1.11    0.898576
+         roa |      1.08    0.928546
+-------------+----------------------
+    Mean VIF |      1.38
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * TEST 3. Missing data by state, and whether age is missing at random
+. *----------------------------------------------------------------------------
+> ---
+. putexcel set "`file'", modify sheet("Missing")
+
+. putexcel A1 = "Variable" B1 = "Share missing, California" C1 = "Share missing
+> , Texas"
+file output/collinearity_tests.xlsx saved
+
+. 
+. local row = 2
+
+. foreach v of local cand {
+  2.     quietly count if ca == 1
+  3.     local n1 = r(N)
+  4.     quietly count if ca == 1 & missing(`v')
+  5.     local m1 = r(N) / `n1'
+  6.     quietly count if ca == 0
+  7.     local n0 = r(N)
+  8.     quietly count if ca == 0 & missing(`v')
+  9.     local m0 = r(N) / `n0'
+ 10.     putexcel A`row' = "`v'" B`row' = `m1' C`row' = `m0'
+ 11.     local ++row
+ 12. }
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+file output/collinearity_tests.xlsx saved
+
+. 
+. gen age_missing = (age == .)
+
+. regress age_missing ca, vce(cluster gvkey)
+
+Linear regression                               Number of obs     =      7,140
+                                                F(1, 1282)        =      15.20
+                                                Prob > F          =     0.0001
+                                                R-squared         =     0.0148
+                                                Root MSE          =     .47791
+
+                              (Std. err. adjusted for 1,283 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+ age_missing | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.1182969   .0303458    -3.90   0.000    -.1778297    -.058764
+       _cons |   .4317889   .0235952    18.30   0.000     .3854994    .4780785
+------------------------------------------------------------------------------
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/01b_collinearity_tests.log
+  log type:  text
+ closed on:   1 Nov 2026, 15:30:54
+-------------------------------------------------------------------------------

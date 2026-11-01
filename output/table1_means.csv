@@ -1,0 +1,33 @@
+Variable,California,Texas
+Ln(Market Cap),6.4297,6.7697
+,[2.1594],[2.0907]
+Women on Board,.9324,.8302
+,[.9803],[.9392]
+No Women on Board,.4014,.4515
+,[.4902],[.4977]
+Pharma or Biotech,.1845,.0251
+,[.388],[.1564]
+Ln(Total Assets),6.1673,6.9595
+,[2.1679],[2.1827]
+Net Income / Assets,-.1388,-.0349
+,[.539],[.7247]
+Liabilities / Assets,.5057,.5572
+,[.3758],[.3594]
+Multinational,.5588,.3819
+,[.4966],[.4859]
+Foreign Income Not Reported,.4055,.5782
+,[.4911],[.4939]
+Years Since IPO,11.0267,11.5815
+,[8.5796],[8.962]
+IPO Date Missing,.3135,.4318
+,[.464],[.4954]
+Listed on NYSE,.2237,.5219
+,[.4168],[.4996]
+Tech Sector,.3502,.1004
+,[.4771],[.3005]
+Oil and Gas,.0057,.2397
+,[.0753],[.427]
+Board Size,8.0238,8.1639
+,[1.9686],[2.3262]
+Observations,4032,3108
+Standard deviations in brackets,,

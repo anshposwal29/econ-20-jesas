@@ -81,6 +81,25 @@ foreach v of local vars {
 }
 postclose `b'
 
+* Diff-in-diff balance test (as in Dynarski 2003, Table 1):
+*   control = b0 + b1*post + b2*ca + b3*(ca x post) + u
+* b3 asks whether the California-minus-other-states gap in each variable
+* CHANGED after the law. For firm characteristics we want b3 small and
+* insignificant. (For board variables b3 is the "first stage" - the law
+* should move them; for ln(market cap) b3 is the raw diff-in-diff.)
+* Standard errors clustered by firm.
+tempname dd
+postfile `dd' str20 variable did_b3 did_se did_p did_n ///
+    using "temp/balance_did_post.dta", replace
+foreach v of local vars {
+    quietly reg `v' ca post ca_post, vce(cluster gvkey)
+    local d  = _b[ca_post]
+    local se = _se[ca_post]
+    local p  = 2 * ttail(e(df_r), abs(`d' / `se'))
+    post `dd' ("`v'") (`d') (`se') (`p') (e(N))
+}
+postclose `dd'
+
 restore
 
 display _newline "===== TABLE 1a: means [sd], before vs after, excl. WA ====="
@@ -95,6 +114,13 @@ use "temp/balance_post.dta", clear
 format diff se pvalue %9.3f
 list, clean noobs
 export delimited using "output/balance_prelaw.csv", replace
+
+display _newline "===== Diff-in-diff balance test (Dynarski style): b3 on California x Post ====="
+display "(control = b0 + b1 post + b2 ca + b3 ca_post; SE clustered by firm)"
+use "temp/balance_did_post.dta", clear
+format did_b3 did_se did_p %9.3f
+list, clean noobs
+export delimited using "output/balance_did.csv", replace
 
 use "final_data.dta", clear
 
