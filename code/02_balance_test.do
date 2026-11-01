@@ -5,18 +5,18 @@
   Sample: main window (fiscal year-ends Jun 2010 - Dec 2019), California vs Texas.
 
   Columns:
-    (1) California, before the law: mean [SD]           outsum
-    (2) Texas, before the law:      mean [SD]           outsum
+    (1)-(2) California and Texas before the law: mean [SD]      outsum
+    (3)-(4) California and Texas after the law:  mean [SD]      outsum
     (3) CA - TX difference, before the law: b, (SE)     reg x ca if post == 0
     (4) Diff-in-diff in the control: b3, (SE)           reg x ca post ca_post
   Standard errors in (3) and (4) clustered by firm (gvkey).
 
   Input:  final_data.dta (from 01_build_data.do)
   Outputs (output/):
-    table1_means.csv        columns (1)-(2), from outsum
+    table1_means.csv        means columns, from outsum
     balance_prelaw.xml      column (3), from outreg2, one regression per variable (opens in Excel)
     balance_did.xml         column (4), from outreg2, one regression per variable (opens in Excel)
-    table1_balance.csv      all four columns in one file (built with postfile)
+    table1_balance.csv      everything in one file (built with postfile); input to 03_table1_format.py
 ==============================================================================*/
 
 clear all
@@ -55,12 +55,16 @@ label var energy        "Oil and Gas"
 label var boardsize     "Board Size"
 
 *-------------------------------------------------------------------------------
-* Columns (1)-(2): means and SDs before the law, by state (outsum)
+* Columns (1)-(4): means and SDs before and after the law, by state (outsum)
 *-------------------------------------------------------------------------------
 outsum `meansonly' `balance' using "output/table1_means.csv" ///
     if post == 0 & ca == 1, replace comma bracket ctitle("California")
 outsum `meansonly' `balance' using "output/table1_means.csv" ///
     if post == 0 & ca == 0, append comma bracket ctitle("Texas")
+outsum `meansonly' `balance' using "output/table1_means.csv" ///
+    if post == 1 & ca == 1, append comma bracket ctitle("California after")
+outsum `meansonly' `balance' using "output/table1_means.csv" ///
+    if post == 1 & ca == 0, append comma bracket ctitle("Texas after")
 
 *-------------------------------------------------------------------------------
 * Column (3): CA - TX difference before the law (outreg2)
@@ -85,11 +89,13 @@ foreach v of local balance {
 }
 
 *-------------------------------------------------------------------------------
-* One combined file: variable, CA mean, CA sd, TX mean, TX sd,
-* pre-law diff, se, p, N, DiD b3, se, p, N
+* One combined file: variable, means and SDs before and after the law by
+* state, pre-law diff (se, p, N), DiD b3 (se, p, N). 03_table1_format.py
+* turns this into the formatted Table 1.
 *-------------------------------------------------------------------------------
 tempname h
 postfile `h' str20 variable mean_ca sd_ca mean_tx sd_tx ///
+    mean_ca_post sd_ca_post mean_tx_post sd_tx_post ///
     diff diff_se diff_p diff_n did did_se did_p did_n ///
     using "temp/table1_balance.dta", replace
 
@@ -100,6 +106,12 @@ foreach v in `meansonly' `balance' {
     quietly summarize `v' if post == 0 & ca == 0
     local m0 = r(mean)
     local s0 = r(sd)
+    quietly summarize `v' if post == 1 & ca == 1
+    local m1p = r(mean)
+    local s1p = r(sd)
+    quietly summarize `v' if post == 1 & ca == 0
+    local m0p = r(mean)
+    local s0p = r(sd)
     * balance regressions for the balance variables only
     local isbal : list v in balance
     if `isbal' {
@@ -125,20 +137,45 @@ foreach v in `meansonly' `balance' {
         local n3  = .
     }
     post `h' ("`v'") (`m1') (`s1') (`m0') (`s0') ///
+        (`m1p') (`s1p') (`m0p') (`s0p') ///
         (`b') (`se') (`p') (`n') (`b3') (`se3') (`p3') (`n3')
 }
 postclose `h'
 
-* firm and firm-year counts for the table notes
-count if post == 0 & ca == 1
-local fy_ca = r(N)
-count if post == 0 & ca == 0
-local fy_tx = r(N)
-quietly tab gvkey if post == 0 & ca == 1
-local f_ca = r(r)
-quietly tab gvkey if post == 0 & ca == 0
-local f_tx = r(r)
-display "Pre-law firm-years: CA `fy_ca', TX `fy_tx'. Firms: CA `f_ca', TX `f_tx'."
+* firm-year and firm counts for each of the four groups (last rows of Table 1)
+foreach g in "0 0" "0 1" "1 0" "1 1" {
+    local c : word 1 of `g'
+    local p : word 2 of `g'
+    count if ca == `c' & post == `p'
+    local fy_`c'`p' = r(N)
+    quietly tab gvkey if ca == `c' & post == `p'
+    local f_`c'`p' = r(r)
+}
+display "Firm-years  TX pre `fy_00'  TX post `fy_01'  CA pre `fy_10'  CA post `fy_11'"
+display "Firms       TX pre `f_00'   TX post `f_01'   CA pre `f_10'   CA post `f_11'"
+quietly tab gvkey if post == 0
+local f_pre = r(r)
+quietly tab gvkey
+local f_all = r(r)
+
+use "temp/table1_balance.dta", clear
+local N = _N + 2
+set obs `N'
+replace variable = "firm_years" in `=_N-1'
+replace mean_ca = `fy_10' in `=_N-1'
+replace mean_tx = `fy_00' in `=_N-1'
+replace mean_ca_post = `fy_11' in `=_N-1'
+replace mean_tx_post = `fy_01' in `=_N-1'
+replace diff_n = `fy_00' + `fy_10' in `=_N-1'
+replace did_n = `fy_00' + `fy_01' + `fy_10' + `fy_11' in `=_N-1'
+replace variable = "firms" in `=_N'
+replace mean_ca = `f_10' in `=_N'
+replace mean_tx = `f_00' in `=_N'
+replace mean_ca_post = `f_11' in `=_N'
+replace mean_tx_post = `f_01' in `=_N'
+replace diff_n = `f_pre' in `=_N'
+replace did_n = `f_all' in `=_N'
+save "temp/table1_balance.dta", replace
 
 use "temp/table1_balance.dta", clear
 format mean_* sd_* diff* did* %9.3f

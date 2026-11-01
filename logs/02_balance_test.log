@@ -3,7 +3,7 @@
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/02_balance_test.log
   log type:  text
- opened on:   1 Nov 2026, 15:34:17
+ opened on:   1 Nov 2026, 15:44:32
 
 . 
 . use "final_data.dta", clear
@@ -60,7 +60,7 @@
 . 
 . *----------------------------------------------------------------------------
 > ---
-. * Columns (1)-(2): means and SDs before the law, by state (outsum)
+. * Columns (1)-(4): means and SDs before and after the law, by state (outsum)
 . *----------------------------------------------------------------------------
 > ---
 . outsum `meansonly' `balance' using "output/table1_means.csv" ///
@@ -68,6 +68,12 @@
 
 . outsum `meansonly' `balance' using "output/table1_means.csv" ///
 >     if post == 0 & ca == 0, append comma bracket ctitle("Texas")
+
+. outsum `meansonly' `balance' using "output/table1_means.csv" ///
+>     if post == 1 & ca == 1, append comma bracket ctitle("California after")
+
+. outsum `meansonly' `balance' using "output/table1_means.csv" ///
+>     if post == 1 & ca == 0, append comma bracket ctitle("Texas after")
 
 . 
 . *----------------------------------------------------------------------------
@@ -498,13 +504,15 @@ dir : seeout
 . 
 . *----------------------------------------------------------------------------
 > ---
-. * One combined file: variable, CA mean, CA sd, TX mean, TX sd,
-. * pre-law diff, se, p, N, DiD b3, se, p, N
+. * One combined file: variable, means and SDs before and after the law by
+. * state, pre-law diff (se, p, N), DiD b3 (se, p, N). 03_table1_format.py
+. * turns this into the formatted Table 1.
 . *----------------------------------------------------------------------------
 > ---
 . tempname h
 
 . postfile `h' str20 variable mean_ca sd_ca mean_tx sd_tx ///
+>     mean_ca_post sd_ca_post mean_tx_post sd_tx_post ///
 >     diff diff_se diff_p diff_n did did_se did_p did_n ///
 >     using "temp/table1_balance.dta", replace
 
@@ -516,59 +524,127 @@ dir : seeout
   5.     quietly summarize `v' if post == 0 & ca == 0
   6.     local m0 = r(mean)
   7.     local s0 = r(sd)
-  8.     * balance regressions for the balance variables only
+  8.     quietly summarize `v' if post == 1 & ca == 1
+  9.     local m1p = r(mean)
+ 10.     local s1p = r(sd)
+ 11.     quietly summarize `v' if post == 1 & ca == 0
+ 12.     local m0p = r(mean)
+ 13.     local s0p = r(sd)
+ 14.     * balance regressions for the balance variables only
 .     local isbal : list v in balance
-  9.     if `isbal' {
- 10.         quietly reg `v' ca if post == 0, vce(cluster gvkey)
- 11.         local b  = _b[ca]
- 12.         local se = _se[ca]
- 13.         local p  = 2 * ttail(e(df_r), abs(`b' / `se'))
- 14.         local n  = e(N)
- 15.         quietly reg `v' ca post ca_post, vce(cluster gvkey)
- 16.         local b3  = _b[ca_post]
- 17.         local se3 = _se[ca_post]
- 18.         local p3  = 2 * ttail(e(df_r), abs(`b3' / `se3'))
- 19.         local n3  = e(N)
- 20.     }
- 21.     else {
- 22.         local b   = .
- 23.         local se  = .
- 24.         local p   = .
- 25.         local n   = .
- 26.         local b3  = .
- 27.         local se3 = .
- 28.         local p3  = .
- 29.         local n3  = .
- 30.     }
- 31.     post `h' ("`v'") (`m1') (`s1') (`m0') (`s0') ///
+ 15.     if `isbal' {
+ 16.         quietly reg `v' ca if post == 0, vce(cluster gvkey)
+ 17.         local b  = _b[ca]
+ 18.         local se = _se[ca]
+ 19.         local p  = 2 * ttail(e(df_r), abs(`b' / `se'))
+ 20.         local n  = e(N)
+ 21.         quietly reg `v' ca post ca_post, vce(cluster gvkey)
+ 22.         local b3  = _b[ca_post]
+ 23.         local se3 = _se[ca_post]
+ 24.         local p3  = 2 * ttail(e(df_r), abs(`b3' / `se3'))
+ 25.         local n3  = e(N)
+ 26.     }
+ 27.     else {
+ 28.         local b   = .
+ 29.         local se  = .
+ 30.         local p   = .
+ 31.         local n   = .
+ 32.         local b3  = .
+ 33.         local se3 = .
+ 34.         local p3  = .
+ 35.         local n3  = .
+ 36.     }
+ 37.     post `h' ("`v'") (`m1') (`s1') (`m0') (`s0') ///
+>         (`m1p') (`s1p') (`m0p') (`s0p') ///
 >         (`b') (`se') (`p') (`n') (`b3') (`se3') (`p3') (`n3')
- 32. }
+ 38. }
 
 . postclose `h'
 
 . 
-. * firm and firm-year counts for the table notes
-. count if post == 0 & ca == 1
-  4,032
-
-. local fy_ca = r(N)
-
-. count if post == 0 & ca == 0
+. * firm-year and firm counts for each of the four groups (last rows of Table 1
+> )
+. foreach g in "0 0" "0 1" "1 0" "1 1" {
+  2.     local c : word 1 of `g'
+  3.     local p : word 2 of `g'
+  4.     count if ca == `c' & post == `p'
+  5.     local fy_`c'`p' = r(N)
+  6.     quietly tab gvkey if ca == `c' & post == `p'
+  7.     local f_`c'`p' = r(r)
+  8. }
   3,108
+  716
+  4,032
+  906
 
-. local fy_tx = r(N)
+. display "Firm-years  TX pre `fy_00'  TX post `fy_01'  CA pre `fy_10'  CA post
+>  `fy_11'"
+Firm-years  TX pre 3108  TX post 716  CA pre 4032  CA post 906
 
-. quietly tab gvkey if post == 0 & ca == 1
+. display "Firms       TX pre `f_00'   TX post `f_01'   CA pre `f_10'   CA post
+>  `f_11'"
+Firms       TX pre 535   TX post 398   CA pre 748   CA post 551
 
-. local f_ca = r(r)
+. quietly tab gvkey if post == 0
 
-. quietly tab gvkey if post == 0 & ca == 0
+. local f_pre = r(r)
 
-. local f_tx = r(r)
+. quietly tab gvkey
 
-. display "Pre-law firm-years: CA `fy_ca', TX `fy_tx'. Firms: CA `f_ca', TX `f_
-> tx'."
-Pre-law firm-years: CA 4032, TX 3108. Firms: CA 748, TX 535.
+. local f_all = r(r)
+
+. 
+. use "temp/table1_balance.dta", clear
+
+. local N = _N + 2
+
+. set obs `N'
+Number of observations (_N) was 15, now 17.
+
+. replace variable = "firm_years" in `=_N-1'
+(1 real change made)
+
+. replace mean_ca = `fy_10' in `=_N-1'
+(1 real change made)
+
+. replace mean_tx = `fy_00' in `=_N-1'
+(1 real change made)
+
+. replace mean_ca_post = `fy_11' in `=_N-1'
+(1 real change made)
+
+. replace mean_tx_post = `fy_01' in `=_N-1'
+(1 real change made)
+
+. replace diff_n = `fy_00' + `fy_10' in `=_N-1'
+(1 real change made)
+
+. replace did_n = `fy_00' + `fy_01' + `fy_10' + `fy_11' in `=_N-1'
+(1 real change made)
+
+. replace variable = "firms" in `=_N'
+(1 real change made)
+
+. replace mean_ca = `f_10' in `=_N'
+(1 real change made)
+
+. replace mean_tx = `f_00' in `=_N'
+(1 real change made)
+
+. replace mean_ca_post = `f_11' in `=_N'
+(1 real change made)
+
+. replace mean_tx_post = `f_01' in `=_N'
+(1 real change made)
+
+. replace diff_n = `f_pre' in `=_N'
+(1 real change made)
+
+. replace did_n = `f_all' in `=_N'
+(1 real change made)
+
+. save "temp/table1_balance.dta", replace
+file temp/table1_balance.dta saved
 
 . 
 . use "temp/table1_balance.dta", clear
@@ -579,38 +655,60 @@ Pre-law firm-years: CA 4032, TX 3108. Firms: CA 748, TX 535.
 
 . list, noobs clean
 
-         variable   mean_ca   sd_ca   mean_tx   sd_tx     diff   diff_se   diff
-> _p   diff_n      did   did_se   did_p   did_n  
-         lnmktcap     6.430   2.159     6.770   2.091        .         .       
->  .        .        .        .       .       .  
-            women     0.932   0.980     0.830   0.939        .         .       
->  .        .        .        .       .       .  
-        zerowomen     0.401   0.490     0.451   0.498        .         .       
->  .        .        .        .       .       .  
-           pharma     0.185   0.388     0.025   0.156        .         .       
->  .        .        .        .       .       .  
-         lnassets     6.167   2.168     6.959   2.183   -0.792     0.136    0.0
-> 00     7140    0.127    0.095   0.181    8762  
-              roa    -0.139   0.539    -0.035   0.725   -0.104     0.023    0.0
-> 00     7132   -0.050    0.029   0.089    8749  
-         leverage     0.506   0.376     0.557   0.359   -0.052     0.018    0.0
-> 04     7114   -0.001    0.019   0.972    8733  
-    multinational     0.559   0.497     0.382   0.486    0.177     0.029    0.0
-> 00     7140   -0.023    0.025   0.356    8762  
-     pifo_missing     0.406   0.491     0.578   0.494   -0.173     0.029    0.0
-> 00     7140    0.013    0.025   0.598    8762  
-              age    11.027   8.580    11.582   8.962   -0.555     0.679    0.4
-> 14     4534   -1.853    0.597   0.002    5600  
-      age_missing     0.313   0.464     0.432   0.495   -0.118     0.030    0.0
-> 00     7140   -0.028    0.020   0.164    8762  
-             nyse     0.224   0.417     0.522   0.500   -0.298     0.029    0.0
-> 00     7140    0.030    0.020   0.132    8762  
-             tech     0.350   0.477     0.100   0.301    0.250     0.024    0.0
-> 00     7120   -0.088    0.018   0.000    8717  
-           energy     0.006   0.075     0.240   0.427   -0.234     0.021    0.0
-> 00     7140   -0.019    0.014   0.178    8762  
-        boardsize     8.024   1.969     8.164   2.326   -0.140     0.136    0.3
-> 03     6244    0.186    0.117   0.111    7701  
+         variable    mean_ca   sd_ca    mean_tx   sd_tx   mean_c~t   sd_ca_~t  
+>  mean_t~t   sd_tx_~t     diff   diff_se   diff_p   diff_n      did   did_se  
+>  did_p   did_n  
+         lnmktcap      6.430   2.159      6.770   2.091      6.722      2.307  
+>     6.629      2.108        .         .        .        .        .        .  
+>      .       .  
+            women      0.932   0.980      0.830   0.939      1.636      1.110  
+>     1.283      1.076        .         .        .        .        .        .  
+>      .       .  
+        zerowomen      0.401   0.490      0.451   0.498      0.128      0.334  
+>     0.255      0.436        .         .        .        .        .        .  
+>      .       .  
+           pharma      0.185   0.388      0.025   0.156      0.262      0.440  
+>     0.042      0.200        .         .        .        .        .        .  
+>      .       .  
+         lnassets      6.167   2.168      6.959   2.183      6.385      2.238  
+>     7.050      2.250   -0.792     0.136    0.000     7140    0.127    0.095  
+>  0.181    8762  
+              roa     -0.139   0.539     -0.035   0.725     -0.194      0.585  
+>    -0.040      0.313   -0.104     0.023    0.000     7132   -0.050    0.029  
+>  0.089    8749  
+         leverage      0.506   0.376      0.557   0.359      0.517      0.327  
+>     0.570      0.340   -0.052     0.018    0.004     7114   -0.001    0.019  
+>  0.972    8733  
+    multinational      0.559   0.497      0.382   0.486      0.545      0.498  
+>     0.391      0.488    0.177     0.029    0.000     7140   -0.023    0.025  
+>  0.356    8762  
+     pifo_missing      0.406   0.491      0.578   0.494      0.402      0.491  
+>     0.561      0.497   -0.173     0.029    0.000     7140    0.013    0.025  
+>  0.598    8762  
+              age     11.027   8.580     11.582   8.962     10.199      9.601  
+>    12.607     10.203   -0.555     0.679    0.414     4534   -1.853    0.597  
+>  0.002    5600  
+      age_missing      0.313   0.464      0.432   0.495      0.278      0.448  
+>     0.425      0.495   -0.118     0.030    0.000     7140   -0.028    0.020  
+>  0.164    8762  
+             nyse      0.224   0.417      0.522   0.500      0.233      0.423  
+>     0.501      0.500   -0.298     0.029    0.000     7140    0.030    0.020  
+>  0.132    8762  
+             tech      0.350   0.477      0.100   0.301      0.247      0.431  
+>     0.085      0.279    0.250     0.024    0.000     7120   -0.088    0.018  
+>  0.000    8717  
+           energy      0.006   0.075      0.240   0.427      0.004      0.066  
+>     0.257      0.437   -0.234     0.021    0.000     7140   -0.019    0.014  
+>  0.178    8762  
+        boardsize      8.024   1.969      8.164   2.326      8.255      1.973  
+>     8.209      2.407   -0.140     0.136    0.303     6244    0.186    0.117  
+>  0.111    7701  
+       firm_years   4032.000       .   3108.000       .    906.000          .  
+>   716.000          .        .         .        .     7140        .        .  
+>      .    8762  
+            firms    748.000       .    535.000       .    551.000          .  
+>   398.000          .        .         .        .     1283        .        .  
+>      .    1408  
 
 . export delimited using "output/table1_balance.csv", replace
 file output/table1_balance.csv saved
@@ -621,5 +719,5 @@ file output/table1_balance.csv saved
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/02_balance_test.log
   log type:  text
- closed on:   1 Nov 2026, 15:34:21
+ closed on:   1 Nov 2026, 15:44:36
 -------------------------------------------------------------------------------

@@ -28,6 +28,7 @@ reg lnmktcap ca post ca_post if mainwindow == 1, vce(cluster gvkey)
 | 1 | `code/01_build_data.do` | Builds the CA/TX firm-year panel from Compustat + BoardEx → `final_data.dta` |
 | 1b | `code/01b_collinearity_tests.do` | Tests which variables enter the balance test, for the appendix → `output/collinearity_tests.xlsx`. Run after step 1 |
 | 2 | `code/02_balance_test.do` | Table 1 means (`outsum`) and balance test (`outreg2`) → `output/table1_means.csv`, `output/balance_prelaw.xml`, `output/balance_did.xml`, and all four columns in `output/table1_balance.csv` |
+| 3 | `code/03_table1_format.py` | Formats `output/table1_balance.csv` into the paper's Table 1 (Dynarski layout: 4 means columns, pre-law difference, diff-in-diff) → `output/Table1_means_balance.xlsx`. Run `python3 code/03_table1_format.py` from the project folder |
 | old | `code/02_table1_means.do`, `code/03_table1_excel.py` | From the all-states design. They stop at `assert wa == 0` / filter on `wa`, which no longer exists. Superseded by step 2 |
 
 Change the `cd` line at the top of each `.do` file to your project folder before running. `final_data_full.dta` is left over from the earlier all-states design and is no longer built or updated.
