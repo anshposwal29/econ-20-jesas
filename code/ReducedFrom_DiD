@@ -45,7 +45,7 @@ if `samesample' == 1 keep if board_matched == 1
 
 count if `mcvar' <= 0
 count if missing(`mcvar')
-gen lnmktcap = ln(`mcvar') if `mcvar' > 0 & `mcvar' < .
+
 label var lnmktcap "ln(market capitalization)"
 drop if missing(lnmktcap)
 
