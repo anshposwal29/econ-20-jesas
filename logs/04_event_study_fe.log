@@ -3,7 +3,7 @@
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/04_event_study_fe.log
   log type:  text
- opened on:   9 Nov 2026, 09:41:04
+ opened on:   9 Nov 2026, 09:44:23
 
 . 
 . use "final_data.dta", clear
@@ -109,11 +109,11 @@ Firm-years: 8628   Firms: 1340
   2. 
 .     if "`v'" == "lnmktcap" {
   3.         local ttl  "Reduced Form: ln(Market Cap)"
-  4.         local ylab "CA - TX difference in ln(market cap)"
+  4.         local ylab "ln(market cap), adjusted"
   5.     }
   6.     if "`v'" == "ShareWm" {
   7.         local ttl  "First Stage: Women as % of Board"
-  8.         local ylab "CA - TX difference in % women on board"
+  8.         local ylab "Women as % of board, adjusted"
   9.     }
  10. 
 .     di _n "=================== Event study: `v' ==================="
@@ -122,26 +122,45 @@ Firm-years: 8628   Firms: 1340
  13.     test `pretest'
  14.     local p_pre = r(p)
  15. 
+.     * Texas path = common year path from the industry-by-year effects:
+.     *   g_it = fitted industry-by-year effect (fitted value minus the CA x ye
+> ar
+.     *          terms; absorbed firm effects are not part of xb)
+.     *   TX path in year t = average g over all firm-years in t, minus 2018
+.     * California path = Texas path + d_t (the CA x year coefficient).
+.     * The CA - TX gap in the graph is exactly d_t from the regression above.
+.     predict xb_`v' if e(sample), xb
+ 16.     gen cafit_`v' = 0 if e(sample)
+ 17.     forvalues t = `firstyr'/`lastyr' {
+ 18.         if `t' != `refyr' replace cafit_`v' = cafit_`v' + _b[caXyr`t'] * c
+> aXyr`t' if e(sample)
+ 19.     }
+ 20.     gen g_`v' = xb_`v' - cafit_`v'
+ 21. 
 .     preserve
- 16.     clear
- 17.     set obs `=`lastyr' - `firstyr' + 1'
- 18.     gen pyear = `firstyr' + _n - 1
- 19.     gen slope = 0                    // reference year = 0, no CI
- 20.     gen se    = .
- 21.     forvalues t = `firstyr'/`lastyr' {
- 22.         if `t' != `refyr' {
- 23.             replace slope = _b[caXyr`t']  if pyear == `t'
- 24.             replace se    = _se[caXyr`t'] if pyear == `t'
- 25.         }
- 26.     }
- 27.     gen upper = slope + 1.96*se
- 28.     gen lower = slope - 1.96*se
- 29.     list pyear slope se, noobs clean
- 30. 
-.     gr two (rcap upper lower pyear, lcolor(cranberry)) ///
->            (scatter slope pyear, mcolor(navy) msymbol(circle)), ///
->         yline(0, lc(black)) xline(2018.5, lp(dash) lc(gs6)) ///
->         legend(off) ///
+ 22.     collapse (mean) tx = g_`v', by(pyear)
+ 23.     quietly summarize tx if pyear == `refyr'
+ 24.     replace tx = tx - r(mean)
+ 25.     gen d  = 0                       // reference year: CA = TX, no CI
+ 26.     gen se = .
+ 27.     forvalues t = `firstyr'/`lastyr' {
+ 28.         if `t' != `refyr' {
+ 29.             replace d  = _b[caXyr`t']  if pyear == `t'
+ 30.             replace se = _se[caXyr`t'] if pyear == `t'
+ 31.         }
+ 32.     }
+ 33.     gen cal   = tx + d
+ 34.     gen upper = cal + 1.96*se
+ 35.     gen lower = cal - 1.96*se
+ 36.     list pyear tx cal d se, noobs clean
+ 37. 
+.     gr two (rcap upper lower pyear, lcolor(navy%60)) ///
+>            (connected tx  pyear, lcolor(cranberry) mcolor(cranberry) msymbol(
+> square)) ///
+>            (connected cal pyear, lcolor(navy) mcolor(navy) msymbol(circle)), 
+> ///
+>         xline(2018.5, lp(dash) lc(gs6)) ///
+>         legend(order(3 "California" 2 "Texas") rows(1) position(6)) ///
 >         xlabel(`firstyr'(1)`lastyr') ///
 >         xtitle("Policy year (runs 1 Oct - 30 Sep; 2019 = first year after SB 
 > 826)") ///
@@ -149,13 +168,15 @@ Firm-years: 8628   Firms: 1340
 >         title("`ttl'" "Firm and Industry-by-Year Fixed Effects", size(medium)
 > ) ///
 >         note("CA vs. TX firm-years with board data. Firm FE and 2-digit SIC x
->  year FE; 2018 is the omitted year." ///
->              "95% CIs, SEs clustered by firm. Pre-trend joint test p = `: di 
-> %4.3f `p_pre''. Dashed line = SB 826 signed 30 Sep 2018.")
- 31.     graph export "output/figures/es_`v'_fe.png", replace width(2000)
- 32.     graph save   "output/figures/es_`v'_fe.gph", replace
- 33.     restore
- 34. }
+>  year FE; both lines set to 0 in 2018." ///
+>              "Texas = common year path; California = Texas + CA x year coeffi
+> cient. Bars: 95% CI on the CA - TX gap," ///
+>              "SEs clustered by firm. Pre-trend joint test p = `: di %4.3f `p_
+> pre''. Dashed line = SB 826 signed 30 Sep 2018.")
+ 38.     graph export "output/figures/es_`v'_fe.png", replace width(2000)
+ 39.     graph save   "output/figures/es_`v'_fe.gph", replace
+ 40.     restore
+ 41. }
 
 =================== Event study: lnmktcap ===================
 note: 2.ind#2016.pyear omitted because of collinearity.
@@ -958,7 +979,17 @@ Joint test of no pre-trends (lnmktcap):
 
        F(  7,  1339) =    4.66
             Prob > F =    0.0000
-Number of observations (_N) was 0, now 11.
+(409 real changes made)
+(418 real changes made)
+(411 real changes made)
+(426 real changes made)
+(448 real changes made)
+(455 real changes made)
+(432 real changes made)
+(449 real changes made)
+(471 real changes made)
+(514 real changes made)
+(11 real changes made)
 (11 missing values generated)
 (1 real change made)
 (1 real change made)
@@ -983,21 +1014,19 @@ Number of observations (_N) was 0, now 11.
 (1 missing value generated)
 (1 missing value generated)
 
-    pyear       slope         se  
-     2011    -.243993   .1112109  
-     2012   -.4004729    .106213  
-     2013   -.4157859   .0957987  
-     2014   -.3598776   .0865553  
-     2015    -.191864   .0755559  
-     2016   -.0706008   .0659906  
-     2017   -.0842552    .049655  
-     2018           0          .  
-     2019    .1783044   .0556599  
-     2020    .1970669   .0753641  
-     2021    .4067356   .0952041  
-(file output/figures/es_lnmktcap_fe.png not found)
+    pyear          tx         cal           d         se  
+     2011   -.3919334   -.6359265    -.243993   .1112109  
+     2012   -.4032016   -.8036745   -.4004729    .106213  
+     2013   -.2601895   -.6759754   -.4157859   .0957987  
+     2014     .036634   -.3232436   -.3598776   .0865553  
+     2015     -.07863    -.270494    -.191864   .0755559  
+     2016   -.2561374   -.3267381   -.0706008   .0659906  
+     2017   -.1295791   -.2138343   -.0842552    .049655  
+     2018           0           0           0          .  
+     2019   -.1978693   -.0195649    .1783044   .0556599  
+     2020   -.1057014    .0913655    .1970669   .0753641  
+     2021    .0327082    .4394437    .4067356   .0952041  
 file output/figures/es_lnmktcap_fe.png written in PNG format
-(file output/figures/es_lnmktcap_fe.gph not found)
 file output/figures/es_lnmktcap_fe.gph saved
 
 =================== Event study: ShareWm ===================
@@ -1801,7 +1830,17 @@ Joint test of no pre-trends (ShareWm):
 
        F(  7,  1339) =    1.35
             Prob > F =    0.2212
-Number of observations (_N) was 0, now 11.
+(409 real changes made)
+(418 real changes made)
+(411 real changes made)
+(426 real changes made)
+(448 real changes made)
+(455 real changes made)
+(432 real changes made)
+(449 real changes made)
+(471 real changes made)
+(514 real changes made)
+(11 real changes made)
 (11 missing values generated)
 (1 real change made)
 (1 real change made)
@@ -1826,21 +1865,19 @@ Number of observations (_N) was 0, now 11.
 (1 missing value generated)
 (1 missing value generated)
 
-    pyear       slope         se  
-     2011   -1.749901   1.171016  
-     2012   -2.051536   1.129994  
-     2013   -1.334912    1.09187  
-     2014   -1.284095    .997503  
-     2015   -1.463869   .8352845  
-     2016    -1.83935   .7824529  
-     2017   -.8606277   .6068936  
-     2018           0          .  
-     2019    .3150048   .6177837  
-     2020    2.574853   .9028289  
-     2021    2.478079   1.020915  
-(file output/figures/es_ShareWm_fe.png not found)
+    pyear          tx         cal           d         se  
+     2011   -5.482438   -7.232339   -1.749901   1.171016  
+     2012   -5.115273    -7.16681   -2.051536   1.129994  
+     2013    -5.18254   -6.517452   -1.334912    1.09187  
+     2014   -4.309898   -5.593993   -1.284095    .997503  
+     2015   -2.913872    -4.37774   -1.463869   .8352845  
+     2016   -1.645088   -3.484438    -1.83935   .7824529  
+     2017   -1.278895   -2.139523   -.8606277   .6068936  
+     2018           0           0           0          .  
+     2019    1.863218    2.178223    .3150048   .6177837  
+     2020    4.668519    7.243372    2.574853   .9028289  
+     2021    7.844924      10.323    2.478079   1.020915  
 file output/figures/es_ShareWm_fe.png written in PNG format
-(file output/figures/es_ShareWm_fe.gph not found)
 file output/figures/es_ShareWm_fe.gph saved
 
 . 
@@ -1887,9 +1924,7 @@ file output/figures/es_ShareWm_fe.gph saved
  15. }
 file output/figures/means_lnmktcap.png written in PNG format
 file output/figures/means_lnmktcap.gph saved
-(file output/figures/means_ShareWm.png not found)
 file output/figures/means_ShareWm.png written in PNG format
-(file output/figures/means_ShareWm.gph not found)
 file output/figures/means_ShareWm.gph saved
 
 . 
@@ -1898,5 +1933,5 @@ file output/figures/means_ShareWm.gph saved
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/04_event_study_fe.log
   log type:  text
- closed on:   9 Nov 2026, 09:41:20
+ closed on:   9 Nov 2026, 09:44:39
 -------------------------------------------------------------------------------

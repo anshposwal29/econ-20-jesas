@@ -85,11 +85,11 @@ foreach v in lnmktcap ShareWm {
 
     if "`v'" == "lnmktcap" {
         local ttl  "Reduced Form: ln(Market Cap)"
-        local ylab "CA - TX difference in ln(market cap)"
+        local ylab "ln(market cap), adjusted"
     }
     if "`v'" == "ShareWm" {
         local ttl  "First Stage: Women as % of Board"
-        local ylab "CA - TX difference in % women on board"
+        local ylab "Women as % of board, adjusted"
     }
 
     di _n "=================== Event study: `v' ==================="
@@ -98,32 +98,48 @@ foreach v in lnmktcap ShareWm {
     test `pretest'
     local p_pre = r(p)
 
+    * Texas path = common year path from the industry-by-year effects:
+    *   g_it = fitted industry-by-year effect (fitted value minus the CA x year
+    *          terms; absorbed firm effects are not part of xb)
+    *   TX path in year t = average g over all firm-years in t, minus 2018
+    * California path = Texas path + d_t (the CA x year coefficient).
+    * The CA - TX gap in the graph is exactly d_t from the regression above.
+    predict xb_`v' if e(sample), xb
+    gen cafit_`v' = 0 if e(sample)
+    forvalues t = `firstyr'/`lastyr' {
+        if `t' != `refyr' replace cafit_`v' = cafit_`v' + _b[caXyr`t'] * caXyr`t' if e(sample)
+    }
+    gen g_`v' = xb_`v' - cafit_`v'
+
     preserve
-    clear
-    set obs `=`lastyr' - `firstyr' + 1'
-    gen pyear = `firstyr' + _n - 1
-    gen slope = 0                    // reference year = 0, no CI
-    gen se    = .
+    collapse (mean) tx = g_`v', by(pyear)
+    quietly summarize tx if pyear == `refyr'
+    replace tx = tx - r(mean)
+    gen d  = 0                       // reference year: CA = TX, no CI
+    gen se = .
     forvalues t = `firstyr'/`lastyr' {
         if `t' != `refyr' {
-            replace slope = _b[caXyr`t']  if pyear == `t'
-            replace se    = _se[caXyr`t'] if pyear == `t'
+            replace d  = _b[caXyr`t']  if pyear == `t'
+            replace se = _se[caXyr`t'] if pyear == `t'
         }
     }
-    gen upper = slope + 1.96*se
-    gen lower = slope - 1.96*se
-    list pyear slope se, noobs clean
+    gen cal   = tx + d
+    gen upper = cal + 1.96*se
+    gen lower = cal - 1.96*se
+    list pyear tx cal d se, noobs clean
 
-    gr two (rcap upper lower pyear, lcolor(cranberry)) ///
-           (scatter slope pyear, mcolor(navy) msymbol(circle)), ///
-        yline(0, lc(black)) xline(2018.5, lp(dash) lc(gs6)) ///
-        legend(off) ///
+    gr two (rcap upper lower pyear, lcolor(navy%60)) ///
+           (connected tx  pyear, lcolor(cranberry) mcolor(cranberry) msymbol(square)) ///
+           (connected cal pyear, lcolor(navy) mcolor(navy) msymbol(circle)), ///
+        xline(2018.5, lp(dash) lc(gs6)) ///
+        legend(order(3 "California" 2 "Texas") rows(1) position(6)) ///
         xlabel(`firstyr'(1)`lastyr') ///
         xtitle("Policy year (runs 1 Oct - 30 Sep; 2019 = first year after SB 826)") ///
         ytitle("`ylab'" "relative to 2018") ///
         title("`ttl'" "Firm and Industry-by-Year Fixed Effects", size(medium)) ///
-        note("CA vs. TX firm-years with board data. Firm FE and 2-digit SIC x year FE; 2018 is the omitted year." ///
-             "95% CIs, SEs clustered by firm. Pre-trend joint test p = `: di %4.3f `p_pre''. Dashed line = SB 826 signed 30 Sep 2018.")
+        note("CA vs. TX firm-years with board data. Firm FE and 2-digit SIC x year FE; both lines set to 0 in 2018." ///
+             "Texas = common year path; California = Texas + CA x year coefficient. Bars: 95% CI on the CA - TX gap," ///
+             "SEs clustered by firm. Pre-trend joint test p = `: di %4.3f `p_pre''. Dashed line = SB 826 signed 30 Sep 2018.")
     graph export "output/figures/es_`v'_fe.png", replace width(2000)
     graph save   "output/figures/es_`v'_fe.gph", replace
     restore
