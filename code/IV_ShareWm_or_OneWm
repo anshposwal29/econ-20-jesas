@@ -1,0 +1,192 @@
+/*==============================================================================
+  ECON 20 Project: California SB 826 (board gender quota) and firm value
+  Program 8 (revised): IV with ShareWm and OneWm as INSTRUMENTS for CA x Post
+
+  Input : final_data.dta   (built by 01_build_data.do)
+  Output: figures/iv_sharewm_binned.png         / .gph  (instrument = ShareWm)
+          figures/iv_onewm_binned.png           / .gph  (instrument = OneWm)
+          figures/iv_sharewm_onewm_binned.png   / .gph  (both instruments)
+
+  Model:
+      First stage  : CAxPost_it   = g0 + g1*Post + g2*Z_it + a_i + e_it
+      Second stage : lnmktcap_it  = b0 + b1*Post + b2*CAxPost_it + a_i + u_it
+      Z = ShareWm (percent women, 0-100)  and/or  OneWm (=1 if >= 1 woman)
+      Endogenous regressor: CA x Post.  a_i = FIRM FIXED EFFECTS.
+
+  Three instrument sets are run:
+      (A) Z = ShareWm        (B) Z = OneWm        (C) Z = ShareWm and OneWm
+  (C) is overidentified (2 instruments, 1 endogenous), so Hansen J is reported.
+
+  Three versions of each (as in programs 3, 4 and 7):
+    (1) no fixed effects          : controls CA and Post
+    (2) firm fixed effects        : <-- your equation
+    (3) firm + year fixed effects : year FE absorb Post
+
+  Needs ivreghdfe, reghdfe, ftools, ivreg2 (installed below if missing).
+==============================================================================*/
+
+clear all
+set more off
+cd "C:/Econ 20/proj"
+
+capture mkdir figures
+capture log close
+log using "iv_caxpost_instrumented.log", replace text
+
+* ---- install packages if needed (needs internet; run once) ----
+capture which reghdfe
+if _rc ssc install reghdfe, replace
+capture which ivreghdfe
+if _rc ssc install ivreghdfe, replace
+capture which ftools
+if _rc ssc install ftools, replace
+capture which ivreg2
+if _rc ssc install ivreg2, replace
+
+use "final_data.dta", clear
+
+*-------------------------------------------------------------------------------
+* 0. Build the variables (same definitions as programs 3, 4 and 7)
+*    >>> CHECK: set the board-size and market-cap variable names.
+*-------------------------------------------------------------------------------
+local bsvar boardsize      // total number of directors
+local mcvar mktcap         // market capitalization
+
+keep if board_matched == 1
+
+gen OneWm = (women >= 1) if women < .
+label var OneWm "=1 if at least 1 woman on the board"
+
+gen ShareWm = 100 * women / `bsvar' if women < . & `bsvar' < . & `bsvar' > 0
+label var ShareWm "Percent of board that is women"
+
+count if `mcvar' <= 0
+count if missing(`mcvar')
+* lnmktcap is assumed to already exist in final_data (as in program 7).
+* If it does not, uncomment the next line:
+* gen lnmktcap = ln(`mcvar') if `mcvar' > 0 & `mcvar' < .
+label var lnmktcap "ln(market capitalization)"
+
+*-------------------------------------------------------------------------------
+* 1. Event-time "year" and sample
+*-------------------------------------------------------------------------------
+gen pyear = year(fye) + (month(fye) >= 10)
+label var pyear "Policy year (runs 1 Oct - 30 Sep; pyear 2019 = first post year)"
+assert (pyear >= 2019) == post
+
+* Settings you can change -------------------------------------------------------
+local firstyr 2011
+local lastyr  2025
+* To show only the pre-COVID window instead, use:  keep if mainwindow == 1
+* To drop the 10 firms that moved out of California (robustness):
+*   drop if mover == 1
+* ------------------------------------------------------------------------------
+
+keep if pyear >= `firstyr' & pyear <= `lastyr'
+
+* Same sample for every instrument set
+drop if missing(OneWm, ShareWm, lnmktcap)
+
+* numeric firm id (gvkey is a string)
+egen firmid = group(gvkey)
+
+* The endogenous regressor
+gen caXpost = ca * post
+label var caXpost "CA x Post"
+assert caXpost == ca_post
+
+* Sanity checks
+tab pyear ca
+summ lnmktcap caXpost OneWm ShareWm
+corr caXpost OneWm ShareWm
+
+*-------------------------------------------------------------------------------
+* 2. IV regressions for each instrument set
+*    Standard errors clustered by firm. ivreghdfe reports the Kleibergen-Paap
+*    rk Wald F (cluster-robust first-stage F; want it well above 10).
+*-------------------------------------------------------------------------------
+foreach zset in "ShareWm" "OneWm" "ShareWm OneWm" {
+
+    local nz  = wordcount("`zset'")
+    local fn  = lower(subinstr("`zset'", " ", "_", .))
+    local tag = subinstr("`zset'", " ", "", .)
+
+    display _newline(2) as text "{hline 78}"
+    display as text "2SLS: ln(mktcap) on CA x Post; instrument(s) = `zset'"
+    display as text "{hline 78}"
+
+    * ---- first stage and reduced form with firm FE (for reference)
+    areg caXpost post `zset', absorb(firmid) vce(cluster firmid)
+    testparm `zset'
+    areg lnmktcap post `zset', absorb(firmid) vce(cluster firmid)
+
+    * (1) no fixed effects
+    ivreghdfe lnmktcap ca post (caXpost = `zset'), cluster(firmid) first
+    estimates store iv1_`tag'
+
+    * (2) firm fixed effects  <-- your equation
+    ivreghdfe lnmktcap post (caXpost = `zset'), absorb(firmid) cluster(firmid) first
+    estimates store iv2_`tag'
+    if `nz' > 1 {
+        display as text "Hansen J = " %7.3f e(j) "   p-value = " %6.4f e(jp)
+    }
+
+    * (3) firm AND year fixed effects (year FE absorb Post)
+    ivreghdfe lnmktcap (caXpost = `zset'), absorb(firmid pyear) cluster(firmid) first
+    estimates store iv3_`tag'
+    local b3  = _b[caXpost]
+    local se3 = _se[caXpost]
+    if `nz' > 1 {
+        display as text "Hansen J = " %7.3f e(j) "   p-value = " %6.4f e(jp)
+    }
+
+    estimates table iv1_`tag' iv2_`tag' iv3_`tag', keep(caXpost) b(%9.4f) se(%9.4f) ///
+        stats(N r2 rkf) title("2SLS: ln(mktcap) on CA x Post (instruments: `zset')")
+
+    * OLS for comparison (firm FE)
+    areg lnmktcap caXpost post, absorb(firmid) vce(cluster firmid)
+    estimates store ols2_`tag'
+
+    *---------------------------------------------------------------------------
+    * 3. GRAPH: binned second-stage plot (firm + year FE, column 3).
+    *    ln(mktcap), CA x Post and each instrument are residualized on firm and
+    *    year fixed effects. Observations are cut into 20 bins of the
+    *    first-stage fitted value of CA x Post (driven only by the instrument(s)),
+    *    and bin means of ln(mktcap) are plotted against it. The slope is the
+    *    2SLS coefficient from column (3).
+    *---------------------------------------------------------------------------
+    preserve
+    quietly areg lnmktcap i.pyear, absorb(firmid)
+    predict double ry, dresiduals
+    quietly areg caXpost i.pyear, absorb(firmid)
+    predict double rx, dresiduals
+
+    local rzlist ""
+    foreach z in `zset' {
+        quietly areg `z' i.pyear, absorb(firmid)
+        predict double rz_`z', dresiduals
+        local rzlist `rzlist' rz_`z'
+    }
+
+    quietly reg rx `rzlist'
+    predict double xhat, xb
+
+    xtile bin = xhat, nq(20)
+    collapse (mean) ry xhat, by(bin)
+
+    local bb : display %6.3f `b3'
+    local ss : display %6.3f `se3'
+
+    gr two (scatter ry xhat, msize(medlarge)) ///
+           (lfit ry xhat), ///
+        legend(off) ///
+        xtitle("Predicted CA x Post from `zset' (residual, after firm and year fixed effects)") ///
+        ytitle("ln(market cap) (residual, after firm and year fixed effects)") ///
+        title("IV: Firm Value and CA x Post (instrument: `zset')", size(medium)) ///
+        note("Binned means (20 bins), firm-year data, CA and TX firms. 2SLS slope = `bb' (clustered s.e. `ss').")
+    graph export "figures/iv_`fn'_binned.png", replace width(2000)
+    graph save   "figures/iv_`fn'_binned.gph", replace
+    restore
+}
+
+log close
