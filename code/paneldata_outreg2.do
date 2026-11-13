@@ -21,9 +21,9 @@ else {
     gen fyr = fyeyear
 }
 tab fyr
-
 * Year dummies from fyr. xtset on firm only, because two fiscal year ends
 * can fall in the same calendar year for a firm, which would break xtset firm fyr
+drop if fyr>2020
 tab fyr, gen(fyeardum)
 xtset firm_id
 
@@ -60,7 +60,7 @@ gen woman_pre_obs = (women >= 1) if fyr==2017
 bysort firm_id: egen woman_pre = max(woman_pre_obs)
 
 xtreg lnmktcap ca_post fyeardum* lnassets roa leverage multinational if woman_pre==1, fe cluster(firm_id)
-outreg2 using table2_main, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
+outreg2 using table2_plcbo, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
 	ctitle("(4) Woman pre-law") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
 
@@ -69,7 +69,7 @@ reg lnmktcap ca fyeardum* ca_year if post==0 & woman_pre==1, cluster(firm_id)
 predict lnmktcap_hat_w if woman_pre==1, resid
 
 xtreg lnmktcap_hat_w ca_post fyeardum* lnassets roa leverage multinational if woman_pre==1, fe cluster(firm_id)
-outreg2 using table2_main, excel append dec(3) ///
+outreg2 using table2_plcbo, excel append dec(3) ///
     drop(fyeardum* o.fyeardum*) ///
 	ctitle("(5) Woman pre-law, detrended") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
