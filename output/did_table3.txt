@@ -1,0 +1,22 @@
+	(1)	(2)	(3)	(4)	(5)
+VARIABLES	(1) First stage: One woman	(2) First stage: Share women	(3) Reduced form	(4) IV: One woman	(5) IV: Share women
+					
+ca	0.112***	0.034***	0.528***	0.409***	0.426***
+	(0.029)	(0.008)	(0.074)	(0.127)	(0.108)
+post19	0.083***	0.029***	0.062**	-0.026	-0.024
+	(0.019)	(0.004)	(0.030)	(0.089)	(0.078)
+ca_post19	0.066**	0.024***	0.071*		
+	(0.027)	(0.006)	(0.041)		
+onewoman				1.062	
+				(0.712)	
+sharewoman					2.986*
+					(1.785)
+Constant	0.191***	-0.003	0.627***	0.424**	0.636***
+	(0.055)	(0.016)	(0.128)	(0.187)	(0.134)
+					
+Observations	1,611	1,611	1,611	1,611	1,611
+R-squared	0.175	0.167	0.790	0.774	0.787
+Controls	Yes	Yes	Yes	Yes	Yes
+First-stage F	6.265	15.60			
+Robust standard errors in parentheses					
+*** p<0.01, ** p<0.05, * p<0.1					

@@ -29,9 +29,17 @@ reg lnmktcap ca post ca_post if mainwindow == 1, vce(cluster gvkey)
 | 1b | `code/01b_collinearity_tests.do` | Tests which variables enter the balance test, for the appendix → `output/collinearity_tests.xlsx`. Run after step 1 |
 | 2 | `code/02_balance_test.do` | Table 1 means (`outsum`) and balance test (`outreg2`) → `output/table1_means.csv`, `output/balance_prelaw.xml`, `output/balance_did.xml`, and all four columns in `output/table1_balance.csv` |
 | 3 | `code/03_table1_format.py` | Formats `output/table1_balance.csv` into the paper's Table 1 (Dynarski layout: 4 means columns, pre-law difference, diff-in-diff) → `output/Table1_means_balance.xlsx`. Run `python3 code/03_table1_format.py` from the project folder |
-| old | `code/02_table1_means.do`, `code/03_table1_excel.py` | From the all-states design. They stop at `assert wa == 0` / filter on `wa`, which no longer exists. Superseded by step 2 |
+| 4 | `code/did_tests.do` (Sophia) | **Main results.** Two-period DiD, fiscal year-end 2018 (pre) vs 2019 (post): Table 1 main DiD (with and without controls, raw and detrended), Table 2 placebo (firms with a woman on the board in 2018), Table 3 first stage / reduced form / IV, Table 4 pre-trends → `did_table1`–`did_table4` (`.txt`/`.xml`) |
+| 5 | `code/did_graphs.do` (Seohee) | Figures for Tables 1–4 → `output/figures/fig_table*.png`. Every coefficient is the same regression as a table column, in the same units. Also writes `output/figures/figure_numbers.csv` (every plotted number) |
+| 6 | `code/paneldata_outreg2.do` (Sophia) | Panel version with firm and year FE, all years: main DiD, pre-trends (2017 = reference), IV → `table2_main`, `table3_pretrend`, `table4_iv` |
+| check | `code/run_check.sh` | Re-runs steps 4 and 5 and runs `code/check_figures_vs_tables.py`, which compares every number in the figures with the tables (coefficients, SEs, N, F-stats, pre-trend test). Run `bash code/run_check.sh` before handing anything in; it must end with `0 problem(s)` |
+| archive | `code/archive/` | Superseded or exploratory scripts kept for reference: the all-states Table 1 scripts, Eloise's policy-year event studies and first stage, and the problem-set template. Not part of the paper |
 
-Change the `cd` line at the top of each `.do` file to your project folder before running. `final_data_full.dta` is left over from the earlier all-states design and is no longer built or updated.
+**Running the code.** `did_graphs.do` finds the project folder by itself on Ansh's and Sophia's machines; anyone else should `cd` to the project folder first. Sophia's `.do` files keep her own `cd` line, so change it on your machine (or use `run_check.sh`, which handles it without editing her file). `final_data_full.dta` is left over from the earlier all-states design and is no longer built or updated.
+
+**Two things the group still has to decide**
+- **Table numbers clash.** `did_tests.do` makes Tables 1–4 and `paneldata_outreg2.do` makes Tables 2–4, with different content (e.g. "Table 3" is the IV in one and pre-trends in the other). The figures follow `did_tests.do`.
+- **`paneldata_outreg2.do`, `table4_iv` columns 1–2.** The first stages are labeled "Year FE: Yes" but leave out `fyeardum*`, and use `fyeyear < 2020` while the IV columns use all years. With year FE the first-stage F is about 1.8 (one woman) and 6.1 (share), not 106.8 and 253.6. Not changed here, since that is Sophia's call.
 
 ## Variables in `final_data.dta`
 
