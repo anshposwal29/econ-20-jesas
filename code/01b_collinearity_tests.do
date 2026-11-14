@@ -11,12 +11,43 @@
             Correlations  pairwise correlations among all candidates
             VIF           VIFs for all candidates and for the final list
             Missing       share of firm-years missing each variable, by state
+  File:   code/01b_collinearity_tests.do   Author: Ansh
+  Run:    do code/01b_collinearity_tests.do (or via code/00_master.do)
+  Log:    logs/01b_collinearity_tests.log
 ==============================================================================*/
 
 clear all
 set more off
-* --- CHANGE THIS LINE to the project folder on your computer ---
-cd "~/Desktop/Dartmouth Classes/Economics/ECON20/project"
+* --- Project folder (standard header, same in every script) -----------------
+* Uses global PROJ if set (00_master.do sets it); otherwise the current folder
+* if it has final_data.dta; otherwise the first teammate folder below that has
+* it. Nothing to edit: if none match, cd to the project folder first, or set
+*   global PROJ "C:/path/to/project"
+if `"$PROJ"' != "" cd `"$PROJ"'
+capture confirm file "final_data.dta"
+if _rc & `"$PROJ"' == "" {
+    foreach d in "~/Desktop/Dartmouth Classes/Economics/ECON20/project" ///
+                 "C:/Users/shinz/OneDrive/Desktop/Econ20 FinalProject" ///
+                 "/Users/joseohui/Desktop/UIC/Dartmouth/Fall/Econometrics/JESAS/project" ///
+                 "C:/Econ 20/proj" {
+        capture confirm file "`d'/final_data.dta"
+        if !_rc {
+            cd "`d'"
+            continue, break
+        }
+    }
+}
+capture confirm file "final_data.dta"
+if _rc {
+    di as error "final_data.dta not found. cd to the project folder, or run"
+    di as error `"  global PROJ "C:/path/to/project""'
+    di as error "and then run this do-file again."
+    exit 601
+}
+capture mkdir "logs"
+capture mkdir "output"
+capture mkdir "output/figures"
+* ---------------------------------------------------------------------------
 
 capture log close
 log using "logs/01b_collinearity_tests.log", replace text

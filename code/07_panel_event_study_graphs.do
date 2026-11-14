@@ -1,11 +1,62 @@
+*==============================================================================
+* 07_panel_event_study_graphs.do  --  PANEL EVENT STUDIES: ORIGINAL vs DETRENDED
+* Author:  Seohee (formerly code/paneldata_outreg2_graphs.do)
+* Purpose: Event studies, fiscal years 2011-2021 (2017 = reference), for the
+*          first stage (onewoman) and the reduced form (lnmktcap), each shown
+*          raw and after removing a CA-specific linear pre-trend.
+*          The first part re-runs a copy of the panel tables from an OLDER
+*          version of Sophia's 06_panel_tables.do (all years, no
+*          "drop if fyr>2020"; woman-pre-law columns inside table2) because the
+*          graphs need variables it creates (fyeardum*, ca_year, lnmktcap_hat,
+*          onewoman). Its regressions are unchanged, but its outreg2 tables are
+*          written to output/07_check_*.txt/.xml so they no longer overwrite
+*          Sophia's output/table2_main, table3_pretrend and table4_iv.
+*          The paper's panel tables are the ones from 06_panel_tables.do.
+* Input:   final_data.dta
+* Outputs: output/figures/es_onewoman_overlay.png/.gph
+*          output/figures/es_lnmktcap_overlay.png/.gph
+*          output/07_check_table2_main, 07_check_table3_pretrend,
+*          07_check_table4_iv (.txt/.xml; for comparison only)
+*          logs/07_panel_event_study_graphs.log
+* Run:     do code/07_panel_event_study_graphs.do   (or via code/00_master.do)
+*==============================================================================
 clear all
 set more off
-cd "/Users/joseohui/Desktop/UIC/Dartmouth/Fall/Econometrics/JESAS"
+* --- Project folder (standard header, same in every script) -----------------
+* Uses global PROJ if set (00_master.do sets it); otherwise the current folder
+* if it has final_data.dta; otherwise the first teammate folder below that has
+* it. Nothing to edit: if none match, cd to the project folder first, or set
+*   global PROJ "C:/path/to/project"
+if `"$PROJ"' != "" cd `"$PROJ"'
+capture confirm file "final_data.dta"
+if _rc & `"$PROJ"' == "" {
+    foreach d in "~/Desktop/Dartmouth Classes/Economics/ECON20/project" ///
+                 "C:/Users/shinz/OneDrive/Desktop/Econ20 FinalProject" ///
+                 "/Users/joseohui/Desktop/UIC/Dartmouth/Fall/Econometrics/JESAS/project" ///
+                 "C:/Econ 20/proj" {
+        capture confirm file "`d'/final_data.dta"
+        if !_rc {
+            cd "`d'"
+            continue, break
+        }
+    }
+}
+capture confirm file "final_data.dta"
+if _rc {
+    di as error "final_data.dta not found. cd to the project folder, or run"
+    di as error `"  global PROJ "C:/path/to/project""'
+    di as error "and then run this do-file again."
+    exit 601
+}
+capture mkdir "logs"
+capture mkdir "output"
+capture mkdir "output/figures"
+* ---------------------------------------------------------------------------
 
 capture log close
-log using "test.log", replace text
+log using "logs/07_panel_event_study_graphs.log", replace text
 
-use "/Users/joseohui/Desktop/UIC/Dartmouth/Fall/Econometrics/JESAS/project/raw/final_data.dta", clear
+use "final_data.dta", clear
 
 *==============================================================
 * SETUP
@@ -33,14 +84,14 @@ xtset firm_id
 
 * (1) No controls
 xtreg lnmktcap ca_post fyeardum*, fe cluster(firm_id)
-outreg2 using table2_main, excel replace dec(3) ///
+outreg2 using output/07_check_table2_main, excel replace dec(3) ///
 	drop(fyeardum* o.fyeardum*) ///
     ctitle("(1) No controls") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, No)
 
 * (2) With controls
 xtreg lnmktcap ca_post fyeardum* lnassets roa leverage multinational, fe cluster(firm_id)
-outreg2 using table2_main, excel append dec(3) ///
+outreg2 using output/07_check_table2_main, excel append dec(3) ///
 	drop(fyeardum* o.fyeardum*) ///
     ctitle("(2) Controls") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
@@ -51,7 +102,7 @@ reg lnmktcap ca fyeardum* ca_year if post==0, cluster(firm_id)
 predict lnmktcap_hat, resid
 
 xtreg lnmktcap_hat ca_post fyeardum* lnassets roa leverage multinational, fe cluster(firm_id)
-outreg2 using table2_main, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
+outreg2 using output/07_check_table2_main, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
 	ctitle("(3) Detrended") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
 
@@ -60,7 +111,7 @@ gen woman_pre_obs = (women >= 1) if fyr==2017
 bysort firm_id: egen woman_pre = max(woman_pre_obs)
 
 xtreg lnmktcap ca_post fyeardum* lnassets roa leverage multinational if woman_pre==1, fe cluster(firm_id)
-outreg2 using table2_main, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
+outreg2 using output/07_check_table2_main, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
 	ctitle("(4) Woman pre-law") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
 
@@ -69,7 +120,7 @@ reg lnmktcap ca fyeardum* ca_year if post==0 & woman_pre==1, cluster(firm_id)
 predict lnmktcap_hat_w if woman_pre==1, resid
 
 xtreg lnmktcap_hat_w ca_post fyeardum* lnassets roa leverage multinational if woman_pre==1, fe cluster(firm_id)
-outreg2 using table2_main, excel append dec(3) ///
+outreg2 using output/07_check_table2_main, excel append dec(3) ///
     drop(fyeardum* o.fyeardum*) ///
 	ctitle("(5) Woman pre-law, detrended") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
@@ -83,7 +134,7 @@ forvalues y = 2010/2016 {
 
 xtreg lnmktcap ca_yr2010-ca_yr2016 i.fyr if fyr <= 2017, fe cluster(firm_id)
 test ca_yr2010 ca_yr2011 ca_yr2012 ca_yr2013 ca_yr2014 ca_yr2015 ca_yr2016
-outreg2 using table3_pretrend, excel replace keep(ca_yr*) dec(3) ///
+outreg2 using output/07_check_table3_pretrend, excel replace keep(ca_yr*) dec(3) ///
     ctitle("ln(market cap)") ///
     addtext(Firm FE, Yes, Year FE, Yes) ///
     addstat(Joint F-test, r(F), p-value, r(p))
@@ -97,7 +148,7 @@ gen sharewoman = women / boardsize if women ~= . & boardsize ~= . & boardsize > 
 * (1) First stage: at least one woman
 xtreg onewoman ca_post lnassets roa leverage multinational if fyeyear < 2020, fe cluster(firm_id)
 test ca_post
-outreg2 using table4_iv, excel replace drop(fyeardum*) dec(3) ///
+outreg2 using output/07_check_table4_iv, excel replace drop(fyeardum*) dec(3) ///
     ctitle("(1) First stage", "One woman") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes) ///
     addstat(First-stage F, r(F))
@@ -105,33 +156,33 @@ outreg2 using table4_iv, excel replace drop(fyeardum*) dec(3) ///
 * (2) First stage: share of women
 xtreg sharewoman ca_post lnassets roa leverage multinational if fyeyear < 2020, fe cluster(firm_id)
 test ca_post
-outreg2 using table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
+outreg2 using output/07_check_table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
     ctitle("(2) First stage", "Share women") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes) ///
     addstat(First-stage F, r(F))
 
 * (3) Reduced form, same sample as the first stages
 xtreg lnmktcap ca_post fyeardum* lnassets roa leverage multinational if onewoman ~= ., fe cluster(firm_id)
-outreg2 using table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
+outreg2 using output/07_check_table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
     ctitle("(3) Reduced form", "ln(mkt cap)") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
 
 * (4) IV: one woman
 xtivreg lnmktcap fyeardum* lnassets roa leverage multinational (onewoman = ca_post), fe vce(cluster firm_id)
-outreg2 using table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
+outreg2 using output/07_check_table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
     ctitle("(4) IV", "ln(mkt cap)") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
 
 * (5) IV: share of women
 xtivreg lnmktcap fyeardum* lnassets roa leverage multinational (sharewoman = ca_post), fe vce(cluster firm_id)
-outreg2 using table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
+outreg2 using output/07_check_table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
     ctitle("(5) IV", "ln(mkt cap)") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
 	
 *==============================================================
 * EVENT STUDIES: ORIGINAL vs DETRENDED (fiscal years 2011-2021, ref = 2017)
 *==============================================================
-capture mkdir figures
+capture mkdir "output/figures"
 local firstyr 2011
 local lastyr  2021
 local refyr   2017
@@ -198,8 +249,8 @@ foreach y in onewoman lnmktcap {
         title("`ttl'" "California SB 826: Original vs. Detrended", size(medium)) ///
         note("CA-specific linear trend estimated on pre-law observations (post==0) and removed from the outcome." ///
              "Bars show 95% CIs, standard errors clustered by firm. Dashed line = SB 826 signed 30 Sep 2018.")
-    graph export "figures/es_`y'_overlay.png", replace width(2000)
-	graph save   "figures/es_`y'_overlay.gph", replace
+    graph export "output/figures/es_`y'_overlay.png", replace width(2000)
+	graph save   "output/figures/es_`y'_overlay.gph", replace
     restore
 }
 

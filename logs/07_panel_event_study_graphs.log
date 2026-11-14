@@ -1,0 +1,1257 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/07_panel_event_study_graphs.log
+  log type:  text
+ opened on:  13 Nov 2026, 19:39:26
+
+. 
+. use "final_data.dta", clear
+((null))
+
+. 
+. *==============================================================
+. * SETUP
+. *==============================================================
+. encode gvkey, gen(firm_id)
+
+. 
+. * fyr = calendar year of the fiscal year end (works whether fyeyear is a year
+>  or a date)
+. quietly summarize fyeyear
+
+. if r(max) > 3000 {
+.     gen fyr = year(fyeyear)
+. }
+
+. else {
+.     gen fyr = fyeyear
+. }
+
+. tab fyr
+
+        fyr |      Freq.     Percent        Cum.
+------------+-----------------------------------
+       2010 |        739        4.94        4.94
+       2011 |        857        5.73       10.68
+       2012 |        867        5.80       16.47
+       2013 |        878        5.87       22.35
+       2014 |        910        6.09       28.43
+       2015 |        914        6.11       34.55
+       2016 |        902        6.03       40.58
+       2017 |        896        5.99       46.58
+       2018 |        891        5.96       52.54
+       2019 |        908        6.07       58.61
+       2020 |        948        6.34       64.95
+       2021 |      1,049        7.02       71.97
+       2022 |      1,056        7.06       79.03
+       2023 |      1,060        7.09       86.12
+       2024 |      1,047        7.00       93.12
+       2025 |      1,028        6.88      100.00
+------------+-----------------------------------
+      Total |     14,950      100.00
+
+. 
+. * Year dummies from fyr. xtset on firm only, because two fiscal year ends
+. * can fall in the same calendar year for a firm, which would break xtset firm
+>  fyr
+. tab fyr, gen(fyeardum)
+
+        fyr |      Freq.     Percent        Cum.
+------------+-----------------------------------
+       2010 |        739        4.94        4.94
+       2011 |        857        5.73       10.68
+       2012 |        867        5.80       16.47
+       2013 |        878        5.87       22.35
+       2014 |        910        6.09       28.43
+       2015 |        914        6.11       34.55
+       2016 |        902        6.03       40.58
+       2017 |        896        5.99       46.58
+       2018 |        891        5.96       52.54
+       2019 |        908        6.07       58.61
+       2020 |        948        6.34       64.95
+       2021 |      1,049        7.02       71.97
+       2022 |      1,056        7.06       79.03
+       2023 |      1,060        7.09       86.12
+       2024 |      1,047        7.00       93.12
+       2025 |      1,028        6.88      100.00
+------------+-----------------------------------
+      Total |     14,950      100.00
+
+. xtset firm_id
+
+Panel variable: firm_id (unbalanced)
+
+. 
+. *==============================================================
+. * TABLE 2: Main difference-in-differences results (ln market cap)
+. *==============================================================
+. 
+. * (1) No controls
+. xtreg lnmktcap ca_post fyeardum*, fe cluster(firm_id)
+note: fyeardum16 omitted because of collinearity.
+
+Fixed-effects (within) regression               Number of obs     =     14,950
+Group variable: firm_id                         Number of groups  =      1,866
+
+R-squared:                                      Obs per group:
+     Within  = 0.1190                                         min =          1
+     Between = 0.0000                                         avg =        8.0
+     Overall = 0.0068                                         max =         16
+
+                                                F(16, 1865)       =      61.91
+corr(u_i, Xb) = -0.0830                         Prob > F          =     0.0000
+
+                            (Std. err. adjusted for 1,866 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ca_post |   .4772786   .0689735     6.92   0.000     .3420051     .612552
+   fyeardum1 |  -.5992846   .0748826    -8.00   0.000    -.7461471    -.452422
+   fyeardum2 |  -.6364509   .0746154    -8.53   0.000    -.7827893   -.4901125
+   fyeardum3 |  -.5739922   .0722899    -7.94   0.000    -.7157697   -.4322146
+   fyeardum4 |  -.2442327   .0688213    -3.55   0.000    -.3792076   -.1092578
+   fyeardum5 |  -.2117318   .0663744    -3.19   0.001    -.3419077   -.0815559
+   fyeardum6 |  -.3520311   .0655984    -5.37   0.000    -.4806851   -.2233772
+   fyeardum7 |  -.3055206   .0663654    -4.60   0.000    -.4356789   -.1753623
+   fyeardum8 |  -.1208137    .062055    -1.95   0.052    -.2425183    .0008909
+   fyeardum9 |  -.3968531   .0489329    -8.11   0.000    -.4928221   -.3008841
+  fyeardum10 |   -.310846   .0457395    -6.80   0.000    -.4005521     -.22114
+  fyeardum11 |  -.1311088    .050333    -2.60   0.009    -.2298237   -.0323939
+  fyeardum12 |    .197393   .0426415     4.63   0.000      .113763     .281023
+  fyeardum13 |  -.1852997   .0383462    -4.83   0.000    -.2605056   -.1100937
+  fyeardum14 |   -.187725   .0328271    -5.72   0.000    -.2521068   -.1233433
+  fyeardum15 |  -.0928781   .0247341    -3.76   0.000    -.1413876   -.0443687
+  fyeardum16 |          0  (omitted)
+       _cons |   6.776212   .0542612   124.88   0.000     6.669793    6.882631
+-------------+----------------------------------------------------------------
+     sigma_u |  2.0199433
+     sigma_e |  .78147133
+         rho |  .86981143   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. outreg2 using output/07_check_table2_main, excel replace dec(3) ///
+>         drop(fyeardum* o.fyeardum*) ///
+>     ctitle("(1) No controls") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, No)
+output/07_check_table2_main.xml
+dir : seeout
+
+. 
+. * (2) With controls
+. xtreg lnmktcap ca_post fyeardum* lnassets roa leverage multinational, fe clus
+> ter(firm_id)
+note: fyeardum16 omitted because of collinearity.
+
+Fixed-effects (within) regression               Number of obs     =     14,884
+Group variable: firm_id                         Number of groups  =      1,855
+
+R-squared:                                      Obs per group:
+     Within  = 0.4303                                         min =          1
+     Between = 0.7503                                         avg =        8.0
+     Overall = 0.7463                                         max =         16
+
+                                                F(20, 1854)       =     130.31
+corr(u_i, Xb) = 0.0588                          Prob > F          =     0.0000
+
+                            (Std. err. adjusted for 1,855 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ca_post |   .1696793   .0476745     3.56   0.000      .076178    .2631805
+   fyeardum1 |   .1801873   .0572909     3.15   0.002     .0678259    .2925487
+   fyeardum2 |   .0743729   .0570457     1.30   0.192    -.0375076    .1862534
+   fyeardum3 |   .0942465   .0547706     1.72   0.085    -.0131721     .201665
+   fyeardum4 |   .3370661   .0534575     6.31   0.000     .2322227    .4419094
+   fyeardum5 |   .2955034   .0502592     5.88   0.000     .1969328    .3940741
+   fyeardum6 |   .1363925   .0510614     2.67   0.008     .0362486    .2365364
+   fyeardum7 |   .1596523   .0510231     3.13   0.002     .0595835    .2597211
+   fyeardum8 |   .2836386   .0476924     5.95   0.000     .1901021     .377175
+   fyeardum9 |   .0534022   .0406373     1.31   0.189    -.0262975     .133102
+  fyeardum10 |   .1001223   .0389041     2.57   0.010     .0238219    .1764227
+  fyeardum11 |   .1602529   .0433512     3.70   0.000     .0752306    .2452753
+  fyeardum12 |   .3082755   .0344566     8.95   0.000     .2406977    .3758532
+  fyeardum13 |   -.079222   .0313036    -2.53   0.011    -.1406161    -.017828
+  fyeardum14 |  -.0815885   .0277897    -2.94   0.003    -.1360909    -.027086
+  fyeardum15 |  -.0156994   .0217287    -0.72   0.470    -.0583147    .0269159
+  fyeardum16 |          0  (omitted)
+    lnassets |   .8548361   .0272386    31.38   0.000     .8014144    .9082577
+         roa |  -.0772234   .0273272    -2.83   0.005    -.1308187    -.023628
+    leverage |  -.2299819   .0632045    -3.64   0.000    -.3539414   -.1060224
+multinatio~l |  -.0618166   .0475131    -1.30   0.193    -.1550015    .0313683
+       _cons |   1.002029    .193329     5.18   0.000     .6228631    1.381194
+-------------+----------------------------------------------------------------
+     sigma_u |  1.0005107
+     sigma_e |  .62781149
+         rho |  .71749138   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. outreg2 using output/07_check_table2_main, excel append dec(3) ///
+>         drop(fyeardum* o.fyeardum*) ///
+>     ctitle("(2) Controls") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
+output/07_check_table2_main.xml
+dir : seeout
+
+. 
+. * (3) Detrended outcome: remove a California-specific linear trend estimated 
+> pre-law
+. gen ca_year = ca*fyr
+
+. reg lnmktcap ca fyeardum* ca_year if post==0, cluster(firm_id)
+note: fyeardum1 omitted because of collinearity.
+note: fyeardum10 omitted because of collinearity.
+note: fyeardum11 omitted because of collinearity.
+note: fyeardum12 omitted because of collinearity.
+note: fyeardum13 omitted because of collinearity.
+note: fyeardum14 omitted because of collinearity.
+note: fyeardum15 omitted because of collinearity.
+note: fyeardum16 omitted because of collinearity.
+
+Linear regression                               Number of obs     =      7,140
+                                                F(10, 1282)       =      23.65
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0133
+                                                Root MSE          =     2.1234
+
+                            (Std. err. adjusted for 1,283 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -164.0959   40.35516    -4.07   0.000    -243.2653    -84.9265
+   fyeardum1 |          0  (omitted)
+   fyeardum2 |  -.1293073   .0425985    -3.04   0.002    -.2128778   -.0457368
+   fyeardum3 |  -.1095821   .0538481    -2.04   0.042    -.2152222   -.0039419
+   fyeardum4 |   .1735847   .0616516     2.82   0.005     .0526355    .2945339
+   fyeardum5 |   .1157662   .0717435     1.61   0.107    -.0249814    .2565138
+   fyeardum6 |  -.1297409   .0836206    -1.55   0.121    -.2937891    .0343074
+   fyeardum7 |  -.1392765   .0943574    -1.48   0.140    -.3243884    .0458354
+   fyeardum8 |  -.0424125   .1028842    -0.41   0.680    -.2442524    .1594273
+   fyeardum9 |   .1070667   .2016409     0.53   0.596    -.2885156     .502649
+  fyeardum10 |          0  (omitted)
+  fyeardum11 |          0  (omitted)
+  fyeardum12 |          0  (omitted)
+  fyeardum13 |          0  (omitted)
+  fyeardum14 |          0  (omitted)
+  fyeardum15 |          0  (omitted)
+  fyeardum16 |          0  (omitted)
+     ca_year |   .0813171   .0200451     4.06   0.000     .0419924    .1206419
+       _cons |   6.800816   .1098507    61.91   0.000     6.585309    7.016323
+------------------------------------------------------------------------------
+
+. predict lnmktcap_hat, resid
+
+. 
+. xtreg lnmktcap_hat ca_post fyeardum* lnassets roa leverage multinational, fe 
+> cluster(firm_id)
+note: fyeardum16 omitted because of collinearity.
+
+Fixed-effects (within) regression               Number of obs     =     14,884
+Group variable: firm_id                         Number of groups  =      1,855
+
+R-squared:                                      Obs per group:
+     Within  = 0.3652                                         min =          1
+     Between = 0.7345                                         avg =        8.0
+     Overall = 0.7286                                         max =         16
+
+                                                F(20, 1854)       =     110.79
+corr(u_i, Xb) = 0.0369                          Prob > F          =     0.0000
+
+                            (Std. err. adjusted for 1,855 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ca_post |  -.3650981   .0479698    -7.61   0.000    -.4591786   -.2710176
+   fyeardum1 |   .5457617   .0592604     9.21   0.000     .4295376    .6619858
+   fyeardum2 |   .5302284   .0585826     9.05   0.000     .4153336    .6451232
+   fyeardum3 |   .4873966   .0559791     8.71   0.000     .3776079    .5971853
+   fyeardum4 |   .4048064   .0545964     7.41   0.000     .2977295    .5118833
+   fyeardum5 |   .3780273   .0516405     7.32   0.000     .2767477    .4793069
+   fyeardum6 |   .4207436    .052414     8.03   0.000      .317947    .5235402
+   fyeardum7 |   .4106549   .0520201     7.89   0.000     .3086308     .512679
+   fyeardum8 |   .3950406   .0486167     8.13   0.000     .2996913    .4903899
+   fyeardum9 |   .1980176   .0423999     4.67   0.000     .1148609    .2811742
+  fyeardum10 |   .3839543   .0407397     9.42   0.000     .3040538    .4638547
+  fyeardum11 |   .4016887   .0452392     8.88   0.000     .3129636    .4904137
+  fyeardum12 |   .5098805   .0355218    14.35   0.000     .4402136    .5795475
+  fyeardum13 |   .0728321   .0315208     2.31   0.021     .0110121    .1346522
+  fyeardum14 |   .0184013   .0278441     0.66   0.509    -.0362077    .0730103
+  fyeardum15 |   .0333183   .0217657     1.53   0.126    -.0093694    .0760061
+  fyeardum16 |          0  (omitted)
+    lnassets |   .8422498   .0273295    30.82   0.000     .7886501    .8958496
+         roa |  -.0820382   .0274404    -2.99   0.003    -.1358555   -.0282209
+    leverage |  -.2446041   .0651264    -3.76   0.000    -.3723329   -.1168754
+multinatio~l |  -.0742195   .0483717    -1.53   0.125    -.1690882    .0206493
+       _cons |  -5.721602   .1953824   -29.28   0.000    -6.104794   -5.338409
+-------------+----------------------------------------------------------------
+     sigma_u |  1.0386562
+     sigma_e |  .63359465
+         rho |  .72880087   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. outreg2 using output/07_check_table2_main, excel append drop(fyeardum* o.fyea
+> rdum*) dec(3) ///
+>         ctitle("(3) Detrended") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
+output/07_check_table2_main.xml
+dir : seeout
+
+. 
+. * (4) Firms that already had a woman on the board before the law (fyr 2017)
+. gen woman_pre_obs = (women >= 1) if fyr==2017
+(14,054 missing values generated)
+
+. bysort firm_id: egen woman_pre = max(woman_pre_obs)
+(3,892 missing values generated)
+
+. 
+. xtreg lnmktcap ca_post fyeardum* lnassets roa leverage multinational if woman
+> _pre==1, fe cluster(firm_id)
+note: fyeardum16 omitted because of collinearity.
+
+Fixed-effects (within) regression               Number of obs     =      7,951
+Group variable: firm_id                         Number of groups  =        631
+
+R-squared:                                      Obs per group:
+     Within  = 0.4549                                         min =          1
+     Between = 0.7731                                         avg =       12.6
+     Overall = 0.7439                                         max =         16
+
+                                                F(20, 630)        =      95.67
+corr(u_i, Xb) = 0.0288                          Prob > F          =     0.0000
+
+                              (Std. err. adjusted for 631 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ca_post |   .1897533   .0574164     3.30   0.001     .0770027    .3025039
+   fyeardum1 |   .0553893   .0681685     0.81   0.417    -.0784758    .1892544
+   fyeardum2 |  -.0115632   .0678302    -0.17   0.865    -.1447639    .1216375
+   fyeardum3 |   .0196283   .0666673     0.29   0.769    -.1112888    .1505454
+   fyeardum4 |   .2778352   .0631685     4.40   0.000     .1537889    .4018815
+   fyeardum5 |   .2431552   .0621608     3.91   0.000     .1210877    .3652226
+   fyeardum6 |   .0904273   .0637917     1.42   0.157    -.0348428    .2156974
+   fyeardum7 |    .115498   .0613439     1.88   0.060    -.0049652    .2359611
+   fyeardum8 |   .2160677   .0604163     3.58   0.000     .0974261    .3347093
+   fyeardum9 |  -.0352971   .0500912    -0.70   0.481     -.133663    .0630687
+  fyeardum10 |  -.0212294   .0491617    -0.43   0.666    -.1177701    .0753113
+  fyeardum11 |  -.0519867   .0564966    -0.92   0.358    -.1629311    .0589576
+  fyeardum12 |   .1428764   .0436882     3.27   0.001     .0570843    .2286684
+  fyeardum13 |  -.0839874   .0404099    -2.08   0.038    -.1633418   -.0046331
+  fyeardum14 |  -.0827103   .0368211    -2.25   0.025    -.1550173   -.0104034
+  fyeardum15 |  -.0395064   .0297678    -1.33   0.185    -.0979625    .0189497
+  fyeardum16 |          0  (omitted)
+    lnassets |   .8729347   .0317665    27.48   0.000     .8105536    .9353159
+         roa |   -.129409   .0436416    -2.97   0.003    -.2151096   -.0437084
+    leverage |   -.243796   .0925533    -2.63   0.009    -.4255463   -.0620458
+multinatio~l |  -.1867799   .0669989    -2.79   0.005    -.3183481   -.0552118
+       _cons |   1.039726    .252406     4.12   0.000     .5440674    1.535385
+-------------+----------------------------------------------------------------
+     sigma_u |  1.0371787
+     sigma_e |  .61579252
+         rho |  .73937043   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. outreg2 using output/07_check_table2_main, excel append drop(fyeardum* o.fyea
+> rdum*) dec(3) ///
+>         ctitle("(4) Woman pre-law") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
+output/07_check_table2_main.xml
+dir : seeout
+
+. 
+. * (5) Same subsample, detrended
+. reg lnmktcap ca fyeardum* ca_year if post==0 & woman_pre==1, cluster(firm_id)
+note: fyeardum9 omitted because of collinearity.
+note: fyeardum10 omitted because of collinearity.
+note: fyeardum11 omitted because of collinearity.
+note: fyeardum12 omitted because of collinearity.
+note: fyeardum13 omitted because of collinearity.
+note: fyeardum14 omitted because of collinearity.
+note: fyeardum15 omitted because of collinearity.
+note: fyeardum16 omitted because of collinearity.
+
+Linear regression                               Number of obs     =      4,135
+                                                F(10, 631)        =      10.37
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0124
+                                                Root MSE          =     2.2078
+
+                              (Std. err. adjusted for 632 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -173.5709    48.7274    -3.56   0.000    -269.2584   -77.88338
+   fyeardum1 |  -.0818802   .2483122    -0.33   0.742    -.5694984    .4057381
+   fyeardum2 |  -.2245025   .2360486    -0.95   0.342    -.6880384    .2390334
+   fyeardum3 |  -.2377744   .2276923    -1.04   0.297    -.6849007    .2093519
+   fyeardum4 |   .0179956    .221014     0.08   0.935    -.4160164    .4520076
+   fyeardum5 |  -.0715548   .2169892    -0.33   0.742    -.4976631    .3545535
+   fyeardum6 |  -.2905914    .210665    -1.38   0.168    -.7042807     .123098
+   fyeardum7 |  -.3134032   .2074102    -1.51   0.131     -.720701    .0938946
+   fyeardum8 |  -.3037103   .2049227    -1.48   0.139    -.7061233    .0987026
+   fyeardum9 |          0  (omitted)
+  fyeardum10 |          0  (omitted)
+  fyeardum11 |          0  (omitted)
+  fyeardum12 |          0  (omitted)
+  fyeardum13 |          0  (omitted)
+  fyeardum14 |          0  (omitted)
+  fyeardum15 |          0  (omitted)
+  fyeardum16 |          0  (omitted)
+     ca_year |   .0859888   .0241806     3.56   0.000     .0385045    .1334731
+       _cons |   7.457686   .2505721    29.76   0.000      6.96563    7.949742
+------------------------------------------------------------------------------
+
+. predict lnmktcap_hat_w if woman_pre==1, resid
+(6,974 missing values generated)
+
+. 
+. xtreg lnmktcap_hat_w ca_post fyeardum* lnassets roa leverage multinational if
+>  woman_pre==1, fe cluster(firm_id)
+note: fyeardum16 omitted because of collinearity.
+
+Fixed-effects (within) regression               Number of obs     =      7,951
+Group variable: firm_id                         Number of groups  =        631
+
+R-squared:                                      Obs per group:
+     Within  = 0.3662                                         min =          1
+     Between = 0.7511                                         avg =       12.6
+     Overall = 0.7208                                         max =         16
+
+                                                F(20, 630)        =      72.39
+corr(u_i, Xb) = 0.0384                          Prob > F          =     0.0000
+
+                              (Std. err. adjusted for 631 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+lnmktcap_h~w | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ca_post |  -.3719876    .058173    -6.39   0.000    -.4862241    -.257751
+   fyeardum1 |   .5118098   .0711557     7.19   0.000     .3720788    .6515408
+   fyeardum2 |   .5514617   .0699469     7.88   0.000     .4141045    .6888189
+   fyeardum3 |   .5530501   .0681278     8.12   0.000      .419265    .6868352
+   fyeardum4 |   .5131864   .0645391     7.95   0.000     .3864486    .6399242
+   fyeardum5 |   .5217772   .0638504     8.17   0.000     .3963918    .6471626
+   fyeardum6 |   .5395773   .0656033     8.22   0.000     .4107497    .6684048
+   fyeardum7 |   .5380008   .0626407     8.59   0.000     .4149908    .6610107
+   fyeardum8 |   .5788784   .0616217     9.39   0.000     .4578696    .6998871
+   fyeardum9 |   .2266243   .0526868     4.30   0.000     .1231612    .3300873
+  fyeardum10 |   .2753603   .0518295     5.31   0.000     .1735809    .3771397
+  fyeardum11 |   .1971887   .0592891     3.33   0.001     .0807605    .3136168
+  fyeardum12 |   .3446895    .045366     7.60   0.000     .2556026    .4337765
+  fyeardum13 |   .0691749   .0409633     1.69   0.092    -.0112662     .149616
+  fyeardum14 |   .0206907   .0370283     0.56   0.577    -.0520232    .0934046
+  fyeardum15 |   .0111892   .0300326     0.37   0.710    -.0477869    .0701653
+  fyeardum16 |          0  (omitted)
+    lnassets |   .8481327   .0318593    26.62   0.000     .7855695    .9106959
+         roa |  -.1332523   .0422606    -3.15   0.002     -.216241   -.0502636
+    leverage |  -.2684774   .0938555    -2.86   0.004    -.4527848     -.08417
+multinatio~l |  -.2053875    .068716    -2.99   0.003    -.3403277   -.0704474
+       _cons |  -6.202767   .2546374   -24.36   0.000    -6.702808   -5.702726
+-------------+----------------------------------------------------------------
+     sigma_u |  1.0820578
+     sigma_e |  .62103008
+         rho |  .75221871   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. outreg2 using output/07_check_table2_main, excel append dec(3) ///
+>     drop(fyeardum* o.fyeardum*) ///
+>         ctitle("(5) Woman pre-law, detrended") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
+output/07_check_table2_main.xml
+dir : seeout
+
+. 
+. *==============================================================
+. * TABLE 3: Pre-trend (event study), pre-law years only, 2017 = reference
+. *==============================================================
+. forvalues y = 2010/2016 {
+  2.     gen ca_yr`y' = ca * (fyr == `y')
+  3. }
+
+. 
+. xtreg lnmktcap ca_yr2010-ca_yr2016 i.fyr if fyr <= 2017, fe cluster(firm_id)
+
+Fixed-effects (within) regression               Number of obs     =      6,963
+Group variable: firm_id                         Number of groups  =      1,276
+
+R-squared:                                      Obs per group:
+     Within  = 0.1175                                         min =          1
+     Between = 0.0038                                         avg =        5.5
+     Overall = 0.0120                                         max =          8
+
+                                                F(14, 1275)       =      43.33
+corr(u_i, Xb) = -0.0076                         Prob > F          =     0.0000
+
+                            (Std. err. adjusted for 1,276 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   ca_yr2010 |  -.3929816   .0916452    -4.29   0.000    -.5727736   -.2131896
+   ca_yr2011 |  -.4549593   .0888466    -5.12   0.000     -.629261   -.2806577
+   ca_yr2012 |  -.4860371   .0784826    -6.19   0.000    -.6400064   -.3320677
+   ca_yr2013 |   -.480648    .069931    -6.87   0.000    -.6178405   -.3434555
+   ca_yr2014 |  -.2554738    .060841    -4.20   0.000    -.3748333   -.1361143
+   ca_yr2015 |   .0208374   .0549034     0.38   0.704    -.0868736    .1285483
+   ca_yr2016 |  -.1360604   .0486221    -2.80   0.005    -.2314484   -.0406724
+             |
+         fyr |
+       2011  |  -.0050413   .0313048    -0.16   0.872    -.0664558    .0563732
+       2012  |   .0742085    .039141     1.90   0.058    -.0025793    .1509962
+       2013  |    .411791   .0419881     9.81   0.000     .3294176    .4941644
+       2014  |   .3128961   .0505819     6.19   0.000     .2136632     .412129
+       2015  |   .0221249   .0637438     0.35   0.729    -.1029294    .1471791
+       2016  |   .1655589   .0645016     2.57   0.010      .039018    .2920998
+       2017  |   .2673412   .0694964     3.85   0.000     .1310013    .4036811
+             |
+       _cons |   6.558494   .0575096   114.04   0.000      6.44567    6.671318
+-------------+----------------------------------------------------------------
+     sigma_u |  1.9730696
+     sigma_e |   .5744034
+         rho |  .92186982   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. test ca_yr2010 ca_yr2011 ca_yr2012 ca_yr2013 ca_yr2014 ca_yr2015 ca_yr2016
+
+ ( 1)  ca_yr2010 = 0
+ ( 2)  ca_yr2011 = 0
+ ( 3)  ca_yr2012 = 0
+ ( 4)  ca_yr2013 = 0
+ ( 5)  ca_yr2014 = 0
+ ( 6)  ca_yr2015 = 0
+ ( 7)  ca_yr2016 = 0
+
+       F(  7,  1275) =   13.79
+            Prob > F =    0.0000
+
+. outreg2 using output/07_check_table3_pretrend, excel replace keep(ca_yr*) dec
+> (3) ///
+>     ctitle("ln(market cap)") ///
+>     addtext(Firm FE, Yes, Year FE, Yes) ///
+>     addstat(Joint F-test, r(F), p-value, r(p))
+output/07_check_table3_pretrend.xml
+dir : seeout
+
+. 
+. *==============================================================
+. * TABLE 4: Instrumental variables (CA x Post instruments board gender)
+. *==============================================================
+. gen onewoman = (women >= 1) if women ~= .
+(2,268 missing values generated)
+
+. gen sharewoman = women / boardsize if women ~= . & boardsize ~= . & boardsize
+>  > 0
+(2,268 missing values generated)
+
+. 
+. * (1) First stage: at least one woman
+. xtreg onewoman ca_post lnassets roa leverage multinational if fyeyear < 2020,
+>  fe cluster(firm_id)
+
+Fixed-effects (within) regression               Number of obs     =      7,672
+Group variable: firm_id                         Number of groups  =      1,250
+
+R-squared:                                      Obs per group:
+     Within  = 0.0869                                         min =          1
+     Between = 0.1237                                         avg =        6.1
+     Overall = 0.1258                                         max =         10
+
+                                                F(5, 1249)        =      46.87
+corr(u_i, Xb) = -0.2579                         Prob > F          =     0.0000
+
+                            (Std. err. adjusted for 1,250 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    onewoman | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ca_post |   .1942828   .0187968    10.34   0.000      .157406    .2311596
+    lnassets |   .1221647   .0178437     6.85   0.000     .0871578    .1571715
+         roa |  -.0269359   .0158979    -1.69   0.090    -.0581253    .0042536
+    leverage |    .065337   .0359254     1.82   0.069    -.0051437    .1358178
+multinatio~l |   .0569644   .0342626     1.66   0.097    -.0102541    .1241829
+       _cons |  -.2864446   .1212779    -2.36   0.018    -.5243754   -.0485137
+-------------+----------------------------------------------------------------
+     sigma_u |   .4030168
+     sigma_e |  .29607395
+         rho |   .6494763   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. test ca_post
+
+ ( 1)  ca_post = 0
+
+       F(  1,  1249) =  106.83
+            Prob > F =    0.0000
+
+. outreg2 using output/07_check_table4_iv, excel replace drop(fyeardum*) dec(3)
+>  ///
+>     ctitle("(1) First stage", "One woman") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes) ///
+>     addstat(First-stage F, r(F))
+output/07_check_table4_iv.xml
+dir : seeout
+
+. 
+. * (2) First stage: share of women
+. xtreg sharewoman ca_post lnassets roa leverage multinational if fyeyear < 202
+> 0, fe cluster(firm_id)
+
+Fixed-effects (within) regression               Number of obs     =      7,672
+Group variable: firm_id                         Number of groups  =      1,250
+
+R-squared:                                      Obs per group:
+     Within  = 0.1298                                         min =          1
+     Between = 0.0924                                         avg =        6.1
+     Overall = 0.1075                                         max =         10
+
+                                                F(5, 1249)        =      83.84
+corr(u_i, Xb) = -0.2089                         Prob > F          =     0.0000
+
+                            (Std. err. adjusted for 1,250 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+  sharewoman | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ca_post |   .0639449   .0040152    15.93   0.000     .0560675    .0718223
+    lnassets |   .0237769   .0034542     6.88   0.000     .0170002    .0305536
+         roa |  -.0039614   .0026095    -1.52   0.129     -.009081    .0011581
+    leverage |   .0252167    .007283     3.46   0.001     .0109286    .0395049
+multinatio~l |   .0126887   .0074868     1.69   0.090    -.0019995    .0273768
+       _cons |  -.0714293   .0233442    -3.06   0.002    -.1172274   -.0256312
+-------------+----------------------------------------------------------------
+     sigma_u |   .1000257
+     sigma_e |  .06327556
+         rho |  .71419698   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. test ca_post
+
+ ( 1)  ca_post = 0
+
+       F(  1,  1249) =  253.62
+            Prob > F =    0.0000
+
+. outreg2 using output/07_check_table4_iv, excel append drop(fyeardum* o.fyeard
+> um*) dec(3) ///
+>     ctitle("(2) First stage", "Share women") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes) ///
+>     addstat(First-stage F, r(F))
+output/07_check_table4_iv.xml
+dir : seeout
+
+. 
+. * (3) Reduced form, same sample as the first stages
+. xtreg lnmktcap ca_post fyeardum* lnassets roa leverage multinational if onewo
+> man ~= ., fe cluster(firm_id)
+note: fyeardum16 omitted because of collinearity.
+
+Fixed-effects (within) regression               Number of obs     =     12,639
+Group variable: firm_id                         Number of groups  =      1,647
+
+R-squared:                                      Obs per group:
+     Within  = 0.4769                                         min =          1
+     Between = 0.7381                                         avg =        7.7
+     Overall = 0.7640                                         max =         16
+
+                                                F(20, 1646)       =     131.50
+corr(u_i, Xb) = 0.1532                          Prob > F          =     0.0000
+
+                            (Std. err. adjusted for 1,647 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ca_post |   .2249317   .0462726     4.86   0.000     .1341724    .3156911
+   fyeardum1 |  -.1421271   .0696031    -2.04   0.041     -.278647   -.0056071
+   fyeardum2 |  -.2346739   .0687541    -3.41   0.001    -.3695287   -.0998192
+   fyeardum3 |  -.2117525   .0661379    -3.20   0.001    -.3414759   -.0820292
+   fyeardum4 |   .0273819   .0660452     0.41   0.678    -.1021595    .1569234
+   fyeardum5 |   .0132316   .0611159     0.22   0.829    -.1066416    .1331047
+   fyeardum6 |  -.1130823   .0604894    -1.87   0.062    -.2317266     .005562
+   fyeardum7 |  -.0698999   .0600712    -1.16   0.245    -.1877239     .047924
+   fyeardum8 |   .0482528   .0576224     0.84   0.402     -.064768    .1612737
+   fyeardum9 |  -.2034815   .0518763    -3.92   0.000     -.305232    -.101731
+  fyeardum10 |  -.1517655   .0507036    -2.99   0.003    -.2512158   -.0523153
+  fyeardum11 |  -.0788078   .0506503    -1.56   0.120    -.1781537    .0205381
+  fyeardum12 |   .0275822   .0466625     0.59   0.555    -.0639419    .1191064
+  fyeardum13 |  -.3516953   .0452166    -7.78   0.000    -.4403833   -.2630072
+  fyeardum14 |  -.3398872   .0435375    -7.81   0.000    -.4252819   -.2544926
+  fyeardum15 |  -.2328769   .0404591    -5.76   0.000    -.3122338   -.1535201
+  fyeardum16 |          0  (omitted)
+    lnassets |   .8369147    .034449    24.29   0.000     .7693462    .9044832
+         roa |  -.0168335   .0913156    -0.18   0.854    -.1959404    .1622734
+    leverage |   -.645243   .0854867    -7.55   0.000    -.8129171    -.477569
+multinatio~l |  -.0483748   .0459751    -1.05   0.293    -.1385507    .0418011
+       _cons |   1.638914   .2548791     6.43   0.000     1.138992    2.138835
+-------------+----------------------------------------------------------------
+     sigma_u |  .99885613
+     sigma_e |  .55385338
+         rho |  .76484377   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. outreg2 using output/07_check_table4_iv, excel append drop(fyeardum* o.fyeard
+> um*) dec(3) ///
+>     ctitle("(3) Reduced form", "ln(mkt cap)") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
+output/07_check_table4_iv.xml
+dir : seeout
+
+. 
+. * (4) IV: one woman
+. xtivreg lnmktcap fyeardum* lnassets roa leverage multinational (onewoman = ca
+> _post), fe vce(cluster firm_id)
+note: fyeardum16 omitted because of collinearity.
+
+Fixed-effects (within) IV regression            Number of obs     =     12,639
+Group variable: firm_id                         Number of groups  =      1,647
+
+R-squared:                                      Obs per group:
+     Within  =      .                                         min =          1
+     Between = 0.1759                                         avg =        7.7
+     Overall = 0.1469                                         max =         16
+
+
+                                                Wald chi2(20)     =      54.00
+corr(u_i, Xb) = -0.6338                         Prob > chi2       =     0.0001
+
+                            (Std. err. adjusted for 1,647 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    onewoman |   11.36644   16.85487     0.67   0.500    -21.66849    44.40137
+   fyeardum1 |   3.520145   5.620073     0.63   0.531    -7.494996    14.53529
+   fyeardum2 |   3.290255   5.416566     0.61   0.544    -7.326019    13.90653
+   fyeardum3 |   3.147619    5.16949     0.61   0.543    -6.984394    13.27963
+   fyeardum4 |   3.115129   4.769962     0.65   0.514    -6.233825    12.46408
+   fyeardum5 |   2.671214    4.13439     0.65   0.518    -5.432042    10.77447
+   fyeardum6 |   2.118764   3.504943     0.60   0.546    -4.750798    8.988326
+   fyeardum7 |   2.071445   3.367462     0.62   0.538     -4.52866    8.671549
+   fyeardum8 |   1.609421   2.517777     0.64   0.523     -3.32533    6.544172
+   fyeardum9 |   .7481628   1.471428     0.51   0.611    -2.135783    3.632109
+  fyeardum10 |  -.4454615   .4770509    -0.93   0.350    -1.380464     .489541
+  fyeardum11 |  -.7043024   .9455149    -0.74   0.456    -2.557478    1.148873
+  fyeardum12 |  -.7056699   1.096406    -0.64   0.520    -2.854586    1.443247
+  fyeardum13 |  -1.189081   1.248569    -0.95   0.341     -3.63623    1.258068
+  fyeardum14 |  -1.142825   1.198695    -0.95   0.340    -3.492224    1.206573
+  fyeardum15 |   -.934723   1.048254    -0.89   0.373    -2.989263    1.119817
+  fyeardum16 |          0  (omitted)
+    lnassets |   .2618918   .8818557     0.30   0.766    -1.466514    1.990297
+         roa |   .1144273    .249537     0.46   0.647    -.3746562    .6035107
+    leverage |  -.3598293    .570805    -0.63   0.528    -1.478587     .758928
+multinatio~l |  -.3095489   .5069497    -0.61   0.541    -1.303152    .6840543
+       _cons |  -3.925789   8.412908    -0.47   0.641    -20.41479    12.56321
+-------------+----------------------------------------------------------------
+     sigma_u |  3.6197738
+     sigma_e |  3.2351539
+         rho |  .55593244   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+Endogenous: onewoman
+Exogenous:  fyeardum1 fyeardum2 fyeardum3 fyeardum4 fyeardum5 fyeardum6
+            fyeardum7 fyeardum8 fyeardum9 fyeardum10 fyeardum11 fyeardum12
+            fyeardum13 fyeardum14 fyeardum15 lnassets roa leverage
+            multinational ca_post
+
+. outreg2 using output/07_check_table4_iv, excel append drop(fyeardum* o.fyeard
+> um*) dec(3) ///
+>     ctitle("(4) IV", "ln(mkt cap)") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
+output/07_check_table4_iv.xml
+dir : seeout
+
+. 
+. * (5) IV: share of women
+. xtivreg lnmktcap fyeardum* lnassets roa leverage multinational (sharewoman = 
+> ca_post), fe vce(cluster firm_id)
+note: fyeardum16 omitted because of collinearity.
+
+Fixed-effects (within) IV regression            Number of obs     =     12,639
+Group variable: firm_id                         Number of groups  =      1,647
+
+R-squared:                                      Obs per group:
+     Within  = 0.1241                                         min =          1
+     Between = 0.6882                                         avg =        7.7
+     Overall = 0.7038                                         max =         16
+
+
+                                                Wald chi2(20)     =     592.99
+corr(u_i, Xb) = -0.0373                         Prob > chi2       =     0.0000
+
+                            (Std. err. adjusted for 1,647 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  sharewoman |   6.309092   1.724787     3.66   0.000     2.928571    9.689612
+   fyeardum1 |   .9715827   .3494385     2.78   0.005     .2866959     1.65647
+   fyeardum2 |   .8555072   .3431721     2.49   0.013     .1829022    1.528112
+   fyeardum3 |   .8598831     .33613     2.56   0.011     .2010804    1.518686
+   fyeardum4 |   1.060915   .3249274     3.27   0.001     .4240688    1.697761
+   fyeardum5 |   .9695316   .3022555     3.21   0.001     .3771217    1.561941
+   fyeardum6 |   .7775821   .2842864     2.74   0.006     .2203909    1.334773
+   fyeardum7 |   .8007374   .2782006     2.88   0.004     .2554743    1.346001
+   fyeardum8 |   .8172865     .25065     3.26   0.001     .3260216    1.308551
+   fyeardum9 |   .5486353   .2218507     2.47   0.013      .113816    .9834546
+  fyeardum10 |   .3827064   .1564582     2.45   0.014     .0760539    .6893589
+  fyeardum11 |   .2749201    .112797     2.44   0.015     .0538421    .4959981
+  fyeardum12 |   .1203143   .0636176     1.89   0.059    -.0043739    .2450025
+  fyeardum13 |  -.3967888   .0594519    -6.67   0.000    -.5133125   -.2802651
+  fyeardum14 |  -.4061924     .05887    -6.90   0.000    -.5215754   -.2908094
+  fyeardum15 |   -.305081   .0566075    -5.39   0.000    -.4160296   -.1941323
+  fyeardum16 |          0  (omitted)
+    lnassets |   .7887807   .0427933    18.43   0.000     .7049073    .8726541
+         roa |  -.0122742   .0948423    -0.13   0.897    -.1981618    .1736134
+    leverage |  -.6233816   .1058015    -5.89   0.000    -.8307488   -.4160144
+multinatio~l |  -.0887653   .0614699    -1.44   0.149    -.2092441    .0317135
+       _cons |   .3521739    .474724     0.74   0.458     -.578268    1.282616
+-------------+----------------------------------------------------------------
+     sigma_u |  1.1107056
+     sigma_e |  .71665629
+         rho |  .70605674   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+Endogenous: sharewoman
+Exogenous:  fyeardum1 fyeardum2 fyeardum3 fyeardum4 fyeardum5 fyeardum6
+            fyeardum7 fyeardum8 fyeardum9 fyeardum10 fyeardum11 fyeardum12
+            fyeardum13 fyeardum14 fyeardum15 lnassets roa leverage
+            multinational ca_post
+
+. outreg2 using output/07_check_table4_iv, excel append drop(fyeardum* o.fyeard
+> um*) dec(3) ///
+>     ctitle("(5) IV", "ln(mkt cap)") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
+output/07_check_table4_iv.xml
+dir : seeout
+
+.         
+. *==============================================================
+. * EVENT STUDIES: ORIGINAL vs DETRENDED (fiscal years 2011-2021, ref = 2017)
+. *==============================================================
+. capture mkdir "output/figures"
+
+. local firstyr 2011
+
+. local lastyr  2021
+
+. local refyr   2017
+
+. 
+. * Detrended first-stage outcome, same command as the do-file uses for lnmktca
+> p
+. * (lnmktcap_hat already exists from Table 2, column 3)
+. capture drop onewoman_hat
+
+. reg onewoman ca fyeardum* ca_year if post==0, cluster(firm_id)
+note: fyeardum1 omitted because of collinearity.
+note: fyeardum10 omitted because of collinearity.
+note: fyeardum11 omitted because of collinearity.
+note: fyeardum12 omitted because of collinearity.
+note: fyeardum13 omitted because of collinearity.
+note: fyeardum14 omitted because of collinearity.
+note: fyeardum15 omitted because of collinearity.
+note: fyeardum16 omitted because of collinearity.
+
+Linear regression                               Number of obs     =      6,244
+                                                F(10, 1133)       =       9.98
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0226
+                                                Root MSE          =     .48893
+
+                            (Std. err. adjusted for 1,134 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    onewoman | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |    -17.475   13.41905    -1.30   0.193    -43.80399    8.853987
+   fyeardum1 |          0  (omitted)
+   fyeardum2 |   .0170888   .0128912     1.33   0.185    -.0082044    .0423821
+   fyeardum3 |   .0328639   .0167433     1.96   0.050     .0000125    .0657153
+   fyeardum4 |   .0574565   .0210302     2.73   0.006     .0161939     .098719
+   fyeardum5 |   .0912019   .0246408     3.70   0.000     .0428552    .1395486
+   fyeardum6 |     .12109   .0276202     4.38   0.000     .0668975    .1752825
+   fyeardum7 |   .1267334    .031197     4.06   0.000     .0655231    .1879438
+   fyeardum8 |   .1654178   .0338137     4.89   0.000     .0990732    .2317623
+   fyeardum9 |   .2146073   .0502572     4.27   0.000     .1159997    .3132149
+  fyeardum10 |          0  (omitted)
+  fyeardum11 |          0  (omitted)
+  fyeardum12 |          0  (omitted)
+  fyeardum13 |          0  (omitted)
+  fyeardum14 |          0  (omitted)
+  fyeardum15 |          0  (omitted)
+  fyeardum16 |          0  (omitted)
+     ca_year |   .0087013   .0066625     1.31   0.192    -.0043709    .0217736
+       _cons |   .4671998   .0288315    16.20   0.000     .4106306    .5237689
+------------------------------------------------------------------------------
+
+. predict onewoman_hat, resid
+(2,268 missing values generated)
+
+. 
+. capture drop evCA*
+
+. forvalues t = `firstyr'/`lastyr' {
+  2.     if `t' != `refyr' {
+  3.         gen evCA`t' = ca * (fyr == `t')
+  4.     }
+  5. }
+
+. 
+. foreach y in onewoman lnmktcap {
+  2. 
+.     * original (o) and detrended (d) event studies, same sample
+.     foreach v in `y' `y'_hat {
+  3.         local s = cond("`v'" == "`y'", "o", "d")
+  4. 
+.         xtreg `v' evCA* i.fyr if onewoman ~= . & fyr >= `firstyr' & fyr <= `l
+> astyr', ///
+>             fe cluster(firm_id)
+  5. 
+.         capture drop b_`s' se_`s'
+  6.         gen b_`s'  = 0
+  7.         gen se_`s' = .
+  8.         forvalues t = `firstyr'/`lastyr' {
+  9.             if `t' != `refyr' {
+ 10.                 replace b_`s'  = _b[evCA`t']  if fyr == `t'
+ 11.                 replace se_`s' = _se[evCA`t'] if fyr == `t'
+ 12.             }
+ 13.         }
+ 14.     }
+ 15. 
+.     if "`y'" == "onewoman" {
+ 16.         local ttl "First Stage Event Study"
+ 17.         local yt  "CA - TX difference in P(at least 1 woman), relative to 
+> 2017"
+ 18.     }
+ 19.     else {
+ 20.         local ttl "Reduced Form Event Study"
+ 21.         local yt  "CA - TX difference in ln(market cap), relative to 2017"
+ 22.     }
+ 23. 
+.     preserve
+ 24.     keep if fyr >= `firstyr' & fyr <= `lastyr'
+ 25.     collapse (mean) b_o se_o b_d se_d, by(fyr)
+ 26.     foreach s in o d {
+ 27.         gen up_`s' = b_`s' + 1.96*se_`s'
+ 28.         gen lo_`s' = b_`s' - 1.96*se_`s'
+ 29.     }
+ 30.     gen x_o = fyr - 0.12
+ 31.     gen x_d = fyr + 0.12
+ 32. 
+.     gr two (rcap up_o lo_o x_o, lc(gs11)) (scatter b_o x_o, mc(gs8) ms(Oh)) /
+> //
+>            (rcap up_d lo_d x_d, lc(cranberry)) (scatter b_d x_d, mc(blue) ms(
+> O)), ///
+>         yline(0, lc(black) lp(dash)) xline(2017.5, lp(dash) lc(black)) ///
+>         legend(order(2 "Original" 4 "Detrended (CA linear pre-trend removed)"
+> ) ring(0) pos(11)) ///
+>         xlabel(`firstyr'(2)`lastyr') ///
+>         xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies
+>  from FY2018)") ///
+>         ytitle("`yt'") ///
+>         title("`ttl'" "California SB 826: Original vs. Detrended", size(mediu
+> m)) ///
+>         note("CA-specific linear trend estimated on pre-law observations (pos
+> t==0) and removed from the outcome." ///
+>              "Bars show 95% CIs, standard errors clustered by firm. Dashed li
+> ne = SB 826 signed 30 Sep 2018.")
+ 33.     graph export "output/figures/es_`y'_overlay.png", replace width(2000)
+ 34.         graph save   "output/figures/es_`y'_overlay.gph", replace
+ 35.     restore
+ 36. }
+
+Fixed-effects (within) regression               Number of obs     =      8,896
+Group variable: firm_id                         Number of groups  =      1,465
+
+R-squared:                                      Obs per group:
+     Within  = 0.1928                                         min =          1
+     Between = 0.1437                                         avg =        6.1
+     Overall = 0.1110                                         max =         12
+
+                                                F(20, 1464)       =      23.95
+corr(u_i, Xb) = -0.0168                         Prob > F          =     0.0000
+
+                            (Std. err. adjusted for 1,465 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    onewoman | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    evCA2011 |  -.0319168   .0408109    -0.78   0.434    -.1119709    .0481373
+    evCA2012 |   -.050088   .0389262    -1.29   0.198    -.1264452    .0262691
+    evCA2013 |   -.074143   .0363832    -2.04   0.042    -.1455119   -.0027742
+    evCA2014 |  -.0579437   .0318843    -1.82   0.069    -.1204874    .0046001
+    evCA2015 |  -.0445023   .0278777    -1.60   0.111    -.0991869    .0101822
+    evCA2016 |   -.016722   .0219416    -0.76   0.446    -.0597624    .0263184
+    evCA2018 |  -.0082857   .0231685    -0.36   0.721    -.0537328    .0371614
+    evCA2019 |   .0480618   .0324085     1.48   0.138    -.0155102    .1116337
+    evCA2020 |   .0231892   .0348577     0.67   0.506    -.0451871    .0915655
+    evCA2021 |   .0108293   .0347018     0.31   0.755    -.0572413       .0789
+             |
+         fyr |
+       2012  |   .0303955    .015763     1.93   0.054     -.000525    .0613161
+       2013  |    .074159   .0211905     3.50   0.000     .0325921     .115726
+       2014  |   .1089451   .0244806     4.45   0.000     .0609243    .1569659
+       2015  |   .1426042   .0266657     5.35   0.000      .090297    .1949113
+       2016  |   .1395379   .0295784     4.72   0.000     .0815174    .1975584
+       2017  |   .1848423    .029961     6.17   0.000     .1260713    .2436133
+       2018  |   .2566869   .0323227     7.94   0.000     .1932832    .3200906
+       2019  |   .3427447   .0332013    10.32   0.000     .2776175     .407872
+       2020  |   .3947981   .0342509    11.53   0.000     .3276119    .4619843
+       2021  |   .4233425   .0341031    12.41   0.000     .3564464    .4902387
+             |
+       _cons |   .5045189   .0267984    18.83   0.000     .4519515    .5570862
+-------------+----------------------------------------------------------------
+     sigma_u |   .3547716
+     sigma_e |  .29138344
+         rho |  .59716544   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+(14,950 missing values generated)
+(857 real changes made)
+(857 real changes made)
+(867 real changes made)
+(867 real changes made)
+(878 real changes made)
+(878 real changes made)
+(910 real changes made)
+(910 real changes made)
+(914 real changes made)
+(914 real changes made)
+(902 real changes made)
+(902 real changes made)
+(891 real changes made)
+(891 real changes made)
+(908 real changes made)
+(908 real changes made)
+(948 real changes made)
+(948 real changes made)
+(1,049 real changes made)
+(1,049 real changes made)
+
+Fixed-effects (within) regression               Number of obs     =      8,896
+Group variable: firm_id                         Number of groups  =      1,465
+
+R-squared:                                      Obs per group:
+     Within  = 0.2421                                         min =          1
+     Between = 0.1548                                         avg =        6.1
+     Overall = 0.1387                                         max =         12
+
+                                                F(20, 1464)       =      42.88
+corr(u_i, Xb) = -0.0080                         Prob > F          =     0.0000
+
+                            (Std. err. adjusted for 1,465 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+onewoman_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    evCA2011 |   .0202912   .0408109     0.50   0.619    -.0597629    .1003453
+    evCA2012 |  -.0065813   .0389262    -0.17   0.866    -.0829385    .0697758
+    evCA2013 |  -.0393376   .0363832    -1.08   0.280    -.1107065    .0320312
+    evCA2014 |  -.0318396   .0318843    -1.00   0.318    -.0943834    .0307041
+    evCA2015 |  -.0270996   .0278777    -0.97   0.331    -.0817842    .0275849
+    evCA2016 |  -.0080207   .0219416    -0.37   0.715    -.0510611    .0350197
+    evCA2018 |   -.016987   .0231685    -0.73   0.464    -.0624341    .0284601
+    evCA2019 |   .0306591   .0324085     0.95   0.344    -.0329129     .094231
+    evCA2020 |  -.0029148   .0348577    -0.08   0.933    -.0712912    .0654615
+    evCA2021 |  -.0239761   .0347018    -0.69   0.490    -.0920467    .0440946
+             |
+         fyr |
+       2012  |   .0146204    .015763     0.93   0.354    -.0163001     .045541
+       2013  |   .0337914   .0211905     1.59   0.111    -.0077756    .0753584
+       2014  |    .034832   .0244806     1.42   0.155    -.0131888    .0828528
+       2015  |    .038603   .0266657     1.45   0.148    -.0137041    .0909102
+       2016  |   .0298933   .0295784     1.01   0.312    -.0281272    .0879138
+       2017  |   .0365134    .029961     1.22   0.223    -.0222577    .0952844
+       2018  |   .0591684   .0323227     1.83   0.067    -.0042353    .1225721
+       2019  |   .3598336   .0332013    10.84   0.000     .2947063    .4249608
+       2020  |   .4118869   .0342509    12.03   0.000     .3447007    .4790731
+       2021  |   .4404313   .0341031    12.91   0.000     .3735352    .5073275
+             |
+       _cons |  -.0229135   .0267984    -0.86   0.393    -.0754809    .0296538
+-------------+----------------------------------------------------------------
+     sigma_u |   .3517898
+     sigma_e |  .29138344
+         rho |  .59309807   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+(14,950 missing values generated)
+(857 real changes made)
+(857 real changes made)
+(867 real changes made)
+(867 real changes made)
+(878 real changes made)
+(878 real changes made)
+(910 real changes made)
+(910 real changes made)
+(914 real changes made)
+(914 real changes made)
+(902 real changes made)
+(902 real changes made)
+(891 real changes made)
+(891 real changes made)
+(908 real changes made)
+(908 real changes made)
+(948 real changes made)
+(948 real changes made)
+(1,049 real changes made)
+(1,049 real changes made)
+(4,930 observations deleted)
+(1 missing value generated)
+(1 missing value generated)
+(1 missing value generated)
+(1 missing value generated)
+file output/figures/es_onewoman_overlay.png written in PNG format
+file output/figures/es_onewoman_overlay.gph saved
+
+Fixed-effects (within) regression               Number of obs     =      8,896
+Group variable: firm_id                         Number of groups  =      1,465
+
+R-squared:                                      Obs per group:
+     Within  = 0.1915                                         min =          1
+     Between = 0.0093                                         avg =        6.1
+     Overall = 0.0146                                         max =         12
+
+                                                F(20, 1464)       =      46.01
+corr(u_i, Xb) = -0.0457                         Prob > F          =     0.0000
+
+                            (Std. err. adjusted for 1,465 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    evCA2011 |  -.4104659   .0862476    -4.76   0.000     -.579648   -.2412838
+    evCA2012 |  -.4706878   .0774374    -6.08   0.000    -.6225878   -.3187877
+    evCA2013 |  -.4314235   .0690688    -6.25   0.000    -.5669078   -.2959392
+    evCA2014 |  -.2180384   .0611467    -3.57   0.000    -.3379829    -.098094
+    evCA2015 |   .0047464   .0544735     0.09   0.931    -.1021081    .1116009
+    evCA2016 |  -.1594529   .0410032    -3.89   0.000    -.2398842   -.0790216
+    evCA2018 |   .2105229   .0456935     4.61   0.000     .1208912    .3001547
+    evCA2019 |   .2658947   .0602621     4.41   0.000     .1476854     .384104
+    evCA2020 |   .7264077   .0783096     9.28   0.000     .5727967    .8800186
+    evCA2021 |   .5657931   .0796865     7.10   0.000     .4094813    .7221049
+             |
+         fyr |
+       2012  |   .1008846   .0284828     3.54   0.000     .0450132     .156756
+       2013  |   .3941811   .0374532    10.52   0.000     .3207135    .4676487
+       2014  |   .3105809   .0470384     6.60   0.000      .218311    .4028508
+       2015  |   .0767775   .0573067     1.34   0.181    -.0356345    .1891896
+       2016  |    .228097   .0584589     3.90   0.000     .1134249    .3427691
+       2017  |   .3084168   .0656362     4.70   0.000     .1796657    .4371679
+       2018  |   .1308523   .0704546     1.86   0.063    -.0073504    .2690551
+       2019  |   .2407234   .0756201     3.18   0.001     .0923881    .3890587
+       2020  |   .1331884   .0840443     1.58   0.113    -.0316718    .2980486
+       2021  |   .4275699   .0840988     5.08   0.000     .2626028     .592537
+             |
+       _cons |   6.661822   .0591811   112.57   0.000     6.545733    6.777911
+-------------+----------------------------------------------------------------
+     sigma_u |  1.8655203
+     sigma_e |  .61827103
+         rho |  .90103133   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+(14,950 missing values generated)
+(857 real changes made)
+(857 real changes made)
+(867 real changes made)
+(867 real changes made)
+(878 real changes made)
+(878 real changes made)
+(910 real changes made)
+(910 real changes made)
+(914 real changes made)
+(914 real changes made)
+(902 real changes made)
+(902 real changes made)
+(891 real changes made)
+(891 real changes made)
+(908 real changes made)
+(908 real changes made)
+(948 real changes made)
+(948 real changes made)
+(1,049 real changes made)
+(1,049 real changes made)
+
+Fixed-effects (within) regression               Number of obs     =      8,896
+Group variable: firm_id                         Number of groups  =      1,465
+
+R-squared:                                      Obs per group:
+     Within  = 0.0553                                         min =          1
+     Between = 0.0000                                         avg =        6.1
+     Overall = 0.0024                                         max =         12
+
+                                                F(20, 1464)       =      25.23
+corr(u_i, Xb) = -0.0323                         Prob > F          =     0.0000
+
+                            (Std. err. adjusted for 1,465 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    evCA2011 |   .0774368   .0862476     0.90   0.369    -.0917453    .2466189
+    evCA2012 |  -.0641021   .0774374    -0.83   0.408    -.2160022    .0877979
+    evCA2013 |  -.1061551   .0690688    -1.54   0.125    -.2416393    .0293292
+    evCA2014 |   .0259129   .0611467     0.42   0.672    -.0940315    .1458574
+    evCA2015 |   .1673806   .0544735     3.07   0.002     .0605261    .2742351
+    evCA2016 |  -.0781359   .0410032    -1.91   0.057    -.1585671    .0022954
+    evCA2018 |   .1292058   .0456935     2.83   0.005      .039574    .2188376
+    evCA2019 |   .1032604   .0602621     1.71   0.087    -.0149489    .2214697
+    evCA2020 |   .4824562   .0783096     6.16   0.000     .3288452    .6360672
+    evCA2021 |   .2405245   .0796865     3.02   0.003     .0842127    .3968363
+             |
+         fyr |
+       2012  |   .0811593   .0284828     2.85   0.004     .0252879    .1370307
+       2013  |   .0912891   .0374532     2.44   0.015     .0178215    .1647567
+       2014  |   .0655073   .0470384     1.39   0.164    -.0267625    .1577772
+       2015  |    .077211   .0573067     1.35   0.178     -.035201     .189623
+       2016  |   .2380662   .0584589     4.07   0.000     .1233941    .3527383
+       2017  |    .221522   .0656362     3.37   0.001     .0927709    .3502731
+       2018  |  -.1055217   .0704546    -1.50   0.134    -.2437245     .032681
+       2019  |   .1114161   .0756201     1.47   0.141    -.0369192    .2597514
+       2020  |   .0038811   .0840443     0.05   0.963    -.1609791    .1687412
+       2021  |   .2982626   .0840988     3.55   0.000     .1332955    .4632297
+             |
+       _cons |   .0355377   .0591811     0.60   0.548     -.080551    .1516264
+-------------+----------------------------------------------------------------
+     sigma_u |  1.8646968
+     sigma_e |  .61827103
+         rho |  .90095256   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+(14,950 missing values generated)
+(857 real changes made)
+(857 real changes made)
+(867 real changes made)
+(867 real changes made)
+(878 real changes made)
+(878 real changes made)
+(910 real changes made)
+(910 real changes made)
+(914 real changes made)
+(914 real changes made)
+(902 real changes made)
+(902 real changes made)
+(891 real changes made)
+(891 real changes made)
+(908 real changes made)
+(908 real changes made)
+(948 real changes made)
+(948 real changes made)
+(1,049 real changes made)
+(1,049 real changes made)
+(4,930 observations deleted)
+(1 missing value generated)
+(1 missing value generated)
+(1 missing value generated)
+(1 missing value generated)
+file output/figures/es_lnmktcap_overlay.png written in PNG format
+file output/figures/es_lnmktcap_overlay.gph saved
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/07_panel_event_study_graphs.log
+  log type:  text
+ closed on:  13 Nov 2026, 19:39:30
+-------------------------------------------------------------------------------

@@ -1,32 +1,43 @@
 #!/bin/bash
-# Re-runs Sophia's did_tests.do and Seohee's did_graphs.do, then checks that
-# every number in the figures matches the regression tables.
+# run_check.sh -- check that every number in the figures matches the tables
+# Author: Ansh
 #
-#   bash code/run_check.sh
+# Re-runs Sophia's code/04_did_tests.do (tables) and Seohee's
+# code/05_did_graphs.do (figures), then runs code/check_figures_vs_tables.py,
+# which compares the 30 plotted numbers with the outreg2 tables. Must end with
+# "30 match, 0 problem(s)".
 #
-# Sophia's code is never edited: a temporary copy with only her `cd` line
-# pointed at a temp folder is run there. Her tables and log are then copied to
-# output/ and logs/. Set STATA=/path/to/stata if yours is somewhere else.
+#   bash code/run_check.sh            (from any folder)
+#
+# Outputs (same as running the two do-files): output/did_table1-4.txt/.xml,
+# logs/04_did_tests.log, output/figures/fig_table*.png, figure_numbers.csv,
+# logs/05_did_graphs.log.
+# Set STATA=/path/to/stata if yours is somewhere else (e.g. stata-mp).
 set -euo pipefail
 PROJ="$(cd "$(dirname "$0")/.." && pwd)"
 STATA="${STATA:-/Applications/Stata/StataSE.app/Contents/MacOS/stata-se}"
-TMP="$(mktemp -d)"
-ln -s "$PROJ/final_data.dta" "$TMP/final_data.dta"
+TMP="$(mktemp -d)"   # batch-mode driver logs go here, not into the project
+trap 'rm -rf "$TMP"' EXIT
 
 fail() { echo "ERROR in $1 (see $2)"; exit 1; }
 
-echo "1/3 Running Sophia's code/did_tests.do ..."
-sed "s#^cd .*#cd \"$TMP\"#" "$PROJ/code/did_tests.do" > "$TMP/did_tests.do"
-(cd "$TMP" && "$STATA" -b do did_tests.do)
-grep -q '^r([0-9]*);' "$TMP/did_tests.log" && fail did_tests.do "$TMP/did_tests.log"
-cp "$TMP"/did_table*.txt "$TMP"/did_table*.xml "$PROJ/output/"
-cp "$TMP/did_log.log" "$PROJ/logs/did_tests.log"
+run_do() {  # run one project do-file in batch mode with $PROJ set
+    printf 'global PROJ "%s"\ndo "%s/code/%s"\n' "$PROJ" "$PROJ" "$1" > "$TMP/run_$1"
+    (cd "$TMP" && "$STATA" -b do "run_$1")
+    local log="$TMP/run_${1%.do}.log"
+    if grep -q '^r([0-9]*);' "$log"; then
+        cp "$log" "$PROJ/logs/run_check_error.log"
+        fail "$1" "logs/run_check_error.log"
+    fi
+}
 
-echo "2/3 Running Seohee's code/did_graphs.do ..."
-printf 'cd "%s"\ndo "code/did_graphs.do"\n' "$PROJ" > "$TMP/run_graphs.do"
-(cd "$TMP" && "$STATA" -b do run_graphs.do)
-grep -q '^r([0-9]*);' "$TMP/run_graphs.log" && fail did_graphs.do "$TMP/run_graphs.log"
+echo "1/3 Running Sophia's code/04_did_tests.do ..."
+run_do 04_did_tests.do
+
+echo "2/3 Running Seohee's code/05_did_graphs.do ..."
+run_do 05_did_graphs.do
 
 echo "3/3 Comparing figures with tables ..."
-python3 "$PROJ/code/check_figures_vs_tables.py" --tables "$TMP" \
+python3 "$PROJ/code/check_figures_vs_tables.py" \
+    --tables "$PROJ/output" --log "$PROJ/logs/04_did_tests.log" \
     --figs "$PROJ/output/figures/figure_numbers.csv"

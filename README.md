@@ -23,23 +23,27 @@ reg lnmktcap ca post ca_post if mainwindow == 1, vce(cluster gvkey)
 
 ## Pipeline
 
-| Step | File | What it does |
-|---|---|---|
-| 1 | `code/01_build_data.do` | Builds the CA/TX firm-year panel from Compustat + BoardEx → `final_data.dta` |
-| 1b | `code/01b_collinearity_tests.do` | Tests which variables enter the balance test, for the appendix → `output/collinearity_tests.xlsx`. Run after step 1 |
-| 2 | `code/02_balance_test.do` | Table 1 means (`outsum`) and balance test (`outreg2`) → `output/table1_means.csv`, `output/balance_prelaw.xml`, `output/balance_did.xml`, and all four columns in `output/table1_balance.csv` |
-| 3 | `code/03_table1_format.py` | Formats `output/table1_balance.csv` into the paper's Table 1 (Dynarski layout: 4 means columns, pre-law difference, diff-in-diff) → `output/Table1_means_balance.xlsx`. Run `python3 code/03_table1_format.py` from the project folder |
-| 4 | `code/did_tests.do` (Sophia) | **Main results.** Two-period DiD, fiscal year-end 2018 (pre) vs 2019 (post): Table 1 main DiD (with and without controls, raw and detrended), Table 2 placebo (firms with a woman on the board in 2018), Table 3 first stage / reduced form / IV, Table 4 pre-trends → `did_table1`–`did_table4` (`.txt`/`.xml`) |
-| 5 | `code/did_graphs.do` (Seohee) | Figures for Tables 1–4 → `output/figures/fig_table*.png`. Every coefficient is the same regression as a table column, in the same units. Also writes `output/figures/figure_numbers.csv` (every plotted number) |
-| 6 | `code/paneldata_outreg2.do` (Sophia) | Panel version with firm and year FE, all years: main DiD, pre-trends (2017 = reference), IV → `table2_main`, `table3_pretrend`, `table4_iv` |
-| check | `code/run_check.sh` | Re-runs steps 4 and 5 and runs `code/check_figures_vs_tables.py`, which compares every number in the figures with the tables (coefficients, SEs, N, F-stats, pre-trend test). Run `bash code/run_check.sh` before handing anything in; it must end with `0 problem(s)` |
-| archive | `code/archive/` | Superseded or exploratory scripts kept for reference: the all-states Table 1 scripts, Eloise's policy-year event studies and first stage, and the problem-set template. Not part of the paper |
+Run everything with **`do code/00_master.do`** (see "Running the code" below). Logs go to `logs/<script name>.log`.
 
-**Running the code.** `did_graphs.do` finds the project folder by itself on Ansh's and Sophia's machines; anyone else should `cd` to the project folder first. Sophia's `.do` files keep her own `cd` line, so change it on your machine (or use `run_check.sh`, which handles it without editing her file). `final_data_full.dta` is left over from the earlier all-states design and is no longer built or updated.
+| Step | File (author; old name) | What it does |
+|---|---|---|
+| all | `code/00_master.do` (Ansh) | Runs steps 1b–7 in order. Step 1 is off by default (`local build 1` to turn it on); step 3 needs Python (`local python 0` to skip) |
+| 1 | `code/01_build_data.do` (Ansh) | Builds the CA/TX firm-year panel from Compustat + BoardEx → `final_data.dta`, `temp/balance_candidates.dta`. Slow; only rerun when the data must be rebuilt |
+| 1b | `code/01b_collinearity_tests.do` (Ansh) | Tests which variables enter the balance test, for the appendix → `output/collinearity_tests.xlsx`. Run after step 1 |
+| 2 | `code/02_balance_test.do` (Ansh) | Table 1 means (`outsum`) and balance test (`outreg2`) → `output/table1_means.csv`, `output/balance_prelaw.xml`, `output/balance_did.xml`, and all four columns in `output/table1_balance.csv` |
+| 3 | `code/03_table1_format.py` (Ansh) | Formats `output/table1_balance.csv` into the paper's Table 1 (Dynarski layout: 4 means columns, pre-law difference, diff-in-diff) → `output/Table1_means_balance.xlsx`. `python3 code/03_table1_format.py` works from any folder |
+| 4 | `code/04_did_tests.do` (Sophia; was `did_tests.do`) | **Main results.** Two-period DiD, fiscal year-end 2018 (pre) vs 2019 (post): Table 1 main DiD (with and without controls, raw and detrended), Table 2 placebo (firms with a woman on the board in 2018), Table 3 first stage / reduced form / IV, Table 4 pre-trends → `output/did_table1`–`did_table4` (`.txt`/`.xml`); pre-trend joint F-test in `logs/04_did_tests.log` |
+| 5 | `code/05_did_graphs.do` (Seohee; was `did_graphs.do`) | Figures for Tables 1–4 → `output/figures/fig_table*.png`. Every coefficient is the same regression as a table column, in the same units. Also writes `output/figures/figure_numbers.csv` (every plotted number) |
+| 6 | `code/06_panel_tables.do` (Sophia; was `paneldata_outreg2.do`) | Panel version with firm and year FE, fiscal years through 2020: main DiD, woman-pre-law subsample, pre-trends (2017 = reference), IV → `output/table2_main`, `output/table2_plcbo`, `output/table3_pretrend`, `output/table4_iv`. `table2_plcbo` is written with `append` only, so `00_master.do` erases it first; if you run step 6 on its own, delete `output/table2_plcbo.*` first |
+| 7 | `code/07_panel_event_study_graphs.do` (Seohee; was `paneldata_outreg2_graphs.do`) | Event studies 2011–2021 (2017 = reference), original vs detrended, for the first stage and the reduced form → `output/figures/es_onewoman_overlay.png`, `output/figures/es_lnmktcap_overlay.png`. It re-runs an older copy of step 6's tables (all years, no `drop if fyr>2020`) because the graphs need its variables; those tables go to `output/07_check_*` so they do not overwrite step 6's tables |
+| check | `code/run_check.sh` + `code/check_figures_vs_tables.py` (Ansh) | Re-runs steps 4 and 5 and compares every number in the figures with the tables (coefficients, SEs, N, F-stats, pre-trend test). Run `bash code/run_check.sh` (Mac/Linux, from any folder) before handing anything in; it must end with `30 match, 0 problem(s)` |
+| archive | `code/archive/` | Superseded or exploratory scripts kept for reference: the all-states Table 1 scripts, Eloise's policy-year event studies and first stage, and the problem-set template. Not part of the paper, and not cleaned up (they still have old paths) |
+
+**Running the code.** Open Stata and run `do "<your project folder>/code/00_master.do"`, or run any single script with `do "code/<script>.do"`. No paths need editing: every script starts with the same short header that uses the global `PROJ` if it is set, otherwise the current folder if it contains `final_data.dta`, otherwise the first teammate folder it finds (Ansh, Sophia, Seohee and Eloise's folders are listed). If none of these works on your machine, either `cd` to the project folder first or type `global PROJ "C:/path/to/project"` (forward slashes work on Windows too). Each script then creates `logs/`, `output/` and `output/figures/` if needed and uses only relative paths. Python scripts find the project folder from their own location. `final_data_full.dta` is left over from the earlier all-states design and is no longer built or updated.
 
 **Two things the group still has to decide**
-- **Table numbers clash.** `did_tests.do` makes Tables 1–4 and `paneldata_outreg2.do` makes Tables 2–4, with different content (e.g. "Table 3" is the IV in one and pre-trends in the other). The figures follow `did_tests.do`.
-- **`paneldata_outreg2.do`, `table4_iv` columns 1–2.** The first stages are labeled "Year FE: Yes" but leave out `fyeardum*`, and use `fyeyear < 2020` while the IV columns use all years. With year FE the first-stage F is about 1.8 (one woman) and 6.1 (share), not 106.8 and 253.6. Not changed here, since that is Sophia's call.
+- **Table numbers clash.** `04_did_tests.do` makes Tables 1–4 and `06_panel_tables.do` makes Tables 2–4, with different content (e.g. "Table 3" is the IV in one and pre-trends in the other). The figures in step 5 follow `04_did_tests.do`.
+- **`06_panel_tables.do`, `table4_iv` columns 1–2.** The first stages are labeled "Year FE: Yes" but leave out `fyeardum*`, and use `fyeyear < 2020` while the IV columns use all years. With year FE the first-stage F is about 1.8 (one woman) and 6.1 (share), not 106.8 and 253.6. Not changed here, since that is Sophia's call.
 
 ## Variables in `final_data.dta`
 
@@ -155,7 +159,7 @@ Counts below are from `logs/01_build_data.log`.
 - `state_2018` corrects only large known moves. Smaller firms that left California after 2018 are still coded by their current state.
 - `exchg` and `sic` are current values, so firms that were listed during the sample and later delisted (e.g. First Republic, SVB) are dropped from every year.
 - Board matching is lower for small firms, and 2025 is only 22% matched, so avoid 2025 for board outcomes.
-- Ratios are not winsorized. The $1M asset floor removes the worst cases, but a few extreme values remain (full-sample `roa` ranges from −56 to 15; `leverage` up to 23). Check sensitivity to a higher floor (line 186 of `01_build_data.do`).
+- Ratios are not winsorized. The $1M asset floor removes the worst cases, but a few extreme values remain (full-sample `roa` ranges from −56 to 15; `leverage` up to 23). Check sensitivity to a higher floor (`drop if at < 1` in `01_build_data.do`, Step 6).
 - Some firms have two fiscal year-ends in one calendar year after a fiscal-year change, so `gvkey` × `fyeyear` is not always unique.
 
 ## Sample restrictions

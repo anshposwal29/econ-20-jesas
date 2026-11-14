@@ -1,6 +1,6 @@
 /*==============================================================================
   ECON 20 Project: California SB 826 (board gender quota) and firm value
-  Program 1 of 2: BUILD THE ANALYSIS DATASET
+  Program 1: BUILD THE ANALYSIS DATASET
 
   Design: two-state diff-in-diff (Card & Krueger style), California vs. Texas.
           Outcome = ln(market cap) at fiscal year-end. Regressors = ca, post, ca_post.
@@ -16,12 +16,45 @@
                           (variable mainwindow = 1 for fiscal year-ends through Dec 2019)
     temp/balance_candidates.dta  same rows plus the variables considered for the
                           balance test, used by 01b_collinearity_tests.do
+  File:   code/01_build_data.do   Author: Ansh
+  Slow (several minutes); reads the raw WRDS extracts in raw/.
+  Run:    do code/01_build_data.do, or set local build 1 in code/00_master.do.
+          Overwrites final_data.dta: only run it when the data must be rebuilt.
+  Log:    logs/01_build_data.log
 ==============================================================================*/
 
 clear all
 set more off
-* --- CHANGE THIS LINE to the project folder on your computer ---
-cd "~/Desktop/Dartmouth Classes/Economics/ECON20/project"
+* --- Project folder (standard header, same in every script) -----------------
+* Uses global PROJ if set (00_master.do sets it); otherwise the current folder
+* if it has final_data.dta; otherwise the first teammate folder below that has
+* it. Nothing to edit: if none match, cd to the project folder first, or set
+*   global PROJ "C:/path/to/project"
+if `"$PROJ"' != "" cd `"$PROJ"'
+capture confirm file "final_data.dta"
+if _rc & `"$PROJ"' == "" {
+    foreach d in "~/Desktop/Dartmouth Classes/Economics/ECON20/project" ///
+                 "C:/Users/shinz/OneDrive/Desktop/Econ20 FinalProject" ///
+                 "/Users/joseohui/Desktop/UIC/Dartmouth/Fall/Econometrics/JESAS/project" ///
+                 "C:/Econ 20/proj" {
+        capture confirm file "`d'/final_data.dta"
+        if !_rc {
+            cd "`d'"
+            continue, break
+        }
+    }
+}
+capture confirm file "final_data.dta"
+if _rc {
+    di as error "final_data.dta not found. cd to the project folder, or run"
+    di as error `"  global PROJ "C:/path/to/project""'
+    di as error "and then run this do-file again."
+    exit 601
+}
+capture mkdir "logs"
+capture mkdir "output"
+capture mkdir "output/figures"
+* ---------------------------------------------------------------------------
 
 capture log close
 log using "logs/01_build_data.log", replace text

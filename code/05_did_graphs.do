@@ -1,34 +1,56 @@
-*==============================================================
-* GRAPHS FOR SB 826 PROJECT (CA vs TX), based on class handouts
-* Author: Seohee. Companion to Sophia's code/did_tests.do: every
-* coefficient plotted here is the same regression as a column in
-* her did_table1-did_table4, in the same units.
-*
-* Output: output/figures/fig_table*.png
-*         output/figures/figure_numbers.csv  (every number plotted;
-*         code/check_figures_vs_tables.py compares it to the tables)
-*==============================================================
+*==============================================================================
+* 05_did_graphs.do  --  FIGURES FOR THE TWO-PERIOD DiD TABLES (Tables 1-4)
+* Author:  Seohee (formerly code/did_graphs.do), based on the class handouts
+* Purpose: Graphs companion to Sophia's 04_did_tests.do. Every coefficient
+*          plotted here is the same regression as a column in her
+*          did_table1-did_table4, in the same units.
+* Input:   final_data.dta
+* Outputs: output/figures/fig_table1_means.png, fig_table1_means_detrended.png,
+*          fig_table1_coefplot.png, fig_table2_means.png, fig_table2_coefplot.png,
+*          fig_table3_means_onewoman.png, fig_table3_means_share.png,
+*          fig_table3_firststage_coef.png, fig_table3_iv_coef.png,
+*          fig_table4_pretrend.png
+*          output/figures/figure_numbers.csv (every number plotted;
+*          code/check_figures_vs_tables.py compares it to the tables)
+*          logs/05_did_graphs.log
+* Run:     do code/05_did_graphs.do   (or via code/00_master.do);
+*          bash code/run_check.sh reruns 04 + 05 and checks the numbers.
+*==============================================================================
 clear all
 set more off
 
-* --- project folder: tries each teammate's folder; otherwise stays in the
-*     current folder (cd to the project folder yourself before running) ---
-foreach d in "~/Desktop/Dartmouth Classes/Economics/ECON20/project" ///
-             "C:/Users/shinz/OneDrive/Desktop/Econ20 FinalProject" ///
-             "C:/Econ 20/proj" {
-    capture cd "`d'"
-    if !_rc continue, break
+* --- Project folder (standard header, same in every script) -----------------
+* Uses global PROJ if set (00_master.do sets it); otherwise the current folder
+* if it has final_data.dta; otherwise the first teammate folder below that has
+* it. Nothing to edit: if none match, cd to the project folder first, or set
+*   global PROJ "C:/path/to/project"
+if `"$PROJ"' != "" cd `"$PROJ"'
+capture confirm file "final_data.dta"
+if _rc & `"$PROJ"' == "" {
+    foreach d in "~/Desktop/Dartmouth Classes/Economics/ECON20/project" ///
+                 "C:/Users/shinz/OneDrive/Desktop/Econ20 FinalProject" ///
+                 "/Users/joseohui/Desktop/UIC/Dartmouth/Fall/Econometrics/JESAS/project" ///
+                 "C:/Econ 20/proj" {
+        capture confirm file "`d'/final_data.dta"
+        if !_rc {
+            cd "`d'"
+            continue, break
+        }
+    }
 }
 capture confirm file "final_data.dta"
 if _rc {
-    di as error "final_data.dta not found: cd to the project folder first"
+    di as error "final_data.dta not found. cd to the project folder, or run"
+    di as error `"  global PROJ "C:/path/to/project""'
+    di as error "and then run this do-file again."
     exit 601
 }
+capture mkdir "logs"
 capture mkdir "output"
 capture mkdir "output/figures"
-capture mkdir "logs"
+* ---------------------------------------------------------------------------
 capture log close
-log using "logs/did_graphs.log", replace text
+log using "logs/05_did_graphs.log", replace text
 
 use final_data.dta, clear
 
@@ -41,7 +63,7 @@ capture postclose fignums
 postfile fignums str32 figure str32 item double(b se n) ///
     using "output/figures/figure_numbers.dta", replace
 
-* Detrending (same as did_tests.do): CA-specific linear trend, pre-2018 years
+* Detrending (same as 04_did_tests.do): CA-specific linear trend, pre-2018 years
 gen ca_year = ca*fyr
 reg lnmktcap ca i.fyr ca_year if fyr < 2018, cluster(firm_id)
 predict lnmktcap_hat, resid
@@ -101,7 +123,7 @@ restore
 
 
 *==============================================================
-* TWO-PERIOD DiD SAMPLE (2018 vs 2019), same as did_tests.do
+* TWO-PERIOD DiD SAMPLE (2018 vs 2019), same as 04_did_tests.do
 *==============================================================
 keep if fyr==2018 | fyr==2019
 

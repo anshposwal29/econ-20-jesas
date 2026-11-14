@@ -1,9 +1,9 @@
 -------------------------------------------------------------------------------
       name:  <unnamed>
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
-> ect/logs/did_graphs.log
+> ect/logs/05_did_graphs.log
   log type:  text
- opened on:  13 Nov 2026, 09:25:43
+ opened on:  13 Nov 2026, 19:39:31
 
 . 
 . use final_data.dta, clear
@@ -25,7 +25,8 @@
 (file output/figures/figure_numbers.dta not found)
 
 . 
-. * Detrending (same as did_tests.do): CA-specific linear trend, pre-2018 years
+. * Detrending (same as 04_did_tests.do): CA-specific linear trend, pre-2018 ye
+> ars
 . gen ca_year = ca*fyr
 
 . reg lnmktcap ca i.fyr ca_year if fyr < 2018, cluster(firm_id)
@@ -203,7 +204,7 @@ file output/figures/fig_table4_pretrend.png written in PNG format
 . 
 . 
 . *==============================================================
-. * TWO-PERIOD DiD SAMPLE (2018 vs 2019), same as did_tests.do
+. * TWO-PERIOD DiD SAMPLE (2018 vs 2019), same as 04_did_tests.do
 . *==============================================================
 . keep if fyr==2018 | fyr==2019
 (13,151 observations deleted)

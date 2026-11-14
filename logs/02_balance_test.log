@@ -3,7 +3,7 @@
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/02_balance_test.log
   log type:  text
- opened on:   1 Nov 2026, 15:44:32
+ opened on:  13 Nov 2026, 19:39:13
 
 . 
 . use "final_data.dta", clear
@@ -719,5 +719,5 @@ file output/table1_balance.csv saved
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/02_balance_test.log
   log type:  text
- closed on:   1 Nov 2026, 15:44:36
+ closed on:  13 Nov 2026, 19:39:14
 -------------------------------------------------------------------------------

@@ -8,17 +8,23 @@ difference-in-differences, with standard deviations or standard errors in
 parentheses under each number. Nothing is computed here; every number comes
 from output/table1_balance.csv, written by 02_balance_test.do.
 
+Author: Ansh   (file: code/03_table1_format.py)
 Input:  output/table1_balance.csv
 Output: output/Table1_means_balance.xlsx
+Run:    python3 code/03_table1_format.py   (from any folder; paths are relative
+        to this file). Needs pandas and openpyxl. Also run by code/00_master.do.
 """
+
+from pathlib import Path
 
 import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, Side
 from openpyxl.utils import get_column_letter
 
-IN = "output/table1_balance.csv"
-OUT = "output/Table1_means_balance.xlsx"
+PROJ = Path(__file__).resolve().parents[1]  # project folder (code/..)
+IN = PROJ / "output" / "table1_balance.csv"
+OUT = PROJ / "output" / "Table1_means_balance.xlsx"
 
 # row label, decimals, indent (True for the "share blank" rows)
 ROWS = [
@@ -170,7 +176,7 @@ def main():
     ws.row_dimensions[4].height = 30
 
     wb.save(OUT)
-    print(f"wrote {OUT}")
+    print(f"wrote {OUT.relative_to(PROJ)}")
 
 
 if __name__ == "__main__":

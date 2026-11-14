@@ -1,9 +1,9 @@
 -------------------------------------------------------------------------------
       name:  <unnamed>
-       log:  /private/var/folders/0r/690wrs3d3b366rt4gqv5gpwr0000gn/T/tmp.TqzL2
-> EGYM9/did_log.log
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/04_did_tests.log
   log type:  text
- opened on:  13 Nov 2026, 09:25:43
+ opened on:  13 Nov 2026, 19:39:31
 
 . 
 . use "final_data.dta", clear
@@ -102,11 +102,11 @@ Absorbed variable: firm_id                          No. of categories =  1,341
 ------------------------------------------------------------------------------
 
 . 
-. outreg2 using did_table4, excel replace dec(3) ///
+. outreg2 using output/did_table4, excel replace dec(3) ///
 >     keep(ca_yr2010-ca_yr2017) ///
 >     ctitle("(1) Pretrend coefficients") ///
 >     addtext(Firm FE, Yes, Year FE, Yes)
-did_table4.xml
+output/did_table4.xml
 dir : seeout
 
 .         
@@ -181,10 +181,10 @@ Linear regression                               Number of obs     =      1,799
        _cons |   6.566491   .1061492    61.86   0.000      6.35818    6.774803
 ------------------------------------------------------------------------------
 
-. outreg2 using did_table1, excel replace dec(3) ///
+. outreg2 using output/did_table1, excel replace dec(3) ///
 >     keep(ca post19 ca_post19) ///
 >     ctitle("(1) lnmktcap") addtext(Controls, No, Detrended, No)
-did_table1.xml
+output/did_table1.xml
 dir : seeout
 
 . 
@@ -212,10 +212,10 @@ multinatio~l |   .6352281   .0696937     9.11   0.000     .4984577    .7719985
        _cons |     .74252   .1261584     5.89   0.000     .4949403    .9900998
 ------------------------------------------------------------------------------
 
-. outreg2 using did_table1, excel append dec(3) ///
+. outreg2 using output/did_table1, excel append dec(3) ///
 >     keep(ca post19 ca_post19 lnassets roa leverage multinational) ///
 >     ctitle("(2) lnmktcap") addtext(Controls, Yes, Detrended, No)
-did_table1.xml
+output/did_table1.xml
 dir : seeout
 
 . 
@@ -238,10 +238,10 @@ lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
        _cons |  -.2062197   .1061492    -1.94   0.052    -.4145315    .0020922
 ------------------------------------------------------------------------------
 
-. outreg2 using did_table1, excel append dec(3) ///
+. outreg2 using output/did_table1, excel append dec(3) ///
 >     keep(ca post19 ca_post19) ///
 >     ctitle("(3) lnmktcap") addtext(Controls, No, Detrended, Yes)
-did_table1.xml
+output/did_table1.xml
 dir : seeout
 
 . 
@@ -269,10 +269,10 @@ multinatio~l |   .6352281   .0696937     9.11   0.000     .4984577    .7719985
        _cons |  -6.030191   .1261584   -47.80   0.000    -6.277771   -5.782611
 ------------------------------------------------------------------------------
 
-. outreg2 using did_table1, excel append dec(3) ///
+. outreg2 using output/did_table1, excel append dec(3) ///
 >     keep(ca post19 ca_post19 lnassets roa leverage multinational) ///
 >     ctitle("(4) lnmktcap") addtext(Controls, Yes, Detrended, Yes)
-did_table1.xml
+output/did_table1.xml
 dir : seeout
 
 . 
@@ -304,10 +304,10 @@ Linear regression                               Number of obs     =      1,333
        _cons |   7.022337   .1218115    57.65   0.000     6.783169    7.261505
 ------------------------------------------------------------------------------
 
-. outreg2 using did_table2, excel replace dec(3) ///
+. outreg2 using output/did_table2, excel replace dec(3) ///
 >     keep(ca post19 ca_post19) ///
 >     ctitle("(1) Placebo") addtext(Controls, No, Detrended, No)
-did_table2.xml
+output/did_table2.xml
 dir : seeout
 
 . 
@@ -335,10 +335,10 @@ multinatio~l |   .7820242   .0822107     9.51   0.000     .6206093    .9434391
        _cons |   .8218948    .164831     4.99   0.000     .4982609    1.145529
 ------------------------------------------------------------------------------
 
-. outreg2 using did_table2, excel append dec(3) ///
+. outreg2 using output/did_table2, excel append dec(3) ///
 >     keep(ca post19 ca_post19 lnassets roa leverage multinational) ///
 >     ctitle("(2) Placebo") addtext(Controls, Yes, Detrended, No)
-did_table2.xml
+output/did_table2.xml
 dir : seeout
 
 . 
@@ -366,10 +366,10 @@ multinatio~l |   .7820242   .0822107     9.51   0.000     .6206093     .943439
        _cons |  -5.950816    .164831   -36.10   0.000     -6.27445   -5.627182
 ------------------------------------------------------------------------------
 
-. outreg2 using did_table2, excel append dec(3) ///
+. outreg2 using output/did_table2, excel append dec(3) ///
 >     keep(ca post19 ca_post19 lnassets roa leverage multinational) ///
 >     ctitle("(3) Placebo") addtext(Controls, Yes, Detrended, Yes)
-did_table2.xml
+output/did_table2.xml
 dir : seeout
 
 . 
@@ -414,11 +414,11 @@ multinatio~l |   .0264699   .0217661     1.22   0.224    -.0162513     .069191
        F(  1,   856) =    6.26
             Prob > F =    0.0125
 
-. outreg2 using did_table3, excel replace dec(3) ///
+. outreg2 using output/did_table3, excel replace dec(3) ///
 >     keep(ca post19 ca_post19) ///
 >     ctitle("(1) First stage: One woman") addtext(Controls, Yes) ///
 >     addstat(First-stage F, r(F))
-did_table3.xml
+output/did_table3.xml
 dir : seeout
 
 . 
@@ -453,11 +453,11 @@ multinatio~l |   .0213846   .0072053     2.97   0.003     .0072425    .0355267
        F(  1,   856) =   15.60
             Prob > F =    0.0001
 
-. outreg2 using did_table3, excel append dec(3) ///
+. outreg2 using output/did_table3, excel append dec(3) ///
 >     keep(ca post19 ca_post19) ///
 >     ctitle("(2) First stage: Share women") addtext(Controls, Yes) ///
 >     addstat(First-stage F, r(F))
-did_table3.xml
+output/did_table3.xml
 dir : seeout
 
 . 
@@ -485,10 +485,10 @@ multinatio~l |   .6126798   .0703839     8.70   0.000     .4745346    .7508251
        _cons |   .6274272   .1283156     4.89   0.000     .3755771    .8792773
 ------------------------------------------------------------------------------
 
-. outreg2 using did_table3, excel append dec(3) ///
+. outreg2 using output/did_table3, excel append dec(3) ///
 >     keep(ca post19 ca_post19) ///
 >     ctitle("(3) Reduced form") addtext(Controls, Yes)
-did_table3.xml
+output/did_table3.xml
 dir : seeout
 
 . 
@@ -518,10 +518,10 @@ multinatio~l |   .5845619   .0728887     8.02   0.000     .4417028    .7274211
 Endogenous: onewoman
 Exogenous:  ca post19 lnassets roa leverage multinational ca_post19
 
-. outreg2 using did_table3, excel append dec(3) ///
+. outreg2 using output/did_table3, excel append dec(3) ///
 >     keep(onewoman ca post19) ///
 >     ctitle("(4) IV: One woman") addtext(Controls, Yes)
-did_table3.xml
+output/did_table3.xml
 dir : seeout
 
 . 
@@ -551,17 +551,17 @@ multinatio~l |   .5488344    .079004     6.95   0.000     .3939895    .7036793
 Endogenous: sharewoman
 Exogenous:  ca post19 lnassets roa leverage multinational ca_post19
 
-. outreg2 using did_table3, excel append dec(3) ///
+. outreg2 using output/did_table3, excel append dec(3) ///
 >     keep(sharewoman ca post19) ///
 >     ctitle("(5) IV: Share women") addtext(Controls, Yes)
-did_table3.xml
+output/did_table3.xml
 dir : seeout
 
 . 
 . log close
       name:  <unnamed>
-       log:  /private/var/folders/0r/690wrs3d3b366rt4gqv5gpwr0000gn/T/tmp.TqzL2
-> EGYM9/did_log.log
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/04_did_tests.log
   log type:  text
- closed on:  13 Nov 2026, 09:25:43
+ closed on:  13 Nov 2026, 19:39:31
 -------------------------------------------------------------------------------

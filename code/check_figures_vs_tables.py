@@ -1,20 +1,26 @@
 """Check that every number in Seohee's figures matches Sophia's regression tables.
 
+Author: Ansh (file: code/check_figures_vs_tables.py)
 Reads
-  - Sophia's outreg2 tables from code/did_tests.do (did_table1.txt ... did_table4.txt)
-    and her log (did_log.log) for the pre-trend joint test
-  - output/figures/figure_numbers.csv, written by code/did_graphs.do
+  - Sophia's outreg2 tables from code/04_did_tests.do
+    (output/did_table1.txt ... output/did_table4.txt) and her log
+    (logs/04_did_tests.log) for the pre-trend joint test
+  - output/figures/figure_numbers.csv, written by code/05_did_graphs.do
 Compares coefficients and SEs at the 3 decimals the tables print, F-statistics at
 the precision printed, and sample sizes exactly. Exits 1 if anything differs.
+Writes nothing.
 
-Usage (normally called by code/run_check.sh):
-  python3 code/check_figures_vs_tables.py --tables DIR --figs output/figures/figure_numbers.csv
+Usage (normally called by code/run_check.sh, after rerunning 04 and 05):
+  python3 code/check_figures_vs_tables.py            # default paths, any folder
+  python3 code/check_figures_vs_tables.py --tables DIR --log FILE --figs FILE
 """
 import argparse
 import csv
 import re
 import sys
 from pathlib import Path
+
+PROJ = Path(__file__).resolve().parents[1]  # project folder (code/..)
 
 
 def parse_outreg(path):
@@ -60,8 +66,11 @@ def close(fig, table_val, table_str):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--tables", required=True, help="folder with did_table*.txt and did_log.log")
-    ap.add_argument("--figs", required=True, help="output/figures/figure_numbers.csv")
+    ap.add_argument("--tables", default=PROJ / "output", help="folder with did_table*.txt")
+    ap.add_argument("--log", default=PROJ / "logs" / "04_did_tests.log",
+                    help="log of 04_did_tests.do (has the pre-trend joint test)")
+    ap.add_argument("--figs", default=PROJ / "output" / "figures" / "figure_numbers.csv",
+                    help="figure_numbers.csv written by 05_did_graphs.do")
     a = ap.parse_args()
     tdir = Path(a.tables)
 
@@ -126,16 +135,16 @@ def main():
         rows.append((status, *key, f"T{t} col{col} First-stage F", f"F={b:.3f}", f"F={tv[1] if tv else '?'}"))
 
     # pre-trend joint test: the table does not print it, so read Sophia's log
-    log = (tdir / "did_log.log").read_text(errors="replace")
+    log = Path(a.log).read_text(errors="replace")
     m = re.search(r"test ca_yr2010.*?F\(\s*(\d+),\s*(\d+)\)\s*=\s*([\d.]+)\s*\n\s*Prob > F =\s*([\d.]+)", log, re.S)
     if m:
         for item, val in (("joint_F", m.group(3)), ("joint_p", m.group(4))):
             b = F[("fig_table4_pretrend", item)][0]
             status = "OK" if close(b, float(val), val) else "DIFF"
             bad += status != "OK"
-            rows.append((status, "fig_table4_pretrend", item, "did_log.log pre-trend test", f"{b:.4f}", val))
+            rows.append((status, "fig_table4_pretrend", item, "04_did_tests.log pre-trend test", f"{b:.4f}", val))
     else:
-        rows.append(("MISSING", "fig_table4_pretrend", "joint test", "did_log.log", "", "not found"))
+        rows.append(("MISSING", "fig_table4_pretrend", "joint test", "04_did_tests.log", "", "not found"))
         bad += 1
 
     for key in F:

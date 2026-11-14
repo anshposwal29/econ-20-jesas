@@ -3,7 +3,7 @@
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/01b_collinearity_tests.log
   log type:  text
- opened on:   1 Nov 2026, 15:30:53
+ opened on:  13 Nov 2026, 19:39:12
 
 . 
 . use "temp/balance_candidates.dta", clear
@@ -273,5 +273,5 @@ Linear regression                               Number of obs     =      7,140
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/01b_collinearity_tests.log
   log type:  text
- closed on:   1 Nov 2026, 15:30:54
+ closed on:  13 Nov 2026, 19:39:13
 -------------------------------------------------------------------------------
