@@ -1,62 +1,27 @@
-/*==============================================================================
-  ECON 20 Project: California SB 826 (board gender quota) and firm value
-  Program 1: BUILD THE ANALYSIS DATASET
-
-  Design: two-state diff-in-diff (Card & Krueger style), California vs. Texas.
-          Outcome = ln(market cap) at fiscal year-end. Regressors = ca, post, ca_post.
-
-  Inputs  (raw/):
-    compustat_annual_main.dta        Compustat Fundamentals Annual, WRDS query 11811258
-    compustat_annual_csho.dta        Compustat supplement (csho, apdedate, gsector), query 11811313
-    boardex_orgsummary.dta           BoardEx NA Organization Summary - Analytics, query 11811327
-    link_boardex_crsp_compustat.dta  WRDS BoardEx-CRSP-Compustat link, query 11811331
-  Output:
-    final_data.dta        firm-year panel, CA and TX firms only, with a market cap,
-                          fiscal years 2010-2025
-                          (variable mainwindow = 1 for fiscal year-ends through Dec 2019)
-    temp/balance_candidates.dta  same rows plus the variables considered for the
-                          balance test, used by 01b_collinearity_tests.do
-  File:   code/01_build_data.do   Author: Ansh
-  Slow (several minutes); reads the raw WRDS extracts in raw/.
-  Run:    do code/01_build_data.do, or set local build 1 in code/00_master.do.
-          Overwrites final_data.dta: only run it when the data must be rebuilt.
-  Log:    logs/01_build_data.log
-==============================================================================*/
-
-clear all
+*==============================================================================
+* 01_build_data.do -- builds the CA/TX firm-year panel, final_data.dta
+* Author: Ansh
+* Design: diff-in-diff, California vs Texas, outcome ln(market cap) at fiscal year-end.
+* Input:  raw/ WRDS extracts: compustat_annual_main.dta (query 11811258),
+*         compustat_annual_csho.dta (11811313), boardex_orgsummary.dta (11811327),
+*         link_boardex_crsp_compustat.dta (11811331)
+* Output: final_data.dta (fiscal years 2010-2025; mainwindow = 1 through Dec 2019),
+*         temp/balance_candidates.dta (for 01b_collinearity_tests.do)
+* Slow, and it overwrites final_data.dta: only run it when the data must be rebuilt.
+*==============================================================================
+cap log close
+clear
 set more off
-* --- Project folder (standard header, same in every script) -----------------
-* Uses global PROJ if set (00_master.do sets it); otherwise the current folder
-* if it has final_data.dta; otherwise the first teammate folder below that has
-* it. Nothing to edit: if none match, cd to the project folder first, or set
-*   global PROJ "C:/path/to/project"
-if `"$PROJ"' != "" cd `"$PROJ"'
-capture confirm file "final_data.dta"
-if _rc & `"$PROJ"' == "" {
-    foreach d in "~/Desktop/Dartmouth Classes/Economics/ECON20/project" ///
-                 "C:/Users/shinz/OneDrive/Desktop/Econ20 FinalProject" ///
-                 "/Users/joseohui/Desktop/UIC/Dartmouth/Fall/Econometrics/JESAS/project" ///
-                 "C:/Econ 20/proj" {
-        capture confirm file "`d'/final_data.dta"
-        if !_rc {
-            cd "`d'"
-            continue, break
-        }
-    }
-}
-capture confirm file "final_data.dta"
-if _rc {
-    di as error "final_data.dta not found. cd to the project folder, or run"
-    di as error `"  global PROJ "C:/path/to/project""'
-    di as error "and then run this do-file again."
-    exit 601
-}
-capture mkdir "logs"
-capture mkdir "output"
-capture mkdir "output/figures"
-* ---------------------------------------------------------------------------
 
-capture log close
+* put the location of your project folder here. Each person has their own line;
+* the lines for other people's computers fail quietly, so leave them in.
+capture cd "~/Desktop/Dartmouth Classes/Economics/ECON20/project"      // Ansh
+capture cd "C:/Users/shinz/OneDrive/Desktop/Econ20 FinalProject"       // Sophia
+capture cd "/Users/joseohui/Desktop/UIC/Dartmouth/Fall/Econometrics/JESAS/project"  // Seohee
+capture cd "C:/Econ 20/proj"                                           // Eloise
+confirm file "raw/compustat_annual_main.dta"   // if this fails, add a line with your folder above
+capture mkdir "logs"
+capture mkdir "temp"
 log using "logs/01_build_data.log", replace text
 
 *-------------------------------------------------------------------------------
@@ -113,8 +78,8 @@ save "temp/csho.dta", replace
 
 *-------------------------------------------------------------------------------
 * STEP 3. Compustat main file and sample restrictions
-*   NOTE: exchg and sic are CURRENT values, so a firm that was listed in 2015 and
-*   delisted later (e.g. First Republic, SVB) is dropped from every year.
+*   exchg and sic are CURRENT values, so firms that delisted later (e.g. First
+*   Republic, SVB) are dropped from every year.
 *-------------------------------------------------------------------------------
 use "raw/compustat_annual_main.dta", clear
 
@@ -131,20 +96,14 @@ merge 1:1 gvkey fyear using "temp/csho.dta", keep(master match) nogen
 keep if inlist(exchg, 11, 12, 14)
 * drop funds, trusts and shell companies (SIC 67xx)
 drop if substr(sic, 1, 2) == "67"
-* Mechanics Bancorp is coded Nasdaq from its 2025 merger, but traded over the
-* counter before that at prices of $10,800-$31,950 a share
+* Mechanics Bancorp traded over the counter (at $10,800-$31,950 a share) before 2025
 drop if gvkey == "018948"
 
 *-------------------------------------------------------------------------------
-* STEP 4. Treatment state: headquarters on the day SB 826 was signed
-*   Compustat 'state' is the CURRENT headquarters state, not a history. SB 826
-*   applied to firms based in California when it was signed (30 Sep 2018), so
-*   firms that left CA afterwards are treated firms and are coded back to CA.
-*   All ten moves below were announced after the law and verified from press
-*   releases, SEC filings or news reports (dates = when the move took effect).
-*   The list covers large, well-known moves only. Smaller firms that left CA
-*   after 2018 remain coded by their current state. mover = 1 flags the ten so
-*   they can be dropped in a robustness check.
+* STEP 4. Treatment state: headquarters on the day SB 826 was signed (30 Sep 2018)
+*   Compustat 'state' is the CURRENT state. These ten large firms left California
+*   after the law (checked in press releases and SEC filings), so we code them
+*   back to CA. mover = 1 flags them for a robustness check.
 *-------------------------------------------------------------------------------
 gen state_2018 = state
 gen mover = 0
@@ -172,10 +131,10 @@ keep if inlist(state_2018, "CA", "TX")
 *-------------------------------------------------------------------------------
 * STEP 5. Fiscal year-end date and the treatment timing
 *-------------------------------------------------------------------------------
-* apdedate = actual fiscal period end date. If missing (about 2%), rebuild it
-* from fyear and fyr: Compustat assigns fiscal years ending Jan-May to the
-* previous year.
-gen fye_yr  = cond(fyr >= 6, fyear, fyear + 1)
+* apdedate = fiscal year-end date. If missing (about 2%), rebuild it from fyear
+* and fyr (month): Compustat puts fiscal years ending Jan-May in the previous year.
+gen fye_yr  = fyear
+replace fye_yr = fyear + 1 if fyr < 6
 gen fye_alt = dofm(ym(fye_yr, fyr) + 1) - 1          // last day of month fyr
 gen fye     = apdedate
 replace fye = fye_alt if fye == .
@@ -183,13 +142,11 @@ format fye %td
 drop fye_yr fye_alt
 label var fye "Fiscal year-end date"
 
-* The raw data start at fiscal year 2010, so fiscal years ending Jan-May 2010
-* (fiscal 2009) are not available. The first year-end in the data is June 2010.
+* The raw data start at fiscal year 2010, so the first year-end is June 2010.
 keep if fye >= td(01jan2010) & fye <= td(31dec2025)
 
-* POST = fiscal year ended on or after 1 Oct 2018 (SB 826 signed 30 Sep 2018).
-* Market value is measured at fiscal year-end, so for these firm-years the
-* price already reflects the law.
+* post = fiscal year ended on or after 1 Oct 2018 (SB 826 signed 30 Sep 2018),
+* so the year-end price already reflects the law.
 gen post = (fye >= td(01oct2018)) if fye < .
 label var post "=1 if fiscal year ended on/after 1 Oct 2018"
 
@@ -201,21 +158,16 @@ label var ca_post "California x Post"
 *-------------------------------------------------------------------------------
 * STEP 6. Outcome and control variables
 *-------------------------------------------------------------------------------
-* Outcome: market cap in $ millions = fiscal-year-end price x shares outstanding
-* (millions). Unlike the share price, it is not changed by stock splits.
-* Keep only firm-years with a market cap, since the rest (mostly years before
-* the IPO) are not traded firms.
+* Outcome: market cap ($ millions) = year-end price x shares outstanding.
+* Firm-years without a market cap (mostly before the IPO) are dropped.
 gen mktcap = prcc_f * csho
 drop if mktcap == . | mktcap <= 0
 gen lnmktcap = ln(mktcap)
 label var mktcap   "Market cap ($ millions)"
 label var lnmktcap "ln(market cap)"
 
-* Drop firm-years with less than $1 million of total assets. Ratios to assets
-* are meaningless for these (one firm-year had $54,000 of assets and a $21
-* million loss, so net income / assets = -397). They are 72 rows, mostly
-* shell-sized firms. We drop them rather than winsorize so that every
-* remaining value is the firm's actual ratio.
+* Drop the 72 firm-years with less than $1 million of assets: ratios to assets
+* make no sense for them (one had net income / assets = -397).
 drop if at < 1
 
 gen lnassets = ln(at)
@@ -225,17 +177,14 @@ label var lnassets "ln(total assets)"
 label var roa      "Net income / assets"
 label var leverage "Total liabilities / assets"
 
-* Multinational: reports nonzero foreign pretax income. Compustat leaves
-* pifo blank for 48% of firm-years. We follow the usual shortcut of treating
-* blank as no foreign income, and keep pifo_missing so the balance test can
-* show how often this imputation happens in each state.
+* Multinational = reports nonzero foreign pretax income (pifo). pifo is blank for
+* 48% of firm-years; blank counts as 0, and pifo_missing shows how often.
 gen multinational = (pifo != 0 & pifo < .)
 gen pifo_missing  = (pifo == .)
 label var multinational "=1 if reports foreign pretax income (blank pifo counted as 0)"
 label var pifo_missing  "=1 if foreign pretax income (pifo) is blank in Compustat"
 
-* Firm age since IPO (Compustat ipodate). Missing mostly for old, established
-* firms (e.g. AT&T, Intel, Disney), so age_missing is kept for the balance test.
+* Years since IPO. Missing mostly for old firms (e.g. AT&T, Intel, Disney).
 gen age = year(fye) - year(ipodate)
 replace age = . if age < 0
 gen age_missing = (age == .)
@@ -250,9 +199,8 @@ label var tech "=1 if Information Technology sector (GICS 45)"
 gen sic2 = substr(sic, 1, 2)
 label var sic2 "2-digit SIC industry"
 
-* Industries that differ most between the two states. energy is in the
-* balance test (Texas is a quarter oil and gas); pharma is kept as a
-* descriptive flag only.
+* Industries that differ most between the states: energy is in the balance
+* test (a quarter of Texas firms); pharma is a descriptive flag only.
 gen energy = inlist(sic2, "13", "29")
 gen pharma = inlist(sic, "2833", "2834", "2835", "2836")
 label var energy "=1 if oil and gas or petroleum refining (SIC 13, 29)"
@@ -300,9 +248,7 @@ compress
 save "temp/balance_candidates.dta", replace
 restore
 
-* Final variable list. Balance test: lnassets roa leverage multinational age
-* nyse tech energy boardsize (see 01b_collinearity_tests.do), with
-* age_missing and pifo_missing reported alongside.
+* Final variable list
 keep gvkey fyear conm tic fye fyeyear state_2018 mover ca post ca_post mainwindow ///
      mktcap lnmktcap ///
      lnassets roa leverage multinational pifo_missing age age_missing nyse tech energy ///
@@ -318,4 +264,4 @@ save "final_data.dta", replace
 describe
 summarize
 
-log close
+cap log close

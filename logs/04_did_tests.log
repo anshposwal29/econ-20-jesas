@@ -3,7 +3,7 @@
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/04_did_tests.log
   log type:  text
- opened on:  13 Nov 2026, 19:39:31
+ opened on:  13 Nov 2026, 22:04:25
 
 . 
 . use "final_data.dta", clear
@@ -19,10 +19,12 @@
 . gen fyr = fyeyear
 
 . 
-. * Detrending: fit CA-specific linear trend on pre-law years (before 2018), th
-> en take residuals
+. * Detrending: fit a CA-specific linear trend on the years before 2018, keep t
+> he residuals
 . gen ca_year = ca*fyr
 
+. * not from class: i.fyr = year dummies (same fit as tab fyr, gen(yrdum)); kep
+> t as Sophia wrote it
 . reg lnmktcap ca i.fyr ca_year if fyr < 2018, cluster(firm_id)
 
 Linear regression                               Number of obs     =      6,963
@@ -62,6 +64,8 @@ Linear regression                               Number of obs     =      6,963
   2.     gen ca_yr`y' = ca * (fyr == `y')
   3. }
 
+. * not from class: i.fyr = year dummies, vce(cluster firm_id) = cluster(firm_i
+> d); kept as Sophia wrote it
 . areg lnmktcap ca_yr2010-ca_yr2017 i.fyr ///
 >     if fyr >= 2010 & fyr <= 2018, ///
 >     absorb(firm_id) vce(cluster firm_id)
@@ -110,6 +114,7 @@ output/did_table4.xml
 dir : seeout
 
 .         
+. * joint F-test that all pre-trend coefficients are zero
 . test ca_yr2010 ca_yr2011 ca_yr2012 ca_yr2013 ///
 >      ca_yr2014 ca_yr2015 ca_yr2016 ca_yr2017
 
@@ -146,6 +151,7 @@ dir : seeout
 (184 missing values generated)
 
 . 
+. * woman18 = 1 if the firm had at least one woman on its board in 2018
 . gen woman_obs = (women >= 1) if fyr==2018
 (908 missing values generated)
 
@@ -492,6 +498,8 @@ output/did_table3.xml
 dir : seeout
 
 . 
+. * not from class: ivregress 2sls is the newer ivreg (its clustered SEs differ
+>  slightly); kept as Sophia wrote it
 . ivregress 2sls lnmktcap ca post19 lnassets roa leverage multinational ///
 >     (onewoman = ca_post19), vce(cluster firm_id)
 
@@ -525,6 +533,8 @@ output/did_table3.xml
 dir : seeout
 
 . 
+. * not from class: ivregress 2sls is the newer ivreg (its clustered SEs differ
+>  slightly); kept as Sophia wrote it
 . ivregress 2sls lnmktcap ca post19 lnassets roa leverage multinational ///
 >     (sharewoman = ca_post19), vce(cluster firm_id)
 
@@ -563,5 +573,5 @@ dir : seeout
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/04_did_tests.log
   log type:  text
- closed on:  13 Nov 2026, 19:39:31
+ closed on:  13 Nov 2026, 22:04:26
 -------------------------------------------------------------------------------

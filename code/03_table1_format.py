@@ -1,18 +1,11 @@
-"""
-ECON 20 Project: California SB 826 (board gender quota) and firm value
-Program 3: FORMAT TABLE 1 (MEANS AND BALANCE TEST) FOR THE PAPER
+"""Formats Table 1 (means and balance test) for the paper.
 
-Layout follows Dynarski (2003), Table 1: four means columns (before/after the
-law x Texas/California), then the pre-law California-Texas difference and the
-difference-in-differences, with standard deviations or standard errors in
-parentheses under each number. Nothing is computed here; every number comes
-from output/table1_balance.csv, written by 02_balance_test.do.
-
-Author: Ansh   (file: code/03_table1_format.py)
-Input:  output/table1_balance.csv
-Output: output/Table1_means_balance.xlsx
-Run:    python3 code/03_table1_format.py   (from any folder; paths are relative
-        to this file). Needs pandas and openpyxl. Also run by code/00_master.do.
+Author: Ansh (code/03_table1_format.py)
+Layout follows Dynarski (2003), Table 1: four means columns, then the pre-law
+CA - TX difference and the diff-in-diff. Nothing is computed here: every number
+comes from output/table1_balance.csv, written by 02_balance_test.do.
+Output: output/Table1_means_balance.xlsx (needs pandas and openpyxl)
+Run: python3 code/03_table1_format.py   (from any folder; also run by 00_master.do)
 """
 
 from pathlib import Path
@@ -22,11 +15,12 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, Side
 from openpyxl.utils import get_column_letter
 
-PROJ = Path(__file__).resolve().parents[1]  # project folder (code/..)
+PROJ = Path(__file__).resolve().parents[1]  # the project folder (one up from code/)
 IN = PROJ / "output" / "table1_balance.csv"
 OUT = PROJ / "output" / "Table1_means_balance.xlsx"
 
-# row label, decimals, indent (True for the "share blank" rows)
+# (variable, label in the table, decimals, indent). Rows with only a label are panel headings.
+# Indented rows are the "share blank" rows under multinational and age.
 ROWS = [
     ("Panel A. Outcome and board composition", None, None),
     ("lnmktcap",      "Ln(market cap)",                       3, False),
@@ -70,6 +64,7 @@ NOTES = (
 
 
 def fmt(x, d):
+    """Number with d decimals and thousands commas; blank if missing."""
     if pd.isna(x):
         return ""
     return f"{x:,.{d}f}"

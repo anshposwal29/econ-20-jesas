@@ -3,7 +3,7 @@
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/06_panel_tables.log
   log type:  text
- opened on:  13 Nov 2026, 19:39:25
+ opened on:  13 Nov 2026, 22:04:31
 
 . 
 . use "final_data.dta", clear
@@ -51,9 +51,9 @@
 ------------+-----------------------------------
       Total |     14,950      100.00
 
-. * Year dummies from fyr. xtset on firm only, because two fiscal year ends
-. * can fall in the same calendar year for a firm, which would break xtset firm
->  fyr
+. * Year dummies from fyr. xtset on firm only: some firms have two fiscal year-
+> ends
+. * in one calendar year, which would break xtset firm_id fyr
 . drop if fyr>2020
 (5,240 observations deleted)
 
@@ -274,6 +274,7 @@ dir : seeout
 
 . 
 . * (4) Firms that already had a woman on the board before the law (fyr 2017)
+. * woman_pre = 1 if the firm had at least one woman on its board in 2017
 . gen woman_pre_obs = (women >= 1) if fyr==2017
 (8,814 missing values generated)
 
@@ -428,6 +429,8 @@ dir : seeout
   3. }
 
 . 
+. * not from class: i.fyr = year dummies (same fit as tab fyr, gen(yrdum)); kep
+> t as Sophia wrote it
 . xtreg lnmktcap ca_yr2010-ca_yr2016 i.fyr if fyr <= 2017, fe cluster(firm_id)
 
 Fixed-effects (within) regression               Number of obs     =      6,963
@@ -650,6 +653,8 @@ dir : seeout
 
 . 
 . * (4) IV: one woman
+. * not from class: xtivreg ..., fe = IV with firm fixed effects (no class comm
+> and for this); kept as Sophia wrote it
 . xtivreg lnmktcap fyeardum* lnassets roa leverage multinational (onewoman = ca
 > _post), fe vce(cluster firm_id)
 note: fyeardum11 omitted because of collinearity.
@@ -707,6 +712,8 @@ dir : seeout
 
 . 
 . * (5) IV: share of women
+. * not from class: xtivreg ..., fe = IV with firm fixed effects (no class comm
+> and for this); kept as Sophia wrote it
 . xtivreg lnmktcap fyeardum* lnassets roa leverage multinational (sharewoman = 
 > ca_post), fe vce(cluster firm_id)
 note: fyeardum11 omitted because of collinearity.
@@ -768,5 +775,5 @@ dir : seeout
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/06_panel_tables.log
   log type:  text
- closed on:  13 Nov 2026, 19:39:26
+ closed on:  13 Nov 2026, 22:04:32
 -------------------------------------------------------------------------------

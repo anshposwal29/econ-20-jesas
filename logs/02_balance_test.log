@@ -3,7 +3,7 @@
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/02_balance_test.log
   log type:  text
- opened on:  13 Nov 2026, 19:39:13
+ opened on:  13 Nov 2026, 22:04:23
 
 . 
 . use "final_data.dta", clear
@@ -13,8 +13,7 @@
 (6,188 observations deleted)
 
 . 
-. * Variables in the balance test (see 01b_collinearity_tests.do for the choice
-> ).
+. * Balance test variables (chosen in 01b_collinearity_tests.do).
 . * age_missing and pifo_missing show how often age and foreign income are blan
 > k.
 . local balance lnassets roa leverage multinational pifo_missing age age_missin
@@ -25,8 +24,7 @@
 . local meansonly lnmktcap women zerowomen pharma
 
 . 
-. * Short labels for the table (outsum keys on the label and cannot take commas
-> )
+. * Short labels for the table (outsum uses the label and cannot take commas)
 . label var lnmktcap      "Ln(Market Cap)"
 
 . label var women         "Women on Board"
@@ -60,7 +58,7 @@
 . 
 . *----------------------------------------------------------------------------
 > ---
-. * Columns (1)-(4): means and SDs before and after the law, by state (outsum)
+. * Means and SDs before and after the law, by state (outsum)
 . *----------------------------------------------------------------------------
 > ---
 . outsum `meansonly' `balance' using "output/table1_means.csv" ///
@@ -78,13 +76,13 @@
 . 
 . *----------------------------------------------------------------------------
 > ---
-. * Column (3): CA - TX difference before the law (outreg2)
+. * CA - TX difference before the law (outreg2)
 . *----------------------------------------------------------------------------
 > ---
 . local app replace
 
 . foreach v of local balance {
-  2.     reg `v' ca if post == 0, vce(cluster gvkey)
+  2.     reg `v' ca if post == 0, cluster(gvkey)
   3.     outreg2 ca using "output/balance_prelaw", `app' excel noaster ///
 >         ctitle("`v'") label
   4.     local app append
@@ -280,13 +278,13 @@ dir : seeout
 . 
 . *----------------------------------------------------------------------------
 > ---
-. * Column (4): diff-in-diff in each control (outreg2)
+. * Diff-in-diff in each balance variable (outreg2)
 . *----------------------------------------------------------------------------
 > ---
 . local app replace
 
 . foreach v of local balance {
-  2.     reg `v' ca post ca_post, vce(cluster gvkey)
+  2.     reg `v' ca post ca_post, cluster(gvkey)
   3.     outreg2 ca_post using "output/balance_did", `app' excel noaster ///
 >         ctitle("`v'") label
   4.     local app append
@@ -504,9 +502,11 @@ dir : seeout
 . 
 . *----------------------------------------------------------------------------
 > ---
-. * One combined file: variable, means and SDs before and after the law by
-. * state, pre-law diff (se, p, N), DiD b3 (se, p, N). 03_table1_format.py
-. * turns this into the formatted Table 1.
+. * All columns in one file, one row per variable: means and SDs by state befor
+> e
+. * and after the law, the pre-law difference (b, se, p, N) and the DiD (b, se,
+>  p, N).
+. * not from class: postfile collects one row per variable into a new dataset.
 . *----------------------------------------------------------------------------
 > ---
 . tempname h
@@ -517,7 +517,8 @@ dir : seeout
 >     using "temp/table1_balance.dta", replace
 
 . 
-. foreach v in `meansonly' `balance' {
+. * means-only variables: no regressions, so those columns are missing
+. foreach v of local meansonly {
   2.     quietly summarize `v' if post == 0 & ca == 1
   3.     local m1 = r(mean)
   4.     local s1 = r(sd)
@@ -530,60 +531,84 @@ dir : seeout
  11.     quietly summarize `v' if post == 1 & ca == 0
  12.     local m0p = r(mean)
  13.     local s0p = r(sd)
- 14.     * balance regressions for the balance variables only
-.     local isbal : list v in balance
- 15.     if `isbal' {
- 16.         quietly reg `v' ca if post == 0, vce(cluster gvkey)
- 17.         local b  = _b[ca]
- 18.         local se = _se[ca]
- 19.         local p  = 2 * ttail(e(df_r), abs(`b' / `se'))
- 20.         local n  = e(N)
- 21.         quietly reg `v' ca post ca_post, vce(cluster gvkey)
- 22.         local b3  = _b[ca_post]
- 23.         local se3 = _se[ca_post]
- 24.         local p3  = 2 * ttail(e(df_r), abs(`b3' / `se3'))
- 25.         local n3  = e(N)
- 26.     }
- 27.     else {
- 28.         local b   = .
- 29.         local se  = .
- 30.         local p   = .
- 31.         local n   = .
- 32.         local b3  = .
- 33.         local se3 = .
- 34.         local p3  = .
- 35.         local n3  = .
- 36.     }
- 37.     post `h' ("`v'") (`m1') (`s1') (`m0') (`s0') ///
+ 14.     post `h' ("`v'") (`m1') (`s1') (`m0') (`s0') ///
+>         (`m1p') (`s1p') (`m0p') (`s0p') ///
+>         (.) (.) (.) (.) (.) (.) (.) (.)
+ 15. }
+
+. 
+. * balance variables: means plus the two regressions above
+. foreach v of local balance {
+  2.     quietly summarize `v' if post == 0 & ca == 1
+  3.     local m1 = r(mean)
+  4.     local s1 = r(sd)
+  5.     quietly summarize `v' if post == 0 & ca == 0
+  6.     local m0 = r(mean)
+  7.     local s0 = r(sd)
+  8.     quietly summarize `v' if post == 1 & ca == 1
+  9.     local m1p = r(mean)
+ 10.     local s1p = r(sd)
+ 11.     quietly summarize `v' if post == 1 & ca == 0
+ 12.     local m0p = r(mean)
+ 13.     local s0p = r(sd)
+ 14.     * pre-law difference
+.     quietly reg `v' ca if post == 0, cluster(gvkey)
+ 15.     local b  = _b[ca]
+ 16.     local se = _se[ca]
+ 17.     local p  = 2 * ttail(e(df_r), abs(`b' / `se'))
+ 18.     local n  = e(N)
+ 19.     * diff-in-diff
+.     quietly reg `v' ca post ca_post, cluster(gvkey)
+ 20.     local b3  = _b[ca_post]
+ 21.     local se3 = _se[ca_post]
+ 22.     local p3  = 2 * ttail(e(df_r), abs(`b3' / `se3'))
+ 23.     local n3  = e(N)
+ 24.     post `h' ("`v'") (`m1') (`s1') (`m0') (`s0') ///
 >         (`m1p') (`s1p') (`m0p') (`s0p') ///
 >         (`b') (`se') (`p') (`n') (`b3') (`se3') (`p3') (`n3')
- 38. }
+ 25. }
 
 . postclose `h'
 
 . 
-. * firm-year and firm counts for each of the four groups (last rows of Table 1
-> )
-. foreach g in "0 0" "0 1" "1 0" "1 1" {
-  2.     local c : word 1 of `g'
-  3.     local p : word 2 of `g'
-  4.     count if ca == `c' & post == `p'
-  5.     local fy_`c'`p' = r(N)
-  6.     quietly tab gvkey if ca == `c' & post == `p'
-  7.     local f_`c'`p' = r(r)
-  8. }
+. * firm-years and firms in each of the four groups (last two rows of Table 1)
+. count if ca == 0 & post == 0
   3,108
+
+. local fy_tx_pre = r(N)
+
+. count if ca == 0 & post == 1
   716
+
+. local fy_tx_post = r(N)
+
+. count if ca == 1 & post == 0
   4,032
+
+. local fy_ca_pre = r(N)
+
+. count if ca == 1 & post == 1
   906
 
-. display "Firm-years  TX pre `fy_00'  TX post `fy_01'  CA pre `fy_10'  CA post
->  `fy_11'"
-Firm-years  TX pre 3108  TX post 716  CA pre 4032  CA post 906
+. local fy_ca_post = r(N)
 
-. display "Firms       TX pre `f_00'   TX post `f_01'   CA pre `f_10'   CA post
->  `f_11'"
-Firms       TX pre 535   TX post 398   CA pre 748   CA post 551
+. 
+. * r(r) after tab = number of different firms
+. quietly tab gvkey if ca == 0 & post == 0
+
+. local f_tx_pre = r(r)
+
+. quietly tab gvkey if ca == 0 & post == 1
+
+. local f_tx_post = r(r)
+
+. quietly tab gvkey if ca == 1 & post == 0
+
+. local f_ca_pre = r(r)
+
+. quietly tab gvkey if ca == 1 & post == 1
+
+. local f_ca_post = r(r)
 
 . quietly tab gvkey if post == 0
 
@@ -594,61 +619,74 @@ Firms       TX pre 535   TX post 398   CA pre 748   CA post 551
 . local f_all = r(r)
 
 . 
+. display "Firm-years  TX pre `fy_tx_pre'  TX post `fy_tx_post'  CA pre `fy_ca_
+> pre'  CA post `fy_ca_post'"
+Firm-years  TX pre 3108  TX post 716  CA pre 4032  CA post 906
+
+. display "Firms       TX pre `f_tx_pre'   TX post `f_tx_post'   CA pre `f_ca_p
+> re'   CA post `f_ca_post'"
+Firms       TX pre 535   TX post 398   CA pre 748   CA post 551
+
+. 
+. * add the two count rows to the bottom of the file
 . use "temp/table1_balance.dta", clear
 
-. local N = _N + 2
+. local row1 = _N + 1
 
-. set obs `N'
+. local row2 = _N + 2
+
+. set obs `row2'
 Number of observations (_N) was 15, now 17.
 
-. replace variable = "firm_years" in `=_N-1'
+. 
+. replace variable = "firm_years" in `row1'
 (1 real change made)
 
-. replace mean_ca = `fy_10' in `=_N-1'
+. replace mean_ca = `fy_ca_pre' in `row1'
 (1 real change made)
 
-. replace mean_tx = `fy_00' in `=_N-1'
+. replace mean_tx = `fy_tx_pre' in `row1'
 (1 real change made)
 
-. replace mean_ca_post = `fy_11' in `=_N-1'
+. replace mean_ca_post = `fy_ca_post' in `row1'
 (1 real change made)
 
-. replace mean_tx_post = `fy_01' in `=_N-1'
+. replace mean_tx_post = `fy_tx_post' in `row1'
 (1 real change made)
 
-. replace diff_n = `fy_00' + `fy_10' in `=_N-1'
+. replace diff_n = `fy_tx_pre' + `fy_ca_pre' in `row1'
 (1 real change made)
 
-. replace did_n = `fy_00' + `fy_01' + `fy_10' + `fy_11' in `=_N-1'
+. replace did_n = `fy_tx_pre' + `fy_tx_post' + `fy_ca_pre' + `fy_ca_post' in `r
+> ow1'
 (1 real change made)
 
-. replace variable = "firms" in `=_N'
+. 
+. replace variable = "firms" in `row2'
 (1 real change made)
 
-. replace mean_ca = `f_10' in `=_N'
+. replace mean_ca = `f_ca_pre' in `row2'
 (1 real change made)
 
-. replace mean_tx = `f_00' in `=_N'
+. replace mean_tx = `f_tx_pre' in `row2'
 (1 real change made)
 
-. replace mean_ca_post = `f_11' in `=_N'
+. replace mean_ca_post = `f_ca_post' in `row2'
 (1 real change made)
 
-. replace mean_tx_post = `f_01' in `=_N'
+. replace mean_tx_post = `f_tx_post' in `row2'
 (1 real change made)
 
-. replace diff_n = `f_pre' in `=_N'
+. replace diff_n = `f_pre' in `row2'
 (1 real change made)
 
-. replace did_n = `f_all' in `=_N'
+. replace did_n = `f_all' in `row2'
 (1 real change made)
 
 . save "temp/table1_balance.dta", replace
 file temp/table1_balance.dta saved
 
 . 
-. use "temp/table1_balance.dta", clear
-
 . format mean_* sd_* diff* did* %9.3f
 
 . format diff_n did_n %9.0f
@@ -714,10 +752,4 @@ file temp/table1_balance.dta saved
 file output/table1_balance.csv saved
 
 . 
-. log close
-      name:  <unnamed>
-       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
-> ect/logs/02_balance_test.log
-  log type:  text
- closed on:  13 Nov 2026, 19:39:14
--------------------------------------------------------------------------------
+. cap log close

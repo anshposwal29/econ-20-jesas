@@ -1,257 +1,149 @@
 *==============================================================================
-* 07_panel_event_study_graphs.do  --  PANEL EVENT STUDIES: ORIGINAL vs DETRENDED
-* Author:  Seohee (formerly code/paneldata_outreg2_graphs.do)
-* Purpose: Event studies, fiscal years 2011-2021 (2017 = reference), for the
-*          first stage (onewoman) and the reduced form (lnmktcap), each shown
-*          raw and after removing a CA-specific linear pre-trend.
-*          The first part re-runs a copy of the panel tables from an OLDER
-*          version of Sophia's 06_panel_tables.do (all years, no
-*          "drop if fyr>2020"; woman-pre-law columns inside table2) because the
-*          graphs need variables it creates (fyeardum*, ca_year, lnmktcap_hat,
-*          onewoman). Its regressions are unchanged, but its outreg2 tables are
-*          written to output/07_check_*.txt/.xml so they no longer overwrite
-*          Sophia's output/table2_main, table3_pretrend and table4_iv.
-*          The paper's panel tables are the ones from 06_panel_tables.do.
-* Input:   final_data.dta
-* Outputs: output/figures/es_onewoman_overlay.png/.gph
-*          output/figures/es_lnmktcap_overlay.png/.gph
-*          output/07_check_table2_main, 07_check_table3_pretrend,
-*          07_check_table4_iv (.txt/.xml; for comparison only)
-*          logs/07_panel_event_study_graphs.log
-* Run:     do code/07_panel_event_study_graphs.do   (or via code/00_master.do)
+* 07_panel_event_study_graphs.do -- panel event studies, original vs detrended
+* Author: Seohee (was code/paneldata_outreg2_graphs.do)
+* Event studies for fiscal years 2011-2021 (2017 = reference year), for the
+* first stage (onewoman) and the reduced form (lnmktcap), each shown as is and
+* after removing a California-specific linear pre-trend.
+* Input:  final_data.dta
+* Output: output/figures/es_onewoman_overlay.png/.gph, es_lnmktcap_overlay.png/.gph
 *==============================================================================
-clear all
+cap log close
+clear
 set more off
-* --- Project folder (standard header, same in every script) -----------------
-* Uses global PROJ if set (00_master.do sets it); otherwise the current folder
-* if it has final_data.dta; otherwise the first teammate folder below that has
-* it. Nothing to edit: if none match, cd to the project folder first, or set
-*   global PROJ "C:/path/to/project"
-if `"$PROJ"' != "" cd `"$PROJ"'
-capture confirm file "final_data.dta"
-if _rc & `"$PROJ"' == "" {
-    foreach d in "~/Desktop/Dartmouth Classes/Economics/ECON20/project" ///
-                 "C:/Users/shinz/OneDrive/Desktop/Econ20 FinalProject" ///
-                 "/Users/joseohui/Desktop/UIC/Dartmouth/Fall/Econometrics/JESAS/project" ///
-                 "C:/Econ 20/proj" {
-        capture confirm file "`d'/final_data.dta"
-        if !_rc {
-            cd "`d'"
-            continue, break
-        }
-    }
-}
-capture confirm file "final_data.dta"
-if _rc {
-    di as error "final_data.dta not found. cd to the project folder, or run"
-    di as error `"  global PROJ "C:/path/to/project""'
-    di as error "and then run this do-file again."
-    exit 601
-}
+
+* put the location of your project folder here. Each person has their own line;
+* the lines for other people's computers fail quietly, so leave them in.
+capture cd "~/Desktop/Dartmouth Classes/Economics/ECON20/project"      // Ansh
+capture cd "C:/Users/shinz/OneDrive/Desktop/Econ20 FinalProject"       // Sophia
+capture cd "/Users/joseohui/Desktop/UIC/Dartmouth/Fall/Econometrics/JESAS/project"  // Seohee
+capture cd "C:/Econ 20/proj"                                           // Eloise
+confirm file "final_data.dta"   // if this fails, add a line with your folder above
 capture mkdir "logs"
 capture mkdir "output"
 capture mkdir "output/figures"
-* ---------------------------------------------------------------------------
-
-capture log close
 log using "logs/07_panel_event_study_graphs.log", replace text
 
 use "final_data.dta", clear
 
-*==============================================================
-* SETUP
-*==============================================================
 encode gvkey, gen(firm_id)
+gen fyr = fyeyear
 
-* fyr = calendar year of the fiscal year end (works whether fyeyear is a year or a date)
-quietly summarize fyeyear
-if r(max) > 3000 {
-    gen fyr = year(fyeyear)
-}
-else {
-    gen fyr = fyeyear
-}
-tab fyr
-
-* Year dummies from fyr. xtset on firm only, because two fiscal year ends
-* can fall in the same calendar year for a firm, which would break xtset firm fyr
+* year dummies (all years in the data). xtset on firm only: some firms have two
+* fiscal year-ends in one calendar year, which would break xtset firm_id fyr.
 tab fyr, gen(fyeardum)
 xtset firm_id
 
+gen onewoman = (women >= 1) if women ~= .
+
 *==============================================================
-* TABLE 2: Main difference-in-differences results (ln market cap)
+* DETRENDING: fit a CA-specific linear trend on the pre-law years (post==0)
+* and keep the residuals. Same as Table 2 column (3) of Sophia's panel tables.
 *==============================================================
-
-* (1) No controls
-xtreg lnmktcap ca_post fyeardum*, fe cluster(firm_id)
-outreg2 using output/07_check_table2_main, excel replace dec(3) ///
-	drop(fyeardum* o.fyeardum*) ///
-    ctitle("(1) No controls") ///
-    addtext(Firm FE, Yes, Year FE, Yes, Controls, No)
-
-* (2) With controls
-xtreg lnmktcap ca_post fyeardum* lnassets roa leverage multinational, fe cluster(firm_id)
-outreg2 using output/07_check_table2_main, excel append dec(3) ///
-	drop(fyeardum* o.fyeardum*) ///
-    ctitle("(2) Controls") ///
-    addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
-
-* (3) Detrended outcome: remove a California-specific linear trend estimated pre-law
 gen ca_year = ca*fyr
+
 reg lnmktcap ca fyeardum* ca_year if post==0, cluster(firm_id)
 predict lnmktcap_hat, resid
 
-xtreg lnmktcap_hat ca_post fyeardum* lnassets roa leverage multinational, fe cluster(firm_id)
-outreg2 using output/07_check_table2_main, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
-	ctitle("(3) Detrended") ///
-    addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
-
-* (4) Firms that already had a woman on the board before the law (fyr 2017)
-gen woman_pre_obs = (women >= 1) if fyr==2017
-bysort firm_id: egen woman_pre = max(woman_pre_obs)
-
-xtreg lnmktcap ca_post fyeardum* lnassets roa leverage multinational if woman_pre==1, fe cluster(firm_id)
-outreg2 using output/07_check_table2_main, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
-	ctitle("(4) Woman pre-law") ///
-    addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
-
-* (5) Same subsample, detrended
-reg lnmktcap ca fyeardum* ca_year if post==0 & woman_pre==1, cluster(firm_id)
-predict lnmktcap_hat_w if woman_pre==1, resid
-
-xtreg lnmktcap_hat_w ca_post fyeardum* lnassets roa leverage multinational if woman_pre==1, fe cluster(firm_id)
-outreg2 using output/07_check_table2_main, excel append dec(3) ///
-    drop(fyeardum* o.fyeardum*) ///
-	ctitle("(5) Woman pre-law, detrended") ///
-    addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
-
-*==============================================================
-* TABLE 3: Pre-trend (event study), pre-law years only, 2017 = reference
-*==============================================================
-forvalues y = 2010/2016 {
-    gen ca_yr`y' = ca * (fyr == `y')
-}
-
-xtreg lnmktcap ca_yr2010-ca_yr2016 i.fyr if fyr <= 2017, fe cluster(firm_id)
-test ca_yr2010 ca_yr2011 ca_yr2012 ca_yr2013 ca_yr2014 ca_yr2015 ca_yr2016
-outreg2 using output/07_check_table3_pretrend, excel replace keep(ca_yr*) dec(3) ///
-    ctitle("ln(market cap)") ///
-    addtext(Firm FE, Yes, Year FE, Yes) ///
-    addstat(Joint F-test, r(F), p-value, r(p))
-
-*==============================================================
-* TABLE 4: Instrumental variables (CA x Post instruments board gender)
-*==============================================================
-gen onewoman = (women >= 1) if women ~= .
-gen sharewoman = women / boardsize if women ~= . & boardsize ~= . & boardsize > 0
-
-* (1) First stage: at least one woman
-xtreg onewoman ca_post lnassets roa leverage multinational if fyeyear < 2020, fe cluster(firm_id)
-test ca_post
-outreg2 using output/07_check_table4_iv, excel replace drop(fyeardum*) dec(3) ///
-    ctitle("(1) First stage", "One woman") ///
-    addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes) ///
-    addstat(First-stage F, r(F))
-
-* (2) First stage: share of women
-xtreg sharewoman ca_post lnassets roa leverage multinational if fyeyear < 2020, fe cluster(firm_id)
-test ca_post
-outreg2 using output/07_check_table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
-    ctitle("(2) First stage", "Share women") ///
-    addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes) ///
-    addstat(First-stage F, r(F))
-
-* (3) Reduced form, same sample as the first stages
-xtreg lnmktcap ca_post fyeardum* lnassets roa leverage multinational if onewoman ~= ., fe cluster(firm_id)
-outreg2 using output/07_check_table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
-    ctitle("(3) Reduced form", "ln(mkt cap)") ///
-    addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
-
-* (4) IV: one woman
-xtivreg lnmktcap fyeardum* lnassets roa leverage multinational (onewoman = ca_post), fe vce(cluster firm_id)
-outreg2 using output/07_check_table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
-    ctitle("(4) IV", "ln(mkt cap)") ///
-    addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
-
-* (5) IV: share of women
-xtivreg lnmktcap fyeardum* lnassets roa leverage multinational (sharewoman = ca_post), fe vce(cluster firm_id)
-outreg2 using output/07_check_table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
-    ctitle("(5) IV", "ln(mkt cap)") ///
-    addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
-	
-*==============================================================
-* EVENT STUDIES: ORIGINAL vs DETRENDED (fiscal years 2011-2021, ref = 2017)
-*==============================================================
-capture mkdir "output/figures"
-local firstyr 2011
-local lastyr  2021
-local refyr   2017
-
-* Detrended first-stage outcome, same command as the do-file uses for lnmktcap
-* (lnmktcap_hat already exists from Table 2, column 3)
-capture drop onewoman_hat
 reg onewoman ca fyeardum* ca_year if post==0, cluster(firm_id)
 predict onewoman_hat, resid
 
-capture drop evCA*
-forvalues t = `firstyr'/`lastyr' {
-    if `t' != `refyr' {
-        gen evCA`t' = ca * (fyr == `t')
-    }
+*==============================================================
+* EVENT STUDIES (2011-2021, 2017 = reference year)
+* Same sample in all four: firm-years with board data (onewoman ~= .)
+*==============================================================
+foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 2021 {
+    gen caXyr`y' = ca*(fyr==`y')
 }
 
-foreach y in onewoman lnmktcap {
-
-    * original (o) and detrended (d) event studies, same sample
-    foreach v in `y' `y'_hat {
-        local s = cond("`v'" == "`y'", "o", "d")
-
-        xtreg `v' evCA* i.fyr if onewoman ~= . & fyr >= `firstyr' & fyr <= `lastyr', ///
-            fe cluster(firm_id)
-
-        capture drop b_`s' se_`s'
-        gen b_`s'  = 0
-        gen se_`s' = .
-        forvalues t = `firstyr'/`lastyr' {
-            if `t' != `refyr' {
-                replace b_`s'  = _b[evCA`t']  if fyr == `t'
-                replace se_`s' = _se[evCA`t'] if fyr == `t'
-            }
-        }
-    }
-
-    if "`y'" == "onewoman" {
-        local ttl "First Stage Event Study"
-        local yt  "CA - TX difference in P(at least 1 woman), relative to 2017"
-    }
-    else {
-        local ttl "Reduced Form Event Study"
-        local yt  "CA - TX difference in ln(market cap), relative to 2017"
-    }
-
-    preserve
-    keep if fyr >= `firstyr' & fyr <= `lastyr'
-    collapse (mean) b_o se_o b_d se_d, by(fyr)
-    foreach s in o d {
-        gen up_`s' = b_`s' + 1.96*se_`s'
-        gen lo_`s' = b_`s' - 1.96*se_`s'
-    }
-    gen x_o = fyr - 0.12
-    gen x_d = fyr + 0.12
-
-    gr two (rcap up_o lo_o x_o, lc(gs11)) (scatter b_o x_o, mc(gs8) ms(Oh)) ///
-           (rcap up_d lo_d x_d, lc(cranberry)) (scatter b_d x_d, mc(blue) ms(O)), ///
-        yline(0, lc(black) lp(dash)) xline(2017.5, lp(dash) lc(black)) ///
-        legend(order(2 "Original" 4 "Detrended (CA linear pre-trend removed)") ring(0) pos(11)) ///
-        xlabel(`firstyr'(2)`lastyr') ///
-        xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies from FY2018)") ///
-        ytitle("`yt'") ///
-        title("`ttl'" "California SB 826: Original vs. Detrended", size(medium)) ///
-        note("CA-specific linear trend estimated on pre-law observations (post==0) and removed from the outcome." ///
-             "Bars show 95% CIs, standard errors clustered by firm. Dashed line = SB 826 signed 30 Sep 2018.")
-    graph export "output/figures/es_`y'_overlay.png", replace width(2000)
-	graph save   "output/figures/es_`y'_overlay.gph", replace
-    restore
+* (1) first stage, original
+xtreg onewoman caXyr* fyeardum* if onewoman ~= . & fyr >= 2011 & fyr <= 2021, fe cluster(firm_id)
+gen b_onewoman = 0
+gen se_onewoman = .
+foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 2021 {
+    replace b_onewoman = _b[caXyr`y'] if fyr==`y'
+    replace se_onewoman = _se[caXyr`y'] if fyr==`y'
 }
 
-log close
+* (2) first stage, detrended
+xtreg onewoman_hat caXyr* fyeardum* if onewoman ~= . & fyr >= 2011 & fyr <= 2021, fe cluster(firm_id)
+gen b_onewoman_hat = 0
+gen se_onewoman_hat = .
+foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 2021 {
+    replace b_onewoman_hat = _b[caXyr`y'] if fyr==`y'
+    replace se_onewoman_hat = _se[caXyr`y'] if fyr==`y'
+}
+
+* (3) reduced form, original
+xtreg lnmktcap caXyr* fyeardum* if onewoman ~= . & fyr >= 2011 & fyr <= 2021, fe cluster(firm_id)
+gen b_lnmktcap = 0
+gen se_lnmktcap = .
+foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 2021 {
+    replace b_lnmktcap = _b[caXyr`y'] if fyr==`y'
+    replace se_lnmktcap = _se[caXyr`y'] if fyr==`y'
+}
+
+* (4) reduced form, detrended
+xtreg lnmktcap_hat caXyr* fyeardum* if onewoman ~= . & fyr >= 2011 & fyr <= 2021, fe cluster(firm_id)
+gen b_lnmktcap_hat = 0
+gen se_lnmktcap_hat = .
+foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 2021 {
+    replace b_lnmktcap_hat = _b[caXyr`y'] if fyr==`y'
+    replace se_lnmktcap_hat = _se[caXyr`y'] if fyr==`y'
+}
+
+*==============================================================
+* GRAPH 1: first stage, original vs detrended
+*==============================================================
+preserve
+keep if fyr >= 2011 & fyr <= 2021
+collapse (mean) b_onewoman se_onewoman b_onewoman_hat se_onewoman_hat, by(fyr)
+gen upper = b_onewoman + 1.96*se_onewoman
+gen lower = b_onewoman - 1.96*se_onewoman
+gen upper_hat = b_onewoman_hat + 1.96*se_onewoman_hat
+gen lower_hat = b_onewoman_hat - 1.96*se_onewoman_hat
+* move the two series slightly apart so the bars do not overlap
+gen x = fyr - 0.12
+gen x_hat = fyr + 0.12
+
+gr two (rcap upper lower x, lc(gs11)) (scatter b_onewoman x, mc(gs8) ms(Oh)) ///
+       (rcap upper_hat lower_hat x_hat, lc(cranberry)) (scatter b_onewoman_hat x_hat, mc(blue) ms(O)), ///
+    yline(0, lc(black) lp(dash)) xline(2017.5, lp(dash) lc(black)) ///
+    legend(order(2 "Original" 4 "Detrended (CA linear pre-trend removed)") ring(0) pos(11)) ///
+    xlabel(2011(2)2021) ///
+    xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies from FY2018)") ///
+    ytitle("CA - TX difference in P(at least 1 woman), relative to 2017") ///
+    title("First Stage Event Study" "California SB 826: Original vs. Detrended", size(medium)) ///
+    note("CA-specific linear trend estimated on pre-law observations (post==0) and removed from the outcome." ///
+         "Bars show 95% CIs, standard errors clustered by firm. Dashed line = SB 826 signed 30 Sep 2018.")
+graph export "output/figures/es_onewoman_overlay.png", replace width(2000)
+graph save "output/figures/es_onewoman_overlay.gph", replace
+restore
+
+*==============================================================
+* GRAPH 2: reduced form, original vs detrended
+*==============================================================
+preserve
+keep if fyr >= 2011 & fyr <= 2021
+collapse (mean) b_lnmktcap se_lnmktcap b_lnmktcap_hat se_lnmktcap_hat, by(fyr)
+gen upper = b_lnmktcap + 1.96*se_lnmktcap
+gen lower = b_lnmktcap - 1.96*se_lnmktcap
+gen upper_hat = b_lnmktcap_hat + 1.96*se_lnmktcap_hat
+gen lower_hat = b_lnmktcap_hat - 1.96*se_lnmktcap_hat
+gen x = fyr - 0.12
+gen x_hat = fyr + 0.12
+
+gr two (rcap upper lower x, lc(gs11)) (scatter b_lnmktcap x, mc(gs8) ms(Oh)) ///
+       (rcap upper_hat lower_hat x_hat, lc(cranberry)) (scatter b_lnmktcap_hat x_hat, mc(blue) ms(O)), ///
+    yline(0, lc(black) lp(dash)) xline(2017.5, lp(dash) lc(black)) ///
+    legend(order(2 "Original" 4 "Detrended (CA linear pre-trend removed)") ring(0) pos(11)) ///
+    xlabel(2011(2)2021) ///
+    xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies from FY2018)") ///
+    ytitle("CA - TX difference in ln(market cap), relative to 2017") ///
+    title("Reduced Form Event Study" "California SB 826: Original vs. Detrended", size(medium)) ///
+    note("CA-specific linear trend estimated on pre-law observations (post==0) and removed from the outcome." ///
+         "Bars show 95% CIs, standard errors clustered by firm. Dashed line = SB 826 signed 30 Sep 2018.")
+graph export "output/figures/es_lnmktcap_overlay.png", replace width(2000)
+graph save "output/figures/es_lnmktcap_overlay.gph", replace
+restore
+
+cap log close

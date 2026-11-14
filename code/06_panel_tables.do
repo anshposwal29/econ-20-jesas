@@ -1,54 +1,27 @@
 *==============================================================================
-* 06_panel_tables.do  --  PANEL DiD TABLES (firm and year fixed effects)
-* Author:  Sophia (formerly code/paneldata_outreg2.do)
-* Purpose: Panel version with firm and year FE, fiscal years through 2020:
-*            table2_main      main DiD (no controls, controls, detrended)
-*            table2_plcbo     firms with a woman on the board in 2017
-*                             (written with "append": 00_master.do erases it
-*                             first so reruns do not duplicate columns)
-*            table3_pretrend  pre-trends, pre-law years, 2017 = reference
-*            table4_iv        first stage, reduced form, IV
-* Input:   final_data.dta
-* Outputs: output/table2_main, output/table2_plcbo, output/table3_pretrend,
-*          output/table4_iv  (.txt and .xml each); logs/06_panel_tables.log
-* Run:     do code/06_panel_tables.do   (or via code/00_master.do)
-* Note:    only the folder/log/output-path lines were changed from Sophia's
-*          original; every regression and detrending line is hers, unchanged.
+* 06_panel_tables.do -- panel DiD with firm and year fixed effects, fiscal years 2010-2020
+* Author: Sophia (was code/paneldata_outreg2.do)
+* Tables: table2_main (main DiD), table2_plcbo (woman on board in 2017),
+*         table3_pretrend (2017 = reference), table4_iv (first stage, IV)
+* Input:  final_data.dta
+* Output: output/table2_main, table2_plcbo, table3_pretrend, table4_iv (.txt/.xml)
+* table2_plcbo only uses "append", so 00_master.do erases it before running this file.
+* Only the header, folder lines and comments were changed; the code is Sophia's.
 *==============================================================================
-clear all
+cap log close
+clear
 set more off
-* --- Project folder (standard header, same in every script) -----------------
-* Uses global PROJ if set (00_master.do sets it); otherwise the current folder
-* if it has final_data.dta; otherwise the first teammate folder below that has
-* it. Nothing to edit: if none match, cd to the project folder first, or set
-*   global PROJ "C:/path/to/project"
-if `"$PROJ"' != "" cd `"$PROJ"'
-capture confirm file "final_data.dta"
-if _rc & `"$PROJ"' == "" {
-    foreach d in "~/Desktop/Dartmouth Classes/Economics/ECON20/project" ///
-                 "C:/Users/shinz/OneDrive/Desktop/Econ20 FinalProject" ///
-                 "/Users/joseohui/Desktop/UIC/Dartmouth/Fall/Econometrics/JESAS/project" ///
-                 "C:/Econ 20/proj" {
-        capture confirm file "`d'/final_data.dta"
-        if !_rc {
-            cd "`d'"
-            continue, break
-        }
-    }
-}
-capture confirm file "final_data.dta"
-if _rc {
-    di as error "final_data.dta not found. cd to the project folder, or run"
-    di as error `"  global PROJ "C:/path/to/project""'
-    di as error "and then run this do-file again."
-    exit 601
-}
+
+* put the location of your project folder here. Each person has their own line;
+* the lines for other people's computers fail quietly, so leave them in.
+capture cd "~/Desktop/Dartmouth Classes/Economics/ECON20/project"      // Ansh
+capture cd "C:/Users/shinz/OneDrive/Desktop/Econ20 FinalProject"       // Sophia
+capture cd "/Users/joseohui/Desktop/UIC/Dartmouth/Fall/Econometrics/JESAS/project"  // Seohee
+capture cd "C:/Econ 20/proj"                                           // Eloise
+confirm file "final_data.dta"   // if this fails, add a line with your folder above
 capture mkdir "logs"
 capture mkdir "output"
 capture mkdir "output/figures"
-* ---------------------------------------------------------------------------
-
-capture log close
 log using "logs/06_panel_tables.log", replace text
 
 use "final_data.dta", clear
@@ -67,8 +40,8 @@ else {
     gen fyr = fyeyear
 }
 tab fyr
-* Year dummies from fyr. xtset on firm only, because two fiscal year ends
-* can fall in the same calendar year for a firm, which would break xtset firm fyr
+* Year dummies from fyr. xtset on firm only: some firms have two fiscal year-ends
+* in one calendar year, which would break xtset firm_id fyr
 drop if fyr>2020
 tab fyr, gen(fyeardum)
 xtset firm_id
@@ -102,6 +75,7 @@ outreg2 using output/table2_main, excel append drop(fyeardum* o.fyeardum*) dec(3
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
 
 * (4) Firms that already had a woman on the board before the law (fyr 2017)
+* woman_pre = 1 if the firm had at least one woman on its board in 2017
 gen woman_pre_obs = (women >= 1) if fyr==2017
 bysort firm_id: egen woman_pre = max(woman_pre_obs)
 
@@ -127,6 +101,7 @@ forvalues y = 2010/2016 {
     gen ca_yr`y' = ca * (fyr == `y')
 }
 
+* not from class: i.fyr = year dummies (same fit as tab fyr, gen(yrdum)); kept as Sophia wrote it
 xtreg lnmktcap ca_yr2010-ca_yr2016 i.fyr if fyr <= 2017, fe cluster(firm_id)
 test ca_yr2010 ca_yr2011 ca_yr2012 ca_yr2013 ca_yr2014 ca_yr2015 ca_yr2016
 outreg2 using output/table3_pretrend, excel replace keep(ca_yr*) dec(3) ///
@@ -163,12 +138,14 @@ outreg2 using output/table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) 
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
 
 * (4) IV: one woman
+* not from class: xtivreg ..., fe = IV with firm fixed effects (no class command for this); kept as Sophia wrote it
 xtivreg lnmktcap fyeardum* lnassets roa leverage multinational (onewoman = ca_post), fe vce(cluster firm_id)
 outreg2 using output/table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
     ctitle("(4) IV", "ln(mkt cap)") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
 
 * (5) IV: share of women
+* not from class: xtivreg ..., fe = IV with firm fixed effects (no class command for this); kept as Sophia wrote it
 xtivreg lnmktcap fyeardum* lnassets roa leverage multinational (sharewoman = ca_post), fe vce(cluster firm_id)
 outreg2 using output/table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
     ctitle("(5) IV", "ln(mkt cap)") ///

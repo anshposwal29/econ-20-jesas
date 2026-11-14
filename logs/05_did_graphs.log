@@ -3,7 +3,7 @@
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/05_did_graphs.log
   log type:  text
- opened on:  13 Nov 2026, 19:39:31
+ opened on:  13 Nov 2026, 22:04:26
 
 . 
 . use final_data.dta, clear
@@ -14,22 +14,47 @@
 
 . gen fyr = fyeyear
 
-. local controls "lnassets roa leverage multinational"
+. 
+. * year dummies: yrdum1 = 2010, yrdum2 = 2011, ..., yrdum16 = 2025
+. tab fyr, gen(yrdum)
+
+        fyr |      Freq.     Percent        Cum.
+------------+-----------------------------------
+       2010 |        739        4.94        4.94
+       2011 |        857        5.73       10.68
+       2012 |        867        5.80       16.47
+       2013 |        878        5.87       22.35
+       2014 |        910        6.09       28.43
+       2015 |        914        6.11       34.55
+       2016 |        902        6.03       40.58
+       2017 |        896        5.99       46.58
+       2018 |        891        5.96       52.54
+       2019 |        908        6.07       58.61
+       2020 |        948        6.34       64.95
+       2021 |      1,049        7.02       71.97
+       2022 |      1,056        7.06       79.03
+       2023 |      1,060        7.09       86.12
+       2024 |      1,047        7.00       93.12
+       2025 |      1,028        6.88      100.00
+------------+-----------------------------------
+      Total |     14,950      100.00
 
 . 
-. * every plotted number is posted here (figure, item, coefficient, SE, N)
-. capture postclose fignums
-
-. postfile fignums str32 figure str32 item double(b se n) ///
->     using "output/figures/figure_numbers.dta", replace
-(file output/figures/figure_numbers.dta not found)
-
-. 
-. * Detrending (same as 04_did_tests.do): CA-specific linear trend, pre-2018 ye
-> ars
+. * Detrending, same as Sophia's 04_did_tests.do: fit a CA-specific linear tren
+> d
+. * on the years before 2018 and keep the residuals. yrdum1 (2010) is the base 
+> year.
 . gen ca_year = ca*fyr
 
-. reg lnmktcap ca i.fyr ca_year if fyr < 2018, cluster(firm_id)
+. reg lnmktcap ca yrdum2-yrdum16 ca_year if fyr < 2018, cluster(firm_id)
+note: yrdum9 omitted because of collinearity.
+note: yrdum10 omitted because of collinearity.
+note: yrdum11 omitted because of collinearity.
+note: yrdum12 omitted because of collinearity.
+note: yrdum13 omitted because of collinearity.
+note: yrdum14 omitted because of collinearity.
+note: yrdum15 omitted because of collinearity.
+note: yrdum16 omitted because of collinearity.
 
 Linear regression                               Number of obs     =      6,963
                                                 F(9, 1275)        =      25.41
@@ -43,16 +68,21 @@ Linear regression                               Number of obs     =      6,963
     lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
           ca |  -121.5455   39.46122    -3.08   0.002    -198.9615   -44.12939
-             |
-         fyr |
-       2011  |  -.1181194   .0423318    -2.79   0.005     -.201167   -.0350718
-       2012  |  -.0867341   .0535105    -1.62   0.105    -.1917125    .0182442
-       2013  |   .2083496   .0608885     3.42   0.001      .088897    .3278022
-       2014  |   .1626764   .0710181     2.29   0.022     .0233512    .3020015
-       2015  |   -.071002    .082244    -0.86   0.388    -.2323505    .0903465
-       2016  |  -.0686547   .0926739    -0.74   0.459    -.2504648    .1131553
-       2017  |   .0395612   .1009941     0.39   0.695    -.1585717     .237694
-             |
+      yrdum2 |  -.1181194   .0423318    -2.79   0.005     -.201167   -.0350718
+      yrdum3 |  -.0867341   .0535105    -1.62   0.105    -.1917125    .0182442
+      yrdum4 |   .2083496   .0608885     3.42   0.001      .088897    .3278022
+      yrdum5 |   .1626764   .0710181     2.29   0.022     .0233512    .3020015
+      yrdum6 |   -.071002    .082244    -0.86   0.388    -.2323505    .0903465
+      yrdum7 |  -.0686547   .0926739    -0.74   0.459    -.2504648    .1131553
+      yrdum8 |   .0395612   .1009941     0.39   0.695    -.1585717     .237694
+      yrdum9 |          0  (omitted)
+     yrdum10 |          0  (omitted)
+     yrdum11 |          0  (omitted)
+     yrdum12 |          0  (omitted)
+     yrdum13 |          0  (omitted)
+     yrdum14 |          0  (omitted)
+     yrdum15 |          0  (omitted)
+     yrdum16 |          0  (omitted)
      ca_year |   .0601735   .0195989     3.07   0.002     .0217238    .0986231
        _cons |   6.772711   .1098807    61.64   0.000     6.557144    6.988278
 ------------------------------------------------------------------------------
@@ -62,20 +92,27 @@ Linear regression                               Number of obs     =      6,963
 . 
 . 
 . *==============================================================
-. * TABLE 4 GRAPH: PRE-TRENDS EVENT STUDY (full panel, 2010-2018)
-. * "Fully differenced event study" from the handout. 2018 = omitted year.
+. * TABLE 4 GRAPH: PRE-TRENDS EVENT STUDY (2010-2018, 2018 = reference year)
 . * Same regression as did_table4 column (1).
 . *==============================================================
-. forvalues y = 2010/2017 {
-  2.     gen ca_yr`y' = ca * (fyr == `y')
+. foreach y in 2010 2011 2012 2013 2014 2015 2016 2017 {
+  2.     gen ca_yr`y' = ca*(fyr==`y')
   3. }
 
 . 
 . preserve
 
-. areg lnmktcap ca_yr2010-ca_yr2017 i.fyr ///
->     if fyr >= 2010 & fyr <= 2018, ///
->     absorb(firm_id) vce(cluster firm_id)
+. * step (0): regression with firm and year fixed effects
+. areg lnmktcap ca_yr2010-ca_yr2017 yrdum* if fyr >= 2010 & fyr <= 2018, ///
+>     absorb(firm_id) cluster(firm_id)
+note: yrdum9 omitted because of collinearity.
+note: yrdum10 omitted because of collinearity.
+note: yrdum11 omitted because of collinearity.
+note: yrdum12 omitted because of collinearity.
+note: yrdum13 omitted because of collinearity.
+note: yrdum14 omitted because of collinearity.
+note: yrdum15 omitted because of collinearity.
+note: yrdum16 omitted because of collinearity.
 
 Linear regression, absorbing indicators             Number of obs     =  7,854
 Absorbed variable: firm_id                          No. of categories =  1,341
@@ -98,23 +135,91 @@ Absorbed variable: firm_id                          No. of categories =  1,341
    ca_yr2015 |  -.1252087   .0713761    -1.75   0.080    -.2652299    .0148124
    ca_yr2016 |  -.2753525   .0690403    -3.99   0.000    -.4107913   -.1399138
    ca_yr2017 |  -.1366892   .0483184    -2.83   0.005    -.2314771   -.0419013
-             |
-         fyr |
-       2011  |  -.0051842   .0349154    -0.15   0.882    -.0736791    .0633106
-       2012  |   .0754872   .0434397     1.74   0.082    -.0097301    .1607045
-       2013  |   .4135816   .0465687     8.88   0.000     .3222261    .5049371
-       2014  |   .3127704   .0562314     5.56   0.000     .2024594    .4230815
-       2015  |   .0191993   .0706295     0.27   0.786     -.119357    .1577557
-       2016  |   .1591958   .0721689     2.21   0.028     .0176196    .3007721
-       2017  |   .2651902   .0761118     3.48   0.001      .115879    .4145014
-       2018  |   .1114245    .080464     1.38   0.166    -.0464247    .2692737
-             |
-       _cons |   6.627387   .0681349    97.27   0.000     6.493725     6.76105
+      yrdum1 |  -.1114245    .080464    -1.38   0.166    -.2692737    .0464247
+      yrdum2 |  -.1166087   .0804796    -1.45   0.148    -.2744884    .0412709
+      yrdum3 |  -.0359373   .0701955    -0.51   0.609    -.1736423    .1017677
+      yrdum4 |   .3021571   .0626234     4.82   0.000     .1793064    .4250077
+      yrdum5 |   .2013459   .0543276     3.71   0.000     .0947695    .3079224
+      yrdum6 |  -.0922252     .05051    -1.83   0.068    -.1913124    .0068621
+      yrdum7 |   .0477713   .0523128     0.91   0.361    -.0548526    .1503952
+      yrdum8 |   .1537657   .0339319     4.53   0.000     .0872002    .2203312
+      yrdum9 |          0  (omitted)
+     yrdum10 |          0  (omitted)
+     yrdum11 |          0  (omitted)
+     yrdum12 |          0  (omitted)
+     yrdum13 |          0  (omitted)
+     yrdum14 |          0  (omitted)
+     yrdum15 |          0  (omitted)
+     yrdum16 |          0  (omitted)
+       _cons |   6.738812   .0310065   217.34   0.000     6.677985    6.799639
 ------------------------------------------------------------------------------
 
-. local N = e(N)
+. display "fig_table4_pretrend ca_yr2010: b = " _b[ca_yr2010] ", se = " _se[ca_
+> yr2010] ", N = " e(N)
+fig_table4_pretrend ca_yr2010: b = -.54415675, se = .10894043, N = 7854
+
+. display "fig_table4_pretrend ca_yr2011: b = " _b[ca_yr2011] ", se = " _se[ca_
+> yr2011] ", N = " e(N)
+fig_table4_pretrend ca_yr2011: b = -.60478728, se = .10542336, N = 7854
+
+. display "fig_table4_pretrend ca_yr2012: b = " _b[ca_yr2012] ", se = " _se[ca_
+> yr2012] ", N = " e(N)
+fig_table4_pretrend ca_yr2012: b = -.63561525, se = .09500678, N = 7854
+
+. display "fig_table4_pretrend ca_yr2013: b = " _b[ca_yr2013] ", se = " _se[ca_
+> yr2013] ", N = " e(N)
+fig_table4_pretrend ca_yr2013: b = -.63314584, se = .08589658, N = 7854
+
+. display "fig_table4_pretrend ca_yr2014: b = " _b[ca_yr2014] ", se = " _se[ca_
+> yr2014] ", N = " e(N)
+fig_table4_pretrend ca_yr2014: b = -.40353084, se = .07675654, N = 7854
+
+. display "fig_table4_pretrend ca_yr2015: b = " _b[ca_yr2015] ", se = " _se[ca_
+> yr2015] ", N = " e(N)
+fig_table4_pretrend ca_yr2015: b = -.12520873, se = .07137615, N = 7854
+
+. display "fig_table4_pretrend ca_yr2016: b = " _b[ca_yr2016] ", se = " _se[ca_
+> yr2016] ", N = " e(N)
+fig_table4_pretrend ca_yr2016: b = -.27535251, se = .06904026, N = 7854
+
+. display "fig_table4_pretrend ca_yr2017: b = " _b[ca_yr2017] ", se = " _se[ca_
+> yr2017] ", N = " e(N)
+fig_table4_pretrend ca_yr2017: b = -.13668917, se = .04831838, N = 7854
 
 . 
+. * step (1): create empty variables for the slope and standard error
+. gen slope = 0
+
+. gen se = .
+(14,950 missing values generated)
+
+. 
+. * step (2): copy the slopes and standard errors of each year into these varia
+> bles
+. foreach y in 2010 2011 2012 2013 2014 2015 2016 2017 {
+  2.     replace slope = _b[ca_yr`y'] if fyr==`y'
+  3.     replace se = _se[ca_yr`y'] if fyr==`y'
+  4. }
+(739 real changes made)
+(739 real changes made)
+(857 real changes made)
+(857 real changes made)
+(867 real changes made)
+(867 real changes made)
+(878 real changes made)
+(878 real changes made)
+(910 real changes made)
+(910 real changes made)
+(914 real changes made)
+(914 real changes made)
+(902 real changes made)
+(902 real changes made)
+(896 real changes made)
+(896 real changes made)
+
+. 
+. * joint test that all pre-period coefficients are zero (p-value goes in the n
+> ote)
 . test ca_yr2010 ca_yr2011 ca_yr2012 ca_yr2013 ///
 >      ca_yr2014 ca_yr2015 ca_yr2016 ca_yr2017
 
@@ -130,53 +235,23 @@ Absorbed variable: firm_id                          No. of categories =  1,341
        F(  8,  1340) =   11.22
             Prob > F =    0.0000
 
+. display "fig_table4_pretrend joint_F: b = " r(F)
+fig_table4_pretrend joint_F: b = 11.21867
+
+. display "fig_table4_pretrend joint_p: b = " r(p)
+fig_table4_pretrend joint_p: b = 1.831e-15
+
 . local pjoint : display %5.3f r(p)
 
-. post fignums ("fig_table4_pretrend") ("joint_F") (r(F)) (.) (`N')
-
-. post fignums ("fig_table4_pretrend") ("joint_p") (r(p)) (.) (`N')
-
 . 
-. * step 1: empty variables for slope and standard error (2018 = 0 reference)
-. gen slope = 0
-
-. gen se = .
-(14,950 missing values generated)
-
-. 
-. * step 2: copy slopes and SEs year by year
-. foreach y of numlist 2010/2017 {
-  2.     replace slope = _b[ca_yr`y'] if fyr==`y'
-  3.     replace se    = _se[ca_yr`y'] if fyr==`y'
-  4.     post fignums ("fig_table4_pretrend") ("ca_yr`y'") (_b[ca_yr`y']) (_se[
-> ca_yr`y']) (`N')
-  5. }
-(739 real changes made)
-(739 real changes made)
-(857 real changes made)
-(857 real changes made)
-(867 real changes made)
-(867 real changes made)
-(878 real changes made)
-(878 real changes made)
-(910 real changes made)
-(910 real changes made)
-(914 real changes made)
-(914 real changes made)
-(902 real changes made)
-(902 real changes made)
-(896 real changes made)
-(896 real changes made)
-
-. 
-. * step 3: collapse to year level
+. * step (3): collapse to the year level
 . keep if fyr >= 2010 & fyr <= 2018
 (7,096 observations deleted)
 
 . collapse (mean) slope se, by(fyr)
 
 . 
-. * step 4: confidence interval
+. * step (4): confidence interval
 . gen upper = slope + 1.96*se
 (1 missing value generated)
 
@@ -184,7 +259,7 @@ Absorbed variable: firm_id                          No. of categories =  1,341
 (1 missing value generated)
 
 . 
-. * step 5: plot
+. * step (5): plot
 . gr two (scatter slope fyr, yline(0, lc(black))) ///
 >        (rcap upper lower fyr, xline(2018.5, lp(dash))), ///
 >     legend(off) ///
@@ -223,7 +298,7 @@ file output/figures/fig_table4_pretrend.png written in PNG format
 (184 missing values generated)
 
 . 
-. * percent versions for graphing means
+. * percent versions, for the means graphs
 . gen onewoman100   = 100*onewoman
 (184 missing values generated)
 
@@ -231,6 +306,7 @@ file output/figures/fig_table4_pretrend.png written in PNG format
 (184 missing values generated)
 
 . 
+. * woman18 = 1 if the firm had at least one woman on its board in 2018
 . gen woman_obs = (women >= 1) if fyr==2018
 (908 missing values generated)
 
@@ -238,109 +314,229 @@ file output/figures/fig_table4_pretrend.png written in PNG format
 (69 missing values generated)
 
 . 
-. 
-. *==============================================================
-. * HELPER PROGRAM: 2x2 means graph (collapse + gr two + rcap)
-. * CA vs TX, 2018 vs 2019, with 95% CI bars and raw DiD in the note.
-. * With no controls, the raw DiD equals the regression coefficient on
-. * ca_post19 (the 2x2 regression is saturated), so it is posted too.
-. *==============================================================
-. capture program drop did_means
-
-. program define did_means
-  1.     syntax varname [if], TTL(string) YTTL(string) FNAME(string)
-  2.     preserve
-  3.     if "`if'" != "" keep `if'
-  4.     quietly count if `varlist' < .
-  5.     local N = r(N)
-  6.     collapse (mean) m=`varlist' (semean) se=`varlist', by(ca fyr)
-  7.     gen upper = m + 1.96*se
-  8.     gen lower = m - 1.96*se
-  9.     gen x = fyr + cond(ca==1, .03, -.03)      // small offset so bars do n
-> ot overlap
- 10.     sort ca fyr
- 11.     * obs 1=TX2018, 2=TX2019, 3=CA2018, 4=CA2019
-.     local didraw = (m[4]-m[3]) - (m[2]-m[1])
- 12.     local fig = subinstr("`fname'", ".png", "", .)
- 13.     post fignums ("`fig'") ("raw_did") (`didraw') (.) (`N')
- 14.     local did : display %6.3f `didraw'
- 15.     gr two (line m x if ca==1) ///
->            (line m x if ca==0, xline(2018.5, lp(dash))) ///
->            (rcap upper lower x if ca==1) ///
->            (rcap upper lower x if ca==0), ///
->         legend(label(1 "California") label(2 "Texas") order(1 2)) ///
->         title("`ttl'", size(medium)) ytitle("`yttl'") xtitle("Fiscal year") /
-> //
->         xlabel(2018 "2018 (pre)" 2019 "2019 (post)") xscale(range(2017.7 2019
-> .3)) ///
->         note("Raw DiD (CA change - TX change) = `did'. Bars show 95% confiden
-> ce intervals.")
- 16.     graph export "output/figures/`fname'", replace width(1600)
- 17.     restore
- 18. end
-
+. * The means graphs below are 2x2: CA vs TX, 2018 vs 2019, with 95% CI bars.
+. * With no controls, the raw DiD in the note equals the regression coefficient
+. * on ca_post19 (did_table1 or did_table2 column 1).
 . 
 . 
 . *==============================================================
 . * TABLE 1 GRAPHS: MAIN DiD
 . *==============================================================
-. * (a) 2x2 means: ln(market cap)   [raw DiD = did_table1 col (1)]
-. did_means lnmktcap, ttl("ln(Market Cap) Before and After SB 826") ///
->     yttl("Average ln(market cap)") fname("fig_table1_means.png")
+. * (a) means of ln(market cap)
+. preserve
+
+. collapse (mean) lnmktcap (semean) se_lnmktcap=lnmktcap, by(ca fyr)
+
+. gen upper = lnmktcap + 1.96*se_lnmktcap
+
+. gen lower = lnmktcap - 1.96*se_lnmktcap
+
+. * move CA and TX slightly apart so the bars do not overlap
+. gen x = fyr - .03
+
+. replace x = fyr + .03 if ca==1
+(2 real changes made)
+
+. * raw DiD = (CA 2019 - CA 2018) - (TX 2019 - TX 2018)
+. sort ca fyr     // rows: TX 2018, TX 2019, CA 2018, CA 2019
+
+. display "fig_table1_means raw_did: b = " (lnmktcap[4]-lnmktcap[3]) - (lnmktca
+> p[2]-lnmktcap[1])
+fig_table1_means raw_did: b = .16798735
+
+. local did : display %6.3f (lnmktcap[4]-lnmktcap[3]) - (lnmktcap[2]-lnmktcap[1
+> ])
+
+. gr two (line lnmktcap x if ca==1) ///
+>        (line lnmktcap x if ca==0, xline(2018.5, lp(dash))) ///
+>        (rcap upper lower x if ca==1) ///
+>        (rcap upper lower x if ca==0), ///
+>     legend(label(1 "California") label(2 "Texas") order(1 2)) ///
+>     title("ln(Market Cap) Before and After SB 826", size(medium)) ///
+>     ytitle("Average ln(market cap)") xtitle("Fiscal year") ///
+>     xlabel(2018 "2018 (pre)" 2019 "2019 (post)") xscale(range(2017.7 2019.3))
+>  ///
+>     note("Raw DiD (CA change - TX change) = `did'. Bars show 95% confidence i
+> ntervals.")
+
+. graph export "output/figures/fig_table1_means.png", replace width(1600)
 file output/figures/fig_table1_means.png written in PNG format
 
-. 
-. * (b) 2x2 means: detrended ln(market cap)   [raw DiD = did_table1 col (3)]
-. did_means lnmktcap_hat, ttl("Detrended ln(Market Cap) Before and After SB 826
-> ") ///
->     yttl("Average detrended ln(market cap)") fname("fig_table1_means_detrende
-> d.png")
-file output/figures/fig_table1_means_detrended.png written in PNG format
+. restore
 
 . 
-. * (c) coefficient plot of ca_post19 across the 4 columns of did_table1
-. qui reg lnmktcap ca post19 ca_post19, cluster(firm_id)
+. * (b) means of detrended ln(market cap)
+. preserve
+
+. collapse (mean) lnmktcap_hat (semean) se_lnmktcap_hat=lnmktcap_hat, by(ca fyr
+> )
+
+. gen upper = lnmktcap_hat + 1.96*se_lnmktcap_hat
+
+. gen lower = lnmktcap_hat - 1.96*se_lnmktcap_hat
+
+. gen x = fyr - .03
+
+. replace x = fyr + .03 if ca==1
+(2 real changes made)
+
+. sort ca fyr     // rows: TX 2018, TX 2019, CA 2018, CA 2019
+
+. display "fig_table1_means_detrended raw_did: b = " (lnmktcap_hat[4]-lnmktcap_
+> hat[3]) - (lnmktcap_hat[2]-lnmktcap_hat[1])
+fig_table1_means_detrended raw_did: b = .10781426
+
+. local did : display %6.3f (lnmktcap_hat[4]-lnmktcap_hat[3]) - (lnmktcap_hat[2
+> ]-lnmktcap_hat[1])
+
+. gr two (line lnmktcap_hat x if ca==1) ///
+>        (line lnmktcap_hat x if ca==0, xline(2018.5, lp(dash))) ///
+>        (rcap upper lower x if ca==1) ///
+>        (rcap upper lower x if ca==0), ///
+>     legend(label(1 "California") label(2 "Texas") order(1 2)) ///
+>     title("Detrended ln(Market Cap) Before and After SB 826", size(medium)) /
+> //
+>     ytitle("Average detrended ln(market cap)") xtitle("Fiscal year") ///
+>     xlabel(2018 "2018 (pre)" 2019 "2019 (post)") xscale(range(2017.7 2019.3))
+>  ///
+>     note("Raw DiD (CA change - TX change) = `did'. Bars show 95% confidence i
+> ntervals.")
+
+. graph export "output/figures/fig_table1_means_detrended.png", replace width(1
+> 600)
+file output/figures/fig_table1_means_detrended.png written in PNG format
+
+. restore
+
+. 
+. * (c) coefficient on ca_post19 in the 4 columns of did_table1
+. * column (1): no controls
+. reg lnmktcap ca post19 ca_post19, cluster(firm_id)
+
+Linear regression                               Number of obs     =      1,799
+                                                F(3, 958)         =      10.10
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0032
+                                                Root MSE          =     2.2452
+
+                              (Std. err. adjusted for 959 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .1046788   .1484388     0.71   0.481    -.1866241    .3959816
+      post19 |   .0550645   .0439055     1.25   0.210    -.0310976    .1412267
+   ca_post19 |   .1679877     .06165     2.72   0.007      .047003    .2889724
+       _cons |   6.566491   .1061492    61.86   0.000      6.35818    6.774803
+------------------------------------------------------------------------------
+
+. display "fig_table1_coefplot col1: b = " _b[ca_post19] ", se = " _se[ca_post1
+> 9] ", N = " e(N)
+fig_table1_coefplot col1: b = .1679877, se = .06165005, N = 1799
 
 . local b1 = _b[ca_post19]
 
 . local s1 = _se[ca_post19]
 
-. local n1 = e(N)
-
 . 
-. qui reg lnmktcap ca post19 ca_post19 `controls', cluster(firm_id)
+. * column (2): controls
+. reg lnmktcap ca post19 ca_post19 lnassets roa leverage multinational, cluster
+> (firm_id)
+
+Linear regression                               Number of obs     =      1,789
+                                                F(7, 955)         =     493.14
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.7792
+                                                Root MSE          =      1.058
+
+                              (Std. err. adjusted for 956 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .4714488   .0730798     6.45   0.000     .3280332    .6148644
+      post19 |   .0227422   .0326458     0.70   0.486    -.0413235     .086808
+   ca_post19 |   .1217437    .042839     2.84   0.005     .0376743     .205813
+    lnassets |   .8497065    .019628    43.29   0.000     .8111875    .8882256
+         roa |  -.0534259   .0830038    -0.64   0.520    -.2163167    .1094649
+    leverage |  -.6109338   .1678554    -3.64   0.000    -.9403418   -.2815258
+multinatio~l |   .6352281   .0696937     9.11   0.000     .4984577    .7719985
+       _cons |     .74252   .1261584     5.89   0.000     .4949403    .9900998
+------------------------------------------------------------------------------
+
+. display "fig_table1_coefplot col2: b = " _b[ca_post19] ", se = " _se[ca_post1
+> 9] ", N = " e(N)
+fig_table1_coefplot col2: b = .12174366, se = .04283895, N = 1789
 
 . local b2 = _b[ca_post19]
 
 . local s2 = _se[ca_post19]
 
-. local n2 = e(N)
-
 . 
-. qui reg lnmktcap_hat ca post19 ca_post19, cluster(firm_id)
+. * column (3): detrended, no controls
+. reg lnmktcap_hat ca post19 ca_post19, cluster(firm_id)
+
+Linear regression                               Number of obs     =      1,799
+                                                F(3, 958)         =       6.61
+                                                Prob > F          =     0.0002
+                                                R-squared         =     0.0045
+                                                Root MSE          =     2.2452
+
+                              (Std. err. adjusted for 959 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .2201037   .1484388     1.48   0.138    -.0711991    .5114065
+      post19 |   .0550645   .0439055     1.25   0.210    -.0310976    .1412267
+   ca_post19 |   .1078143     .06165     1.75   0.081    -.0131705     .228799
+       _cons |  -.2062197   .1061492    -1.94   0.052    -.4145315    .0020922
+------------------------------------------------------------------------------
+
+. display "fig_table1_coefplot col3: b = " _b[ca_post19] ", se = " _se[ca_post1
+> 9] ", N = " e(N)
+fig_table1_coefplot col3: b = .10781427, se = .06165005, N = 1799
 
 . local b3 = _b[ca_post19]
 
 . local s3 = _se[ca_post19]
 
-. local n3 = e(N)
-
 . 
-. qui reg lnmktcap_hat ca post19 ca_post19 `controls', cluster(firm_id)
+. * column (4): detrended, controls
+. reg lnmktcap_hat ca post19 ca_post19 lnassets roa leverage multinational, clu
+> ster(firm_id)
+
+Linear regression                               Number of obs     =      1,789
+                                                F(7, 955)         =     489.83
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.7795
+                                                Root MSE          =      1.058
+
+                              (Std. err. adjusted for 956 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .5868737   .0730798     8.03   0.000     .4434582    .7302893
+      post19 |   .0227423   .0326458     0.70   0.486    -.0413235     .086808
+   ca_post19 |   .0615702    .042839     1.44   0.151    -.0224991    .1456396
+    lnassets |   .8497065    .019628    43.29   0.000     .8111875    .8882256
+         roa |  -.0534259   .0830038    -0.64   0.520    -.2163167    .1094649
+    leverage |  -.6109338   .1678554    -3.64   0.000    -.9403418   -.2815258
+multinatio~l |   .6352281   .0696937     9.11   0.000     .4984577    .7719985
+       _cons |  -6.030191   .1261584   -47.80   0.000    -6.277771   -5.782611
+------------------------------------------------------------------------------
+
+. display "fig_table1_coefplot col4: b = " _b[ca_post19] ", se = " _se[ca_post1
+> 9] ", N = " e(N)
+fig_table1_coefplot col4: b = .06157023, se = .04283895, N = 1789
 
 . local b4 = _b[ca_post19]
 
 . local s4 = _se[ca_post19]
 
-. local n4 = e(N)
-
 . 
-. forvalues k = 1/4 {
-  2.     post fignums ("fig_table1_coefplot") ("col`k'") (`b`k'') (`s`k'') (`n`
-> k'')
-  3. }
-
-. 
+. * put the 4 coefficients in a small dataset and plot them
 . preserve
 
 . clear
@@ -356,17 +552,28 @@ Number of observations (_N) was 0, now 4.
 . gen se = .
 (4 missing values generated)
 
-. forvalues k = 1/4 {
-  2.     replace b  = `b`k'' in `k'
-  3.     replace se = `s`k'' in `k'
-  4. }
+. replace b = `b1' in 1
 (1 real change made)
+
+. replace b = `b2' in 2
 (1 real change made)
+
+. replace b = `b3' in 3
 (1 real change made)
+
+. replace b = `b4' in 4
 (1 real change made)
+
+. replace se = `s1' in 1
 (1 real change made)
+
+. replace se = `s2' in 2
 (1 real change made)
+
+. replace se = `s3' in 3
 (1 real change made)
+
+. replace se = `s4' in 4
 (1 real change made)
 
 . gen upper = b + 1.96*se
@@ -392,47 +599,245 @@ file output/figures/fig_table1_coefplot.png written in PNG format
 . 
 . 
 . *==============================================================
-. * TABLE 2 GRAPHS: PLACEBO (firms with >=1 woman on board in 2018)
+. * TABLE 2 GRAPHS: PLACEBO (firms with a woman on the board in 2018)
 . *==============================================================
-. * (a) 2x2 means in placebo sample   [raw DiD = did_table2 col (1)]
-. did_means lnmktcap if woman18==1, ///
->     ttl("ln(Market Cap): Firms with a Woman on Board in 2018") ///
->     yttl("Average ln(market cap)") fname("fig_table2_means.png")
+. * (a) means of ln(market cap) in the placebo sample
+. preserve
+
+. keep if woman18==1
 (466 observations deleted)
+
+. collapse (mean) lnmktcap (semean) se_lnmktcap=lnmktcap, by(ca fyr)
+
+. gen upper = lnmktcap + 1.96*se_lnmktcap
+
+. gen lower = lnmktcap - 1.96*se_lnmktcap
+
+. gen x = fyr - .03
+
+. replace x = fyr + .03 if ca==1
+(2 real changes made)
+
+. sort ca fyr     // rows: TX 2018, TX 2019, CA 2018, CA 2019
+
+. display "fig_table2_means raw_did: b = " (lnmktcap[4]-lnmktcap[3]) - (lnmktca
+> p[2]-lnmktcap[1])
+fig_table2_means raw_did: b = .14694786
+
+. local did : display %6.3f (lnmktcap[4]-lnmktcap[3]) - (lnmktcap[2]-lnmktcap[1
+> ])
+
+. gr two (line lnmktcap x if ca==1) ///
+>        (line lnmktcap x if ca==0, xline(2018.5, lp(dash))) ///
+>        (rcap upper lower x if ca==1) ///
+>        (rcap upper lower x if ca==0), ///
+>     legend(label(1 "California") label(2 "Texas") order(1 2)) ///
+>     title("ln(Market Cap): Firms with a Woman on Board in 2018", size(medium)
+> ) ///
+>     ytitle("Average ln(market cap)") xtitle("Fiscal year") ///
+>     xlabel(2018 "2018 (pre)" 2019 "2019 (post)") xscale(range(2017.7 2019.3))
+>  ///
+>     note("Raw DiD (CA change - TX change) = `did'. Bars show 95% confidence i
+> ntervals.")
+
+. graph export "output/figures/fig_table2_means.png", replace width(1600)
 file output/figures/fig_table2_means.png written in PNG format
 
-. 
-. * (b) coefficient plot: full sample vs placebo sample
-. *     full sample  = did_table1 cols (1), (2), (4)
-. *     placebo      = did_table2 cols (1), (2), (3)
-. foreach g in 0 1 {
-  2.     local cond ""
-  3.     if `g'==1 local cond "if woman18==1"
-  4. 
-.     qui reg lnmktcap ca post19 ca_post19 `cond', cluster(firm_id)
-  5.     local pb`g'_1 = _b[ca_post19]
-  6.     local ps`g'_1 = _se[ca_post19]
-  7.     local pn`g'_1 = e(N)
-  8. 
-.     qui reg lnmktcap ca post19 ca_post19 `controls' `cond', cluster(firm_id)
-  9.     local pb`g'_2 = _b[ca_post19]
- 10.     local ps`g'_2 = _se[ca_post19]
- 11.     local pn`g'_2 = e(N)
- 12. 
-.     qui reg lnmktcap_hat ca post19 ca_post19 `controls' `cond', cluster(firm_
-> id)
- 13.     local pb`g'_3 = _b[ca_post19]
- 14.     local ps`g'_3 = _se[ca_post19]
- 15.     local pn`g'_3 = e(N)
- 16. 
-.     forvalues s = 1/3 {
- 17.         local grpname = cond(`g'==0, "full", "placebo")
- 18.         post fignums ("fig_table2_coefplot") ("`grpname'_spec`s'") (`pb`g'
-> _`s'') (`ps`g'_`s'') (`pn`g'_`s'')
- 19.     }
- 20. }
+. restore
 
 . 
+. * (b) full sample vs placebo sample
+. * full sample = did_table1 columns (1), (2), (4); placebo = did_table2 column
+> s (1), (2), (3)
+. reg lnmktcap ca post19 ca_post19, cluster(firm_id)
+
+Linear regression                               Number of obs     =      1,799
+                                                F(3, 958)         =      10.10
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0032
+                                                Root MSE          =     2.2452
+
+                              (Std. err. adjusted for 959 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .1046788   .1484388     0.71   0.481    -.1866241    .3959816
+      post19 |   .0550645   .0439055     1.25   0.210    -.0310976    .1412267
+   ca_post19 |   .1679877     .06165     2.72   0.007      .047003    .2889724
+       _cons |   6.566491   .1061492    61.86   0.000      6.35818    6.774803
+------------------------------------------------------------------------------
+
+. display "fig_table2_coefplot full_spec1: b = " _b[ca_post19] ", se = " _se[ca
+> _post19] ", N = " e(N)
+fig_table2_coefplot full_spec1: b = .1679877, se = .06165005, N = 1799
+
+. local b1 = _b[ca_post19]
+
+. local s1 = _se[ca_post19]
+
+. 
+. reg lnmktcap ca post19 ca_post19 lnassets roa leverage multinational, cluster
+> (firm_id)
+
+Linear regression                               Number of obs     =      1,789
+                                                F(7, 955)         =     493.14
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.7792
+                                                Root MSE          =      1.058
+
+                              (Std. err. adjusted for 956 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .4714488   .0730798     6.45   0.000     .3280332    .6148644
+      post19 |   .0227422   .0326458     0.70   0.486    -.0413235     .086808
+   ca_post19 |   .1217437    .042839     2.84   0.005     .0376743     .205813
+    lnassets |   .8497065    .019628    43.29   0.000     .8111875    .8882256
+         roa |  -.0534259   .0830038    -0.64   0.520    -.2163167    .1094649
+    leverage |  -.6109338   .1678554    -3.64   0.000    -.9403418   -.2815258
+multinatio~l |   .6352281   .0696937     9.11   0.000     .4984577    .7719985
+       _cons |     .74252   .1261584     5.89   0.000     .4949403    .9900998
+------------------------------------------------------------------------------
+
+. display "fig_table2_coefplot full_spec2: b = " _b[ca_post19] ", se = " _se[ca
+> _post19] ", N = " e(N)
+fig_table2_coefplot full_spec2: b = .12174366, se = .04283895, N = 1789
+
+. local b2 = _b[ca_post19]
+
+. local s2 = _se[ca_post19]
+
+. 
+. reg lnmktcap_hat ca post19 ca_post19 lnassets roa leverage multinational, clu
+> ster(firm_id)
+
+Linear regression                               Number of obs     =      1,789
+                                                F(7, 955)         =     489.83
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.7795
+                                                Root MSE          =      1.058
+
+                              (Std. err. adjusted for 956 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .5868737   .0730798     8.03   0.000     .4434582    .7302893
+      post19 |   .0227423   .0326458     0.70   0.486    -.0413235     .086808
+   ca_post19 |   .0615702    .042839     1.44   0.151    -.0224991    .1456396
+    lnassets |   .8497065    .019628    43.29   0.000     .8111875    .8882256
+         roa |  -.0534259   .0830038    -0.64   0.520    -.2163167    .1094649
+    leverage |  -.6109338   .1678554    -3.64   0.000    -.9403418   -.2815258
+multinatio~l |   .6352281   .0696937     9.11   0.000     .4984577    .7719985
+       _cons |  -6.030191   .1261584   -47.80   0.000    -6.277771   -5.782611
+------------------------------------------------------------------------------
+
+. display "fig_table2_coefplot full_spec3: b = " _b[ca_post19] ", se = " _se[ca
+> _post19] ", N = " e(N)
+fig_table2_coefplot full_spec3: b = .06157023, se = .04283895, N = 1789
+
+. local b3 = _b[ca_post19]
+
+. local s3 = _se[ca_post19]
+
+. 
+. reg lnmktcap ca post19 ca_post19 if woman18==1, cluster(firm_id)
+
+Linear regression                               Number of obs     =      1,333
+                                                F(3, 686)         =      11.23
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0018
+                                                Root MSE          =     2.2867
+
+                              (Std. err. adjusted for 687 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.0727934   .1699053    -0.43   0.668    -.4063902    .2608034
+      post19 |   .0920157   .0518275     1.78   0.076    -.0097439    .1937754
+   ca_post19 |   .1469482   .0676657     2.17   0.030     .0140914     .279805
+       _cons |   7.022337   .1218115    57.65   0.000     6.783169    7.261505
+------------------------------------------------------------------------------
+
+. display "fig_table2_coefplot placebo_spec1: b = " _b[ca_post19] ", se = " _se
+> [ca_post19] ", N = " e(N)
+fig_table2_coefplot placebo_spec1: b = .14694823, se = .06766573, N = 1333
+
+. local b4 = _b[ca_post19]
+
+. local s4 = _se[ca_post19]
+
+. 
+. reg lnmktcap ca post19 ca_post19 lnassets roa leverage multinational if woman
+> 18==1, cluster(firm_id)
+
+Linear regression                               Number of obs     =      1,328
+                                                F(7, 686)         =     343.59
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.7800
+                                                Root MSE          =     1.0761
+
+                              (Std. err. adjusted for 687 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .4388277    .084657     5.18   0.000     .2726096    .6050457
+      post19 |  -.0138816   .0380793    -0.36   0.716    -.0886476    .0608845
+   ca_post19 |   .0827906   .0475702     1.74   0.082    -.0106101    .1761913
+    lnassets |   .8329062   .0223129    37.33   0.000     .7890965     .876716
+         roa |  -.0001087   .1038855    -0.00   0.999    -.2040806    .2038631
+    leverage |  -.5317777   .1932271    -2.75   0.006    -.9111652   -.1523901
+multinatio~l |   .7820242   .0822107     9.51   0.000     .6206093    .9434391
+       _cons |   .8218948    .164831     4.99   0.000     .4982609    1.145529
+------------------------------------------------------------------------------
+
+. display "fig_table2_coefplot placebo_spec2: b = " _b[ca_post19] ", se = " _se
+> [ca_post19] ", N = " e(N)
+fig_table2_coefplot placebo_spec2: b = .0827906, se = .04757022, N = 1328
+
+. local b5 = _b[ca_post19]
+
+. local s5 = _se[ca_post19]
+
+. 
+. reg lnmktcap_hat ca post19 ca_post19 lnassets roa leverage multinational if w
+> oman18==1, cluster(firm_id)
+
+Linear regression                               Number of obs     =      1,328
+                                                F(7, 686)         =     340.94
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.7798
+                                                Root MSE          =     1.0761
+
+                              (Std. err. adjusted for 687 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .5542526    .084657     6.55   0.000     .3880346    .7204706
+      post19 |  -.0138816   .0380793    -0.36   0.716    -.0886476    .0608845
+   ca_post19 |   .0226172   .0475702     0.48   0.635    -.0707835    .1160179
+    lnassets |   .8329062   .0223129    37.33   0.000     .7890965     .876716
+         roa |  -.0001087   .1038855    -0.00   0.999    -.2040805    .2038631
+    leverage |  -.5317777   .1932271    -2.75   0.006    -.9111652   -.1523901
+multinatio~l |   .7820242   .0822107     9.51   0.000     .6206093     .943439
+       _cons |  -5.950816    .164831   -36.10   0.000     -6.27445   -5.627182
+------------------------------------------------------------------------------
+
+. display "fig_table2_coefplot placebo_spec3: b = " _b[ca_post19] ", se = " _se
+> [ca_post19] ", N = " e(N)
+fig_table2_coefplot placebo_spec3: b = .02261716, se = .04757022, N = 1328
+
+. local b6 = _b[ca_post19]
+
+. local s6 = _se[ca_post19]
+
+. 
+. * rows 1-3 = full sample (grp 0), rows 4-6 = placebo sample (grp 1)
 . preserve
 
 . clear
@@ -440,9 +845,15 @@ file output/figures/fig_table2_means.png written in PNG format
 . set obs 6
 Number of observations (_N) was 0, now 6.
 
-. gen grp  = int((_n-1)/3)          // 0 = full sample, 1 = placebo sample
+. gen grp = 0
 
-. gen spec = mod(_n-1, 3) + 1
+. replace grp = 1 in 4/6
+(3 real changes made)
+
+. gen spec = _n
+
+. replace spec = _n - 3 in 4/6
+(3 real changes made)
 
 . gen b = .
 (6 missing values generated)
@@ -450,30 +861,51 @@ Number of observations (_N) was 0, now 6.
 . gen se = .
 (6 missing values generated)
 
-. foreach g in 0 1 {
-  2.     forvalues s = 1/3 {
-  3.         replace b  = `pb`g'_`s'' if grp==`g' & spec==`s'
-  4.         replace se = `ps`g'_`s'' if grp==`g' & spec==`s'
-  5.     }
-  6. }
+. replace b = `b1' in 1
 (1 real change made)
+
+. replace b = `b2' in 2
 (1 real change made)
+
+. replace b = `b3' in 3
 (1 real change made)
+
+. replace b = `b4' in 4
 (1 real change made)
+
+. replace b = `b5' in 5
 (1 real change made)
+
+. replace b = `b6' in 6
 (1 real change made)
+
+. replace se = `s1' in 1
 (1 real change made)
+
+. replace se = `s2' in 2
 (1 real change made)
+
+. replace se = `s3' in 3
 (1 real change made)
+
+. replace se = `s4' in 4
 (1 real change made)
+
+. replace se = `s5' in 5
 (1 real change made)
+
+. replace se = `s6' in 6
 (1 real change made)
 
 . gen upper = b + 1.96*se
 
 . gen lower = b - 1.96*se
 
-. gen x = spec + cond(grp==1, .15, -.15)
+. * move the two samples slightly apart so the bars do not overlap
+. gen x = spec - .15
+
+. replace x = spec + .15 if grp==1
+(3 real changes made)
 
 . 
 . gr two (scatter b x if grp==0, yline(0, lc(black))) (rcap upper lower x if gr
@@ -497,40 +929,158 @@ file output/figures/fig_table2_coefplot.png written in PNG format
 . 
 . *==============================================================
 . * TABLE 3 GRAPHS: FIRST STAGE, REDUCED FORM, IV
-. * Coefficients are plotted in the SAME units as did_table3:
-. *   onewoman   = 0/1, sharewoman = 0-1 (0.01 = 1 percentage point)
+. * Coefficients are in the same units as did_table3:
+. * onewoman is 0/1, sharewoman is 0-1 (0.01 = 1 percentage point)
 . *==============================================================
-. * (a) first-stage 2x2 means (raw, no controls; shown in percent for
-. *     readability -- these have no regression column in did_table3,
-. *     which includes controls)
-. did_means onewoman100, ttl("Firms with at Least One Woman on Board") ///
->     yttl("Percent of firms") fname("fig_table3_means_onewoman.png")
+. * (a) first-stage means, in percent (raw means, no controls, so no table colu
+> mn)
+. preserve
+
+. collapse (mean) onewoman100 (semean) se_onewoman100=onewoman100, by(ca fyr)
+
+. gen upper = onewoman100 + 1.96*se_onewoman100
+
+. gen lower = onewoman100 - 1.96*se_onewoman100
+
+. gen x = fyr - .03
+
+. replace x = fyr + .03 if ca==1
+(2 real changes made)
+
+. sort ca fyr     // rows: TX 2018, TX 2019, CA 2018, CA 2019
+
+. display "fig_table3_means_onewoman raw_did: b = " (onewoman100[4]-onewoman100
+> [3]) - (onewoman100[2]-onewoman100[1])
+fig_table3_means_onewoman raw_did: b = 6.621109
+
+. local did : display %6.3f (onewoman100[4]-onewoman100[3]) - (onewoman100[2]-o
+> newoman100[1])
+
+. gr two (line onewoman100 x if ca==1) ///
+>        (line onewoman100 x if ca==0, xline(2018.5, lp(dash))) ///
+>        (rcap upper lower x if ca==1) ///
+>        (rcap upper lower x if ca==0), ///
+>     legend(label(1 "California") label(2 "Texas") order(1 2)) ///
+>     title("Firms with at Least One Woman on Board", size(medium)) ///
+>     ytitle("Percent of firms") xtitle("Fiscal year") ///
+>     xlabel(2018 "2018 (pre)" 2019 "2019 (post)") xscale(range(2017.7 2019.3))
+>  ///
+>     note("Raw DiD (CA change - TX change) = `did'. Bars show 95% confidence i
+> ntervals.")
+
+. graph export "output/figures/fig_table3_means_onewoman.png", replace width(16
+> 00)
 file output/figures/fig_table3_means_onewoman.png written in PNG format
 
+. restore
+
 . 
-. did_means sharewoman100, ttl("Share of Board that is Women") ///
->     yttl("Average percent of board") fname("fig_table3_means_share.png")
+. preserve
+
+. collapse (mean) sharewoman100 (semean) se_sharewoman100=sharewoman100, by(ca 
+> fyr)
+
+. gen upper = sharewoman100 + 1.96*se_sharewoman100
+
+. gen lower = sharewoman100 - 1.96*se_sharewoman100
+
+. gen x = fyr - .03
+
+. replace x = fyr + .03 if ca==1
+(2 real changes made)
+
+. sort ca fyr     // rows: TX 2018, TX 2019, CA 2018, CA 2019
+
+. display "fig_table3_means_share raw_did: b = " (sharewoman100[4]-sharewoman10
+> 0[3]) - (sharewoman100[2]-sharewoman100[1])
+fig_table3_means_share raw_did: b = 2.3841228
+
+. local did : display %6.3f (sharewoman100[4]-sharewoman100[3]) - (sharewoman10
+> 0[2]-sharewoman100[1])
+
+. gr two (line sharewoman100 x if ca==1) ///
+>        (line sharewoman100 x if ca==0, xline(2018.5, lp(dash))) ///
+>        (rcap upper lower x if ca==1) ///
+>        (rcap upper lower x if ca==0), ///
+>     legend(label(1 "California") label(2 "Texas") order(1 2)) ///
+>     title("Share of Board that is Women", size(medium)) ///
+>     ytitle("Average percent of board") xtitle("Fiscal year") ///
+>     xlabel(2018 "2018 (pre)" 2019 "2019 (post)") xscale(range(2017.7 2019.3))
+>  ///
+>     note("Raw DiD (CA change - TX change) = `did'. Bars show 95% confidence i
+> ntervals.")
+
+. graph export "output/figures/fig_table3_means_share.png", replace width(1600)
 file output/figures/fig_table3_means_share.png written in PNG format
 
-. 
-. * (b) reduced form: did_table3 col (3) keeps only firm-years with board
-. *     data (if onewoman ~= .), so it is NOT the same as did_table1 col (2).
-. *     It is posted here so the check covers it; no separate graph.
-. qui reg lnmktcap ca post19 ca_post19 `controls' if onewoman ~= ., cluster(fir
-> m_id)
-
-. post fignums ("table3_reduced_form") ("ca_post19") (_b[ca_post19]) (_se[ca_po
-> st19]) (e(N))
+. restore
 
 . 
-. * (c) first-stage and IV coefficients
-. qui reg onewoman ca post19 ca_post19 `controls', cluster(firm_id)
+. * (b) reduced form = did_table3 column (3). It keeps only firm-years with boa
+> rd
+. * data, so it differs from did_table1 column (2). No graph; printed for the c
+> heck.
+. reg lnmktcap ca post19 ca_post19 lnassets roa leverage multinational if onewo
+> man ~= ., cluster(firm_id)
 
-. local fn1 = e(N)
+Linear regression                               Number of obs     =      1,611
+                                                F(7, 856)         =     567.24
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.7904
+                                                Root MSE          =     .99853
 
-. local fb1 = _b[ca_post19]
+                              (Std. err. adjusted for 857 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .5275469   .0740175     7.13   0.000     .3822698    .6728239
+      post19 |   .0624534   .0298349     2.09   0.037     .0038953    .1210114
+   ca_post19 |   .0705988   .0406322     1.74   0.083    -.0091516    .1503492
+    lnassets |   .8864002   .0218882    40.50   0.000     .8434394    .9293609
+         roa |  -.0895513   .1039653    -0.86   0.389    -.2936079    .1145054
+    leverage |  -.8640534   .2103903    -4.11   0.000    -1.276995   -.4511122
+multinatio~l |   .6126798   .0703839     8.70   0.000     .4745346    .7508251
+       _cons |   .6274272   .1283156     4.89   0.000     .3755771    .8792773
+------------------------------------------------------------------------------
 
-. local fs1 = _se[ca_post19]
+. display "table3_reduced_form ca_post19: b = " _b[ca_post19] ", se = " _se[ca_
+> post19] ", N = " e(N)
+table3_reduced_form ca_post19: b = .07059881, se = .0406322, N = 1611
+
+. 
+. * (c) first stages = did_table3 columns (1) and (2), with their F-statistics
+. reg onewoman ca post19 ca_post19 lnassets roa leverage multinational, cluster
+> (firm_id)
+
+Linear regression                               Number of obs     =      1,611
+                                                F(7, 856)         =      36.78
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1749
+                                                Root MSE          =     .35809
+
+                              (Std. err. adjusted for 857 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    onewoman | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .1116681   .0289794     3.85   0.000      .054789    .1685472
+      post19 |   .0830103   .0194603     4.27   0.000     .0448149    .1212057
+   ca_post19 |   .0664609   .0265528     2.50   0.013     .0143447    .1185772
+    lnassets |    .062004   .0061933    10.01   0.000     .0498481    .0741598
+         roa |  -.0622217   .0451222    -1.38   0.168    -.1507848    .0263415
+    leverage |   .0935889   .0371844     2.52   0.012     .0206057    .1665721
+multinatio~l |   .0264699   .0217661     1.22   0.224    -.0162513     .069191
+       _cons |   .1912415   .0549089     3.48   0.001     .0834696    .2990135
+------------------------------------------------------------------------------
+
+. display "fig_table3_firststage_coef onewoman: b = " _b[ca_post19] ", se = " _
+> se[ca_post19] ", N = " e(N)
+fig_table3_firststage_coef onewoman: b = .06646093, se = .02655282, N = 1611
+
+. local b1 = _b[ca_post19]
+
+. local s1 = _se[ca_post19]
 
 . test ca_post19
 
@@ -539,21 +1089,43 @@ file output/figures/fig_table3_means_share.png written in PNG format
        F(  1,   856) =    6.26
             Prob > F =    0.0125
 
+. display "fig_table3_firststage_coef onewoman_F: b = " r(F)
+fig_table3_firststage_coef onewoman_F: b = 6.2648643
+
 . local F1 : display %5.1f r(F)
 
-. post fignums ("fig_table3_firststage_coef") ("onewoman") (`fb1') (`fs1') (`fn
-> 1')
-
-. post fignums ("fig_table3_firststage_coef") ("onewoman_F") (r(F)) (.) (`fn1')
-
 . 
-. qui reg sharewoman ca post19 ca_post19 `controls', cluster(firm_id)
+. reg sharewoman ca post19 ca_post19 lnassets roa leverage multinational, clust
+> er(firm_id)
 
-. local fn2 = e(N)
+Linear regression                               Number of obs     =      1,611
+                                                F(7, 856)         =      53.05
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1667
+                                                Root MSE          =     .10961
 
-. local fb2 = _b[ca_post19]
+                              (Std. err. adjusted for 857 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+  sharewoman | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .0341046   .0079223     4.30   0.000     .0185552    .0496539
+      post19 |    .028912   .0039846     7.26   0.000     .0210913    .0367326
+   ca_post19 |   .0236466   .0059863     3.95   0.000     .0118971    .0353961
+    lnassets |   .0164233   .0018539     8.86   0.000     .0127845    .0200622
+         roa |  -.0170381   .0142404    -1.20   0.232    -.0449883     .010912
+    leverage |   .0134678   .0112664     1.20   0.232    -.0086453    .0355808
+multinatio~l |   .0213846   .0072053     2.97   0.003     .0072425    .0355267
+       _cons |  -.0029977   .0157742    -0.19   0.849    -.0339583    .0279628
+------------------------------------------------------------------------------
 
-. local fs2 = _se[ca_post19]
+. display "fig_table3_firststage_coef sharewoman: b = " _b[ca_post19] ", se = "
+>  _se[ca_post19] ", N = " e(N)
+fig_table3_firststage_coef sharewoman: b = .02364659, se = .00598628, N = 1611
+
+. local b2 = _b[ca_post19]
+
+. local s2 = _se[ca_post19]
 
 . test ca_post19
 
@@ -562,33 +1134,10 @@ file output/figures/fig_table3_means_share.png written in PNG format
        F(  1,   856) =   15.60
             Prob > F =    0.0001
 
+. display "fig_table3_firststage_coef sharewoman_F: b = " r(F)
+fig_table3_firststage_coef sharewoman_F: b = 15.603512
+
 . local F2 : display %5.1f r(F)
-
-. post fignums ("fig_table3_firststage_coef") ("sharewoman") (`fb2') (`fs2') (`
-> fn2')
-
-. post fignums ("fig_table3_firststage_coef") ("sharewoman_F") (r(F)) (.) (`fn2
-> ')
-
-. 
-. qui ivregress 2sls lnmktcap ca post19 `controls' (onewoman = ca_post19), vce(
-> cluster firm_id)
-
-. local ib1 = _b[onewoman]
-
-. local is1 = _se[onewoman]
-
-. post fignums ("fig_table3_iv_coef") ("onewoman") (`ib1') (`is1') (e(N))
-
-. 
-. qui ivregress 2sls lnmktcap ca post19 `controls' (sharewoman = ca_post19), vc
-> e(cluster firm_id)
-
-. local ib2 = _b[sharewoman]
-
-. local is2 = _se[sharewoman]
-
-. post fignums ("fig_table3_iv_coef") ("sharewoman") (`ib2') (`is2') (e(N))
 
 . 
 . preserve
@@ -606,13 +1155,16 @@ Number of observations (_N) was 0, now 2.
 . gen se = .
 (2 missing values generated)
 
-. forvalues k = 1/2 {
-  2.     replace b  = `fb`k'' in `k'
-  3.     replace se = `fs`k'' in `k'
-  4. }
+. replace b = `b1' in 1
 (1 real change made)
+
+. replace b = `b2' in 2
 (1 real change made)
+
+. replace se = `s1' in 1
 (1 real change made)
+
+. replace se = `s2' in 2
 (1 real change made)
 
 . gen upper = b + 1.96*se
@@ -638,6 +1190,81 @@ file output/figures/fig_table3_firststage_coef.png written in PNG format
 . restore
 
 . 
+. * (d) IV = did_table3 columns (4) and (5)
+. * not from class: ivregress (not ivreg), so the SEs match Sophia's Table 3 ex
+> actly
+. ivregress 2sls lnmktcap ca post19 lnassets roa leverage multinational (onewom
+> an = ca_post19), vce(cluster firm_id)
+
+Instrumental variables 2SLS regression            Number of obs   =      1,611
+                                                  Wald chi2(7)    =    3433.16
+                                                  Prob > chi2     =     0.0000
+                                                  R-squared       =     0.7735
+                                                  Root MSE        =     1.0353
+
+                              (Std. err. adjusted for 857 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    onewoman |    1.06226   .7118139     1.49   0.136    -.3328693     2.45739
+          ca |   .4089263   .1266839     3.23   0.001     .1606304    .6572222
+      post19 |  -.0257252   .0885715    -0.29   0.771    -.1993222    .1478718
+    lnassets |   .8205358   .0492487    16.66   0.000     .7240102    .9170614
+         roa |  -.0234557   .1306069    -0.18   0.857    -.2794404    .2325291
+    leverage |  -.9634691   .2195232    -4.39   0.000    -1.393727   -.5332116
+multinatio~l |   .5845619   .0728887     8.02   0.000     .4417028    .7274211
+       _cons |   .4242789   .1867114     2.27   0.023     .0583313    .7902266
+------------------------------------------------------------------------------
+Endogenous: onewoman
+Exogenous:  ca post19 lnassets roa leverage multinational ca_post19
+
+. display "fig_table3_iv_coef onewoman: b = " _b[onewoman] ", se = " _se[onewom
+> an] ", N = " e(N)
+fig_table3_iv_coef onewoman: b = 1.0622602, se = .71181387, N = 1611
+
+. local b1 = _b[onewoman]
+
+. local s1 = _se[onewoman]
+
+. 
+. * not from class: ivregress (not ivreg), so the SEs match Sophia's Table 3 ex
+> actly
+. ivregress 2sls lnmktcap ca post19 lnassets roa leverage multinational (sharew
+> oman = ca_post19), vce(cluster firm_id)
+
+Instrumental variables 2SLS regression            Number of obs   =      1,611
+                                                  Wald chi2(7)    =    3630.21
+                                                  Prob > chi2     =     0.0000
+                                                  R-squared       =     0.7871
+                                                  Root MSE        =     1.0039
+
+                              (Std. err. adjusted for 857 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  sharewoman |   2.985581   1.785125     1.67   0.094    -.5131994    6.484361
+          ca |    .425725   .1081709     3.94   0.000     .2137139     .637736
+      post19 |  -.0238657   .0780532    -0.31   0.760    -.1768471    .1291157
+    lnassets |    .837367   .0367493    22.79   0.000     .7653397    .9093942
+         roa |  -.0386826   .1233706    -0.31   0.754    -.2804845    .2031194
+    leverage |  -.9042624   .2055483    -4.40   0.000     -1.30713   -.5013952
+multinatio~l |   .5488344    .079004     6.95   0.000     .3939895    .7036793
+       _cons |   .6363772   .1340323     4.75   0.000     .3736788    .8990756
+------------------------------------------------------------------------------
+Endogenous: sharewoman
+Exogenous:  ca post19 lnassets roa leverage multinational ca_post19
+
+. display "fig_table3_iv_coef sharewoman: b = " _b[sharewoman] ", se = " _se[sh
+> arewoman] ", N = " e(N)
+fig_table3_iv_coef sharewoman: b = 2.9855809, se = 1.7851248, N = 1611
+
+. local b2 = _b[sharewoman]
+
+. local s2 = _se[sharewoman]
+
+. 
 . preserve
 
 . clear
@@ -653,13 +1280,16 @@ Number of observations (_N) was 0, now 2.
 . gen se = .
 (2 missing values generated)
 
-. forvalues k = 1/2 {
-  2.     replace b  = `ib`k'' in `k'
-  3.     replace se = `is`k'' in `k'
-  4. }
+. replace b = `b1' in 1
 (1 real change made)
+
+. replace b = `b2' in 2
 (1 real change made)
+
+. replace se = `s1' in 1
 (1 real change made)
+
+. replace se = `s2' in 2
 (1 real change made)
 
 . gen upper = b + 1.96*se
@@ -685,20 +1315,4 @@ file output/figures/fig_table3_iv_coef.png written in PNG format
 . restore
 
 . 
-. *==============================================================
-. * Save every plotted number for code/check_figures_vs_tables.py
-. *==============================================================
-. postclose fignums
-
-. use "output/figures/figure_numbers.dta", clear
-
-. export delimited using "output/figures/figure_numbers.csv", replace
-file output/figures/figure_numbers.csv saved
-
-. erase "output/figures/figure_numbers.dta"
-
-. 
-. *==============================================================
-. * END
-. *==============================================================
-. capture log close
+. cap log close
