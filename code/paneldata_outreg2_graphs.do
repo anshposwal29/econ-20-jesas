@@ -129,15 +129,13 @@ outreg2 using table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
 	
 *==============================================================
-* EVENT STUDIES: ORIGINAL vs DETRENDED (fiscal years 2011-2021, ref = 2017)
+* EVENT STUDIES: ORIGINAL vs DETRENDED (fiscal years 2011-2020, ref = 2017)
 *==============================================================
 capture mkdir figures
 local firstyr 2011
-local lastyr  2021
+local lastyr  2020
 local refyr   2017
 
-* Detrended first-stage outcome, same command as the do-file uses for lnmktcap
-* (lnmktcap_hat already exists from Table 2, column 3)
 capture drop onewoman_hat
 reg onewoman ca fyeardum* ca_year if post==0, cluster(firm_id)
 predict onewoman_hat, resid
@@ -149,14 +147,32 @@ forvalues t = `firstyr'/`lastyr' {
     }
 }
 
+local col 0
+
 foreach y in onewoman lnmktcap {
 
-    * original (o) and detrended (d) event studies, same sample
     foreach v in `y' `y'_hat {
         local s = cond("`v'" == "`y'", "o", "d")
 
         xtreg `v' evCA* i.fyr if onewoman ~= . & fyr >= `firstyr' & fyr <= `lastyr', ///
             fe cluster(firm_id)
+
+        local pretest ""
+        forvalues t = `firstyr'/`=`refyr'-1' {
+            local pretest `pretest' evCA`t'
+        }
+        test `pretest'
+
+        local ++col
+        local opt = cond(`col' == 1, "replace", "append")
+        local yl  = cond("`y'" == "onewoman", "One woman", "ln(mkt cap)")
+        local st  = cond("`y'" == "onewoman", "First stage", "Reduced form")
+        local dt  = cond("`s'" == "d", "Yes", "No")
+
+        outreg2 using table5_eventstudy, excel `opt' keep(evCA*) dec(3) ///
+            ctitle("(`col') `st'", "`yl'") ///
+            addtext(Firm FE, Yes, Year FE, Yes, Detrended, `dt') ///
+            addstat(Joint pre-trend F, r(F), Joint pre-trend p, r(p))
 
         capture drop b_`s' se_`s'
         gen b_`s'  = 0
@@ -199,7 +215,7 @@ foreach y in onewoman lnmktcap {
         note("CA-specific linear trend estimated on pre-law observations (post==0) and removed from the outcome." ///
              "Bars show 95% CIs, standard errors clustered by firm. Dashed line = SB 826 signed 30 Sep 2018.")
     graph export "figures/es_`y'_overlay.png", replace width(2000)
-	graph save   "figures/es_`y'_overlay.gph", replace
+    graph save   "figures/es_`y'_overlay.gph", replace
     restore
 }
 
