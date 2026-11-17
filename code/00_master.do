@@ -48,4 +48,11 @@ capture erase "output/table2_plcbo.tex"
 do "code/06_panel_tables.do"
 do "code/07_panel_event_study_graphs.do"
 
+* 08 to 12: Eloise's graphs (means by state and year, first stages, reduced forms)
+do "code/08_graphs_event_study.do"
+do "code/09_graphs_first_stage_onewm.do"
+do "code/10_graphs_first_stage_sharewm.do"
+do "code/11_graphs_reduced_form.do"
+do "code/12_graphs_rf_by_year.do"
+
 display "00_master.do finished: tables in output/, figures in output/figures/, logs in logs/"

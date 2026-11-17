@@ -1,0 +1,465 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/09_graphs_first_stage_onewm.log
+  log type:  text
+ opened on:  17 Nov 2026, 17:13:26
+
+. 
+. use "final_data.dta", clear
+((null))
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 0. Build the outcome: OneWm = 1 if the board has at least one woman
+. *    Firms with no BoardEx match have missing board data, so they are dropped
+> .
+. *    (Careful: in Stata, missing >= 1 is TRUE, so we must condition on women 
+> < .)
+. *----------------------------------------------------------------------------
+> ---
+. keep if board_matched == 1
+(2,268 observations deleted)
+
+. gen OneWm = (women >= 1) if women < .
+
+. label var OneWm "=1 if at least 1 woman on the board"
+
+. assert OneWm == 1 - zerowomen
+
+. assert !missing(OneWm)
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 1. Define the event-time "year" (same as program 2)
+. *----------------------------------------------------------------------------
+> ---
+. * year = fiscal year (calendar year of the fiscal year end), as in the other 
+> scripts
+. gen pyear = fyeyear
+
+. label var pyear "Fiscal year (calendar year of fiscal year end)"
+
+. 
+. * Settings you can change ---------------------------------------------------
+> ----
+. local refyr   2017     // omitted (reference) year = last fully pre-law fisca
+> l year
+
+. local firstyr 2011
+
+. local lastyr  2020
+
+. * To show only the pre-COVID window instead, use:  keep if mainwindow == 1
+. * To drop the 10 firms that moved out of California (robustness):
+. *   drop if mover == 1
+. * ---------------------------------------------------------------------------
+> ---
+. 
+. keep if pyear >= `firstyr' & pyear <= `lastyr'
+(4,776 observations deleted)
+
+. 
+. * Sanity checks: look at these before trusting any graph
+. tab pyear ca
+
+    Fiscal |
+      year |
+ (calendar |      =1 if HQ in
+   year of | California on 30 Sep
+    fiscal |   2018 (0 = Texas)
+ year end) |         0          1 |     Total
+-----------+----------------------+----------
+      2011 |       330        414 |       744 
+      2012 |       332        419 |       751 
+      2013 |       337        423 |       760 
+      2014 |       350        450 |       800 
+      2015 |       355        455 |       810 
+      2016 |       345        442 |       787 
+      2017 |       356        436 |       792 
+      2018 |       349        445 |       794 
+      2019 |       349        472 |       821 
+      2020 |       347        500 |       847 
+-----------+----------------------+----------
+     Total |     3,450      4,456 |     7,906 
+
+. summ OneWm                        // mean should be roughly 0.75
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+       OneWm |      7,906     .664685    .4721303          0          1
+
+. tab ca OneWm, row
+
++----------------+
+| Key            |
+|----------------|
+|   frequency    |
+| row percentage |
++----------------+
+
+  =1 if HQ |
+        in |
+California |
+ on 30 Sep |   =1 if at least 1
+ 2018 (0 = |  woman on the board
+    Texas) |         0          1 |     Total
+-----------+----------------------+----------
+         0 |     1,303      2,147 |     3,450 
+           |     37.77      62.23 |    100.00 
+-----------+----------------------+----------
+         1 |     1,348      3,108 |     4,456 
+           |     30.25      69.75 |    100.00 
+-----------+----------------------+----------
+     Total |     2,651      5,255 |     7,906 
+           |     33.53      66.47 |    100.00 
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 2. The first-stage regressions (this is your main result)
+. *    areg ..., absorb(gvkey) = firm fixed effects
+. *    Standard errors clustered by firm in every column.
+. *----------------------------------------------------------------------------
+> ---
+. gen caXpost = ca * post
+
+. label var caXpost "CA x Post"
+
+. assert caXpost == ca_post
+
+. 
+. * (1) no fixed effects
+. reg OneWm ca post caXpost, vce(cluster gvkey)
+
+Linear regression                               Number of obs     =      7,906
+                                                F(3, 1300)        =     168.32
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0717
+                                                Root MSE          =     .45499
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+       OneWm | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |    .048454   .0281385     1.72   0.085    -.0067478    .1036559
+        post |   .2123742   .0229205     9.27   0.000      .167409    .2573394
+     caXpost |   .0879429   .0286075     3.07   0.002      .031821    .1440648
+       _cons |   .5609458   .0214938    26.10   0.000     .5187794    .6031122
+------------------------------------------------------------------------------
+
+. estimates store m1
+
+. test caXpost
+
+ ( 1)  caXpost = 0
+
+       F(  1,  1300) =    9.45
+            Prob > F =    0.0022
+
+. 
+. * (2) firm fixed effects  <-- your equation
+. areg OneWm post caXpost, absorb(gvkey) vce(cluster gvkey)
+
+Linear regression, absorbing indicators             Number of obs     =  7,906
+Absorbed variable: gvkey                            No. of categories =  1,301
+                                                    F(2, 1300)        = 141.55
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.6616
+                                                    Adj R-squared     = 0.5949
+                                                    Root MSE          = 0.3005
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+       OneWm | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        post |   .2276331   .0244184     9.32   0.000     .1797293    .2755369
+     caXpost |    .048274   .0313732     1.54   0.124    -.0132737    .1098217
+       _cons |   .5903667   .0044818   131.72   0.000     .5815743    .5991591
+------------------------------------------------------------------------------
+
+. estimates store m2
+
+. test caXpost
+
+ ( 1)  caXpost = 0
+
+       F(  1,  1300) =    2.37
+            Prob > F =    0.1241
+
+. 
+. * (3) firm AND year fixed effects (i.pyear absorbs Post)
+. areg OneWm caXpost i.pyear, absorb(gvkey) vce(cluster gvkey)
+
+Linear regression, absorbing indicators             Number of obs     =  7,906
+Absorbed variable: gvkey                            No. of categories =  1,301
+                                                    F(10, 1300)       =  35.56
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.6807
+                                                    Adj R-squared     = 0.6173
+                                                    Root MSE          = 0.2921
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+       OneWm | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     caXpost |   .0472807   .0282842     1.67   0.095    -.0082071    .1027684
+             |
+       pyear |
+       2012  |   .0206638   .0104392     1.98   0.048     .0001842    .0411434
+       2013  |   .0513443    .014568     3.52   0.000     .0227649    .0799237
+       2014  |   .0958245   .0169221     5.66   0.000     .0626269    .1290222
+       2015  |   .1373585   .0196506     6.99   0.000     .0988081    .1759089
+       2016  |   .1504763   .0213283     7.06   0.000     .1086346     .192318
+       2017  |   .2048173   .0222339     9.21   0.000     .1611991    .2484354
+       2018  |   .2533178   .0263799     9.60   0.000      .201566    .3050697
+       2019  |   .3653055   .0290484    12.58   0.000     .3083186    .4222924
+       2020  |   .4038833   .0294616    13.71   0.000     .3460858    .4616808
+             |
+       _cons |   .4840583   .0147503    32.82   0.000     .4551213    .5129952
+------------------------------------------------------------------------------
+
+. estimates store m3
+
+. test caXpost
+
+ ( 1)  caXpost = 0
+
+       F(  1,  1300) =    2.79
+            Prob > F =    0.0948
+
+. 
+. * side-by-side table; with one instrument, first-stage F = t^2 on caXpost
+. estimates table m1 m2 m3, keep(ca post caXpost) b(%9.4f) se(%9.4f) ///
+>     stats(N r2) title("First stage: OneWm on CA x Post")
+
+First stage: OneWm on CA x Post
+
+--------------------------------------------------
+    Variable |    m1          m2          m3      
+-------------+------------------------------------
+          ca |    0.0485                          
+             |    0.0281                          
+        post |    0.2124      0.2276              
+             |    0.0229      0.0244              
+     caXpost |    0.0879      0.0483      0.0473  
+             |    0.0286      0.0314      0.0283  
+-------------+------------------------------------
+           N |      7906        7906        7906  
+          r2 |    0.0717      0.6616      0.6807  
+--------------------------------------------------
+                                      Legend: b/se
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 3. MAIN GRAPH: share of firms with at least 1 woman on the board,
+. *    by state and year, with 95% CIs
+. *----------------------------------------------------------------------------
+> ---
+. preserve
+
+. collapse (mean) OneWm (semean) se_y=OneWm, by(ca pyear)
+
+. gen upper = OneWm + 1.96*se_y
+
+. gen lower = OneWm - 1.96*se_y
+
+. 
+. gr two (line OneWm pyear if ca==1) ///
+>        (line OneWm pyear if ca==0, xline(2017.5, lp(dash))) ///
+>        (rcap upper lower pyear if ca==1) ///
+>        (rcap upper lower pyear if ca==0), ///
+>     legend(label(1 "California") label(2 "Texas") order(1 2)) ///
+>     xlabel(`firstyr'(1)`lastyr') ///
+>     xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies fro
+> m FY2018)") ///
+>     ytitle("Share of firms with at least 1 woman on board") ///
+>     title("Women on Boards Before and After California SB 826", size(medium))
+>  ///
+>     note("Listed firms headquartered in CA (treated) or TX (comparison) on 30
+>  Sep 2018. Bars show 95% confidence intervals.")
+
+. graph export "output/figures/means_onewm.png", replace width(2000)
+file output/figures/means_onewm.png written in PNG format
+
+. graph save   "output/figures/means_onewm.gph", replace
+file output/figures/means_onewm.gph saved
+
+. restore
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 4. SECONDARY GRAPH: event study (firm fixed effects + year dummies)
+. *    Year dummies are year fixed effects; firm FE absorb CA, so "ca" is omitt
+> ed.
+. *    Each CA x year coefficient = CA-TX gap in that year minus the gap in 201
+> 7.
+. *----------------------------------------------------------------------------
+> ---
+. forvalues t = `firstyr'/`lastyr' {
+  2.     if `t' != `refyr' {
+  3.         gen yrdum`t'    = (pyear == `t')
+  4.         gen caXyrdum`t' = ca * yrdum`t'
+  5.     }
+  6. }
+
+. 
+. areg OneWm yrdum* caXyrdum*, absorb(gvkey) vce(cluster gvkey)
+
+Linear regression, absorbing indicators             Number of obs     =  7,906
+Absorbed variable: gvkey                            No. of categories =  1,301
+                                                    F(18, 1300)       =  20.20
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.6814
+                                                    Adj R-squared     = 0.6176
+                                                    Root MSE          = 0.2919
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+       OneWm | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   yrdum2011 |  -.1883572   .0327001    -5.76   0.000     -.252508   -.1242065
+   yrdum2012 |  -.1577056   .0312737    -5.04   0.000    -.2190581   -.0963531
+   yrdum2013 |  -.1136474   .0290377    -3.91   0.000    -.1706132   -.0566816
+   yrdum2014 |  -.0768891     .02476    -3.11   0.002     -.125463   -.0283151
+   yrdum2015 |  -.0433294   .0212278    -2.04   0.041    -.0849739   -.0016848
+   yrdum2016 |  -.0457265   .0164453    -2.78   0.006    -.0779888   -.0134642
+   yrdum2018 |   .0726349   .0198199     3.66   0.000     .0337525    .1115173
+   yrdum2019 |   .1591663     .02731     5.83   0.000     .1055898    .2127428
+   yrdum2020 |   .2131477   .0295706     7.21   0.000     .1551363     .271159
+caXyrdum2011 |  -.0309296   .0445774    -0.69   0.488    -.1183812    .0565219
+caXyrdum2012 |  -.0490285   .0425087    -1.15   0.249    -.1324217    .0343647
+caXyrdum2013 |  -.0728527   .0396979    -1.84   0.067    -.1507318    .0050263
+caXyrdum2014 |  -.0587542   .0347781    -1.69   0.091    -.1269815    .0094731
+caXyrdum2015 |  -.0439868    .030367    -1.45   0.148    -.1035604    .0155868
+caXyrdum2016 |  -.0159128   .0238479    -0.67   0.505    -.0626974    .0308718
+caXyrdum2018 |  -.0082117   .0252665    -0.33   0.745    -.0577793    .0413558
+caXyrdum2019 |   .0488773   .0353975     1.38   0.168    -.0205652    .1183197
+caXyrdum2020 |   .0222339   .0381688     0.58   0.560    -.0526453    .0971131
+       _cons |   .6894481    .011276    61.14   0.000     .6673269    .7115692
+------------------------------------------------------------------------------
+
+. 
+. * joint test of no pre-trends (all pre-period interactions = 0)
+. local pretest ""
+
+. forvalues t = `firstyr'/`=`refyr'-1' {
+  2.     local pretest `pretest' caXyrdum`t'
+  3. }
+
+. test `pretest'
+
+ ( 1)  caXyrdum2011 = 0
+ ( 2)  caXyrdum2012 = 0
+ ( 3)  caXyrdum2013 = 0
+ ( 4)  caXyrdum2014 = 0
+ ( 5)  caXyrdum2015 = 0
+ ( 6)  caXyrdum2016 = 0
+
+       F(  6,  1300) =    0.85
+            Prob > F =    0.5331
+
+. 
+. * store coefficients and standard errors by year
+. gen slope = 0          // reference year stays at 0
+
+. gen se    = .          // and has no standard error (no CI drawn)
+(7,906 missing values generated)
+
+. forvalues t = `firstyr'/`lastyr' {
+  2.     if `t' != `refyr' {
+  3.         replace slope = _b[caXyrdum`t'] if pyear == `t'
+  4.         replace se    = _se[caXyrdum`t'] if pyear == `t'
+  5.     }
+  6. }
+(744 real changes made)
+(744 real changes made)
+(751 real changes made)
+(751 real changes made)
+(760 real changes made)
+(760 real changes made)
+(800 real changes made)
+(800 real changes made)
+(810 real changes made)
+(810 real changes made)
+(787 real changes made)
+(787 real changes made)
+(794 real changes made)
+(794 real changes made)
+(821 real changes made)
+(821 real changes made)
+(847 real changes made)
+(847 real changes made)
+
+. 
+. * check the numbers before plotting (reference year should be 0 with no se)
+. tabstat slope se, by(pyear) stat(mean) nototal
+
+Summary statistics: Mean
+Group variable: pyear (Fiscal year (calendar year of fiscal year end))
+
+   pyear |     slope        se
+---------+--------------------
+    2011 | -.0309296  .0445774
+    2012 | -.0490285  .0425087
+    2013 | -.0728527  .0396979
+    2014 | -.0587542  .0347781
+    2015 | -.0439868  .0303669
+    2016 | -.0159128  .0238479
+    2017 |         0         .
+    2018 | -.0082117  .0252665
+    2019 |  .0488773  .0353975
+    2020 |  .0222339  .0381688
+------------------------------
+
+. 
+. preserve
+
+. collapse (mean) slope se, by(pyear)
+
+. gen upper = slope + 1.96*se
+(1 missing value generated)
+
+. gen lower = slope - 1.96*se
+(1 missing value generated)
+
+. 
+. gr two (scatter slope pyear, yline(0, lc(black))) ///
+>        (rcap upper lower pyear, xline(2017.5, lp(dash))), ///
+>     legend(off) ///
+>     xlabel(`firstyr'(1)`lastyr') ///
+>     xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies fro
+> m FY2018)") ///
+>     ytitle("CA - TX difference in P(at least 1 woman on board), relative to 2
+> 017") ///
+>     title("First Stage Event Study" "California SB 826 (Board Gender Quota)",
+>  size(medium)) ///
+>     note("Firm-year data, CA vs. TX, firm and year fixed effects. 2017 (last 
+> fully pre-law year) is the omitted year." ///
+>          "Bars show 95% confidence intervals, standard errors clustered by fi
+> rm. Dashed line = SB 826 signed 30 Sep 2018.")
+
+. graph export "output/figures/first_stage_onewm.png", replace width(2000)
+file output/figures/first_stage_onewm.png written in PNG format
+
+. graph save   "output/figures/first_stage_onewm.gph", replace
+file output/figures/first_stage_onewm.gph saved
+
+. restore
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/09_graphs_first_stage_onewm.log
+  log type:  text
+ closed on:  17 Nov 2026, 17:13:28
+-------------------------------------------------------------------------------

@@ -1,0 +1,268 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/08_graphs_event_study.log
+  log type:  text
+ opened on:  17 Nov 2026, 17:13:21
+
+. 
+. use "final_data.dta", clear
+((null))
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 1. Define the event-time "year"
+. *----------------------------------------------------------------------------
+> ---
+. * SB 826 was signed 30 Sep 2018. Fiscal year 2018 mixes pre and post firms (a
+>  June
+. * 2018 year-end is pre, a Dec 2018 year-end is post), so 2017 is the referenc
+> e year.
+. * year = fiscal year (calendar year of the fiscal year end), as in the other 
+> scripts
+. gen pyear = fyeyear
+
+. label var pyear "Fiscal year (calendar year of fiscal year end)"
+
+. 
+. * Settings you can change ---------------------------------------------------
+> ----
+. local refyr   2017     // omitted (reference) year = last fully pre-law fisca
+> l year
+
+. local firstyr 2011
+
+. local lastyr  2020
+
+. * To show only the pre-COVID window instead, use:  keep if mainwindow == 1
+. *   (then set lastyr to 2019; note pyear 2020 would hold only Oct-Dec 2019 ye
+> ar-ends)
+. * To drop the 10 firms that moved out of California (robustness):
+. *   drop if mover == 1
+. * ---------------------------------------------------------------------------
+> ---
+. 
+. keep if pyear >= `firstyr' & pyear <= `lastyr'
+(5,979 observations deleted)
+
+. 
+. tab pyear ca
+
+    Fiscal |
+      year |
+ (calendar |      =1 if HQ in
+   year of | California on 30 Sep
+    fiscal |   2018 (0 = Texas)
+ year end) |         0          1 |     Total
+-----------+----------------------+----------
+      2011 |       382        475 |       857 
+      2012 |       381        486 |       867 
+      2013 |       381        497 |       878 
+      2014 |       390        520 |       910 
+      2015 |       396        518 |       914 
+      2016 |       392        510 |       902 
+      2017 |       395        501 |       896 
+      2018 |       387        504 |       891 
+      2019 |       383        525 |       908 
+      2020 |       393        555 |       948 
+-----------+----------------------+----------
+     Total |     3,880      5,091 |     8,971 
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 2. Year dummies and CA x year interactions (all in the firm-year data,
+. *    NOT collapsed -- see footnote 1 in the handout)
+. *----------------------------------------------------------------------------
+> ---
+. forvalues y = `firstyr'/`lastyr' {
+  2.     if `y' != `refyr' {
+  3.         gen yrdum`y'   = (pyear == `y')
+  4.         gen caXyrdum`y' = ca * yrdum`y'
+  5.     }
+  6. }
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 3. Fully interacted regression
+. *    Standard errors clustered by firm (gvkey) because the same firm appears
+. *    in many years.
+. *----------------------------------------------------------------------------
+> ---
+. reg lnmktcap yrdum* ca caXyrdum*, vce(cluster gvkey)
+
+Linear regression                               Number of obs     =      8,971
+                                                F(19, 1469)       =      23.21
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0156
+                                                Root MSE          =      2.158
+
+                              (Std. err. adjusted for 1,470 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   yrdum2011 |  -.1638621   .0922686    -1.78   0.076    -.3448544    .0171301
+   yrdum2012 |  -.0519457   .0783534    -0.66   0.507    -.2056421    .1017508
+   yrdum2013 |   .3280547   .0702785     4.67   0.000     .1901978    .4659115
+   yrdum2014 |   .1789703   .0614733     2.91   0.004     .0583856     .299555
+   yrdum2015 |  -.1382016   .0556182    -2.48   0.013    -.2473012    -.029102
+   yrdum2016 |  -.0430253   .0531228    -0.81   0.418    -.1472299    .0611792
+   yrdum2018 |  -.2072142   .0441706    -4.69   0.000    -.2938584   -.1205701
+   yrdum2019 |  -.1521497   .0638852    -2.38   0.017    -.2774657   -.0268337
+   yrdum2020 |  -.3383279   .0779044    -4.34   0.000    -.4911437   -.1855121
+          ca |   -.106625   .1462203    -0.73   0.466    -.3934479    .1801978
+caXyrdum2011 |   -.349279   .1251947    -2.79   0.005    -.5948585   -.1036996
+caXyrdum2012 |  -.4336758   .1110772    -3.90   0.000    -.6515626    -.215789
+caXyrdum2013 |  -.5228952   .1003416    -5.21   0.000    -.7197233    -.326067
+caXyrdum2014 |  -.2797487   .0896531    -3.12   0.002    -.4556104   -.1038869
+caXyrdum2015 |  -.0725031   .0812084    -0.89   0.372    -.2317998    .0867936
+caXyrdum2016 |  -.1762348   .0697256    -2.53   0.012    -.3130071   -.0394624
+caXyrdum2018 |   .2113038   .0614793     3.44   0.001     .0907072    .3319004
+caXyrdum2019 |   .3792915   .0856066     4.43   0.000     .2113672    .5472157
+caXyrdum2020 |   .9250814   .1049987     8.81   0.000     .7191181    1.131045
+       _cons |   6.773706   .1052564    64.35   0.000     6.567237    6.980174
+------------------------------------------------------------------------------
+
+. 
+. * joint test of no pre-trends (all pre-period interactions = 0)
+. local pretest ""
+
+. forvalues y = `firstyr'/`=`refyr'-1' {
+  2.     local pretest `pretest' caXyrdum`y'
+  3. }
+
+. test `pretest'
+
+ ( 1)  caXyrdum2011 = 0
+ ( 2)  caXyrdum2012 = 0
+ ( 3)  caXyrdum2013 = 0
+ ( 4)  caXyrdum2014 = 0
+ ( 5)  caXyrdum2015 = 0
+ ( 6)  caXyrdum2016 = 0
+
+       F(  6,  1469) =    7.44
+            Prob > F =    0.0000
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 4. Store coefficients and standard errors by year, then plot
+. *----------------------------------------------------------------------------
+> ---
+. gen slope = 0          // reference year stays at 0
+
+. gen se    = .          // and has no standard error (no CI drawn)
+(8,971 missing values generated)
+
+. 
+. forvalues y = `firstyr'/`lastyr' {
+  2.     if `y' != `refyr' {
+  3.         replace slope = _b[caXyrdum`y'] if pyear == `y'
+  4.         replace se    = _se[caXyrdum`y'] if pyear == `y'
+  5.     }
+  6. }
+(857 real changes made)
+(857 real changes made)
+(867 real changes made)
+(867 real changes made)
+(878 real changes made)
+(878 real changes made)
+(910 real changes made)
+(910 real changes made)
+(914 real changes made)
+(914 real changes made)
+(902 real changes made)
+(902 real changes made)
+(891 real changes made)
+(891 real changes made)
+(908 real changes made)
+(908 real changes made)
+(948 real changes made)
+(948 real changes made)
+
+. 
+. preserve
+
+. collapse (mean) slope se, by(pyear)
+
+. gen upper = slope + 1.96*se
+(1 missing value generated)
+
+. gen lower = slope - 1.96*se
+(1 missing value generated)
+
+. 
+. * vertical line sits between the last fully pre-law year (2017) and 2018
+. gr two (scatter slope pyear, yline(0, lc(black))) ///
+>        (rcap upper lower pyear, xline(2017.5, lp(dash))), ///
+>     legend(off) ///
+>     xlabel(`firstyr'(1)`lastyr') ///
+>     xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies fro
+> m FY2018)") ///
+>     ytitle("CA - TX difference in ln(market cap), relative to 2017") ///
+>     title("ln(Market Cap) Event Study" "California SB 826 (Board Gender Quota
+> )", size(medium)) ///
+>     note("Firm-year data, CA vs. TX. Texas is the comparison group; 2017 (las
+> t fully pre-law year) is the omitted year." ///
+>          "Bars show 95% confidence intervals, standard errors clustered by fi
+> rm. Dashed line = SB 826 signed 30 Sep 2018.")
+
+. graph export "output/figures/event_study_lnmktcap.png", replace width(2000)
+file output/figures/event_study_lnmktcap.png written in PNG format
+
+. graph save   "output/figures/event_study_lnmktcap.gph", replace
+file output/figures/event_study_lnmktcap.gph saved
+
+. restore
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 5. Companion graph: mean ln(market cap) by state and year, with 95% CIs
+. *    (the handout's "rcap" line graph; good to show before the event study)
+. *----------------------------------------------------------------------------
+> ---
+. preserve
+
+. collapse (mean) lnmktcap (semean) se_lnmktcap=lnmktcap, by(ca pyear)
+
+. gen upper = lnmktcap + 1.96*se_lnmktcap
+
+. gen lower = lnmktcap - 1.96*se_lnmktcap
+
+. 
+. gr two (line lnmktcap pyear if ca==1) ///
+>        (line lnmktcap pyear if ca==0, xline(2017.5, lp(dash))) ///
+>        (rcap upper lower pyear if ca==1) ///
+>        (rcap upper lower pyear if ca==0), ///
+>     legend(label(1 "California") label(2 "Texas") order(1 2)) ///
+>     xlabel(`firstyr'(1)`lastyr') ///
+>     xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies fro
+> m FY2018)") ///
+>     ytitle("Mean ln(market cap, $ millions)") ///
+>     title("Mean ln(Market Cap) Before and After California SB 826", size(medi
+> um)) ///
+>     note("Listed firms headquartered in CA (treated) or TX (comparison) on 30
+>  Sep 2018. Bars show 95% confidence intervals.")
+
+. graph export "output/figures/means_lnmktcap.png", replace width(2000)
+(file output/figures/means_lnmktcap.png not found)
+file output/figures/means_lnmktcap.png written in PNG format
+
+. graph save   "output/figures/means_lnmktcap.gph", replace
+(file output/figures/means_lnmktcap.gph not found)
+file output/figures/means_lnmktcap.gph saved
+
+. restore
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/08_graphs_event_study.log
+  log type:  text
+ closed on:  17 Nov 2026, 17:13:26
+-------------------------------------------------------------------------------

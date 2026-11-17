@@ -1,0 +1,582 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/12_graphs_rf_by_year.log
+  log type:  text
+ opened on:  17 Nov 2026, 17:13:34
+
+. 
+. use "final_data.dta", clear
+((null))
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 0. Build the variables (same definitions as programs 3 and 4)
+. *    >>> CHECK: set the board-size and market-cap variable names.
+. *----------------------------------------------------------------------------
+> ---
+. local bsvar boardsize      // total number of directors
+
+. local mcvar mktcap         // market capitalization
+
+. 
+. keep if board_matched == 1
+(2,268 observations deleted)
+
+. 
+. gen OneWm = (women >= 1) if women < .
+
+. label var OneWm "=1 if at least 1 woman on the board"
+
+. 
+. gen ShareWm = 100 * women / `bsvar' if women < . & `bsvar' < . & `bsvar' > 0
+
+. label var ShareWm "Percent of board that is women"
+
+. 
+. count if `mcvar' <= 0
+  0
+
+. count if missing(`mcvar')
+  0
+
+. //gen lnmktcap = ln(`mcvar') if `mcvar' > 0 & `mcvar' < .
+. label var lnmktcap "ln(market capitalization)"
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 1. Event-time "year" and sample
+. *----------------------------------------------------------------------------
+> ---
+. * year = fiscal year (calendar year of the fiscal year end), as in the other 
+> scripts
+. gen pyear = fyeyear
+
+. label var pyear "Fiscal year (calendar year of fiscal year end)"
+
+. 
+. * Settings you can change ---------------------------------------------------
+> ----
+. local firstyr 2011
+
+. local lastyr  2020
+
+. * To show only the pre-COVID window instead, use:  keep if mainwindow == 1
+. * To drop the 10 firms that moved out of California (robustness):
+. *   drop if mover == 1
+. * ---------------------------------------------------------------------------
+> ---
+. 
+. keep if pyear >= `firstyr' & pyear <= `lastyr'
+(4,776 observations deleted)
+
+. 
+. * Same sample for both X's
+. drop if missing(OneWm, ShareWm, lnmktcap)
+(0 observations deleted)
+
+. 
+. * gvkey is a string; areg needs a numeric id for absorb()
+. egen firmid = group(gvkey)
+
+. 
+. * Sanity checks: look at these before trusting any graph
+. tab pyear
+
+Fiscal year |
+  (calendar |
+    year of |
+fiscal year |
+       end) |      Freq.     Percent        Cum.
+------------+-----------------------------------
+       2011 |        744        9.41        9.41
+       2012 |        751        9.50       18.91
+       2013 |        760        9.61       28.52
+       2014 |        800       10.12       38.64
+       2015 |        810       10.25       48.89
+       2016 |        787        9.95       58.84
+       2017 |        792       10.02       68.86
+       2018 |        794       10.04       78.90
+       2019 |        821       10.38       89.29
+       2020 |        847       10.71      100.00
+------------+-----------------------------------
+      Total |      7,906      100.00
+
+. summ lnmktcap OneWm ShareWm
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+    lnmktcap |      7,906    6.863347    2.075814   .2352461   14.49155
+       OneWm |      7,906     .664685    .4721303          0          1
+     ShareWm |      7,906    12.98263    11.87312          0   71.42857
+
+. corr lnmktcap OneWm ShareWm
+(obs=7,906)
+
+             | lnmktcap    OneWm  ShareWm
+-------------+---------------------------
+    lnmktcap |   1.0000
+       OneWm |   0.3297   1.0000
+     ShareWm |   0.3045   0.7767   1.0000
+
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 2. Regressions and graphs, once for ShareWm and once for OneWm
+. *    areg ..., absorb(firmid) = firm fixed effects; s.e. clustered by firm.
+. *----------------------------------------------------------------------------
+> ---
+. foreach x in ShareWm OneWm {
+  2. 
+.     display _newline(2) as text "{hline 78}"
+  3.     display as text "REDUCED FORM: ln(mktcap) on `x'"
+  4.     display as text "{hline 78}"
+  5. 
+.     * (1) no fixed effects
+.     reg lnmktcap `x', vce(cluster gvkey)
+  6.     estimates store r1_`x'
+  7. 
+.     * (2) firm fixed effects  <-- your equation
+.     areg lnmktcap `x', absorb(firmid) vce(cluster gvkey)
+  8.     estimates store r2_`x'
+  9.     local b2  = _b[`x']
+ 10.     local se2 = _se[`x']
+ 11. 
+.     * (3) firm AND year fixed effects
+.     areg lnmktcap `x' i.pyear, absorb(firmid) vce(cluster gvkey)
+ 12.     estimates store r3_`x'
+ 13. 
+.     estimates table r1_`x' r2_`x' r3_`x', keep(`x') b(%9.4f) se(%9.4f) ///
+>         stats(N r2) title("Reduced form: ln(mktcap) on `x'")
+ 14. 
+.     local fn = lower("`x'")
+ 15.     if "`x'" == "ShareWm" {
+ 16.         local xt  "Percent women on board"
+ 17.         local xtr "Percent women on board (residual, after firm fixed effe
+> cts)"
+ 18.         local ttl "Firm Value and Percent Women on the Board"
+ 19.     }
+ 20.     else {
+ 21.         local xt  "At least 1 woman on board"
+ 22.         local xtr "At least 1 woman on board (residual, after firm fixed e
+> ffects)"
+ 23.         local ttl "Firm Value and Having a Woman on the Board"
+ 24.     }
+ 25. 
+.     *------------------------------------------------------------------------
+> ---
+.     * 3. MAIN GRAPH: binned partial-regression plot. ln(mktcap) and `x' are b
+> oth
+.     *    residualized on firm fixed effects, cut into 20 bins by the residual
+> ized
+.     *    `x', and the bin averages are plotted with a fitted line. The slope 
+> of
+.     *    the line is the coefficient b1 from column (2).
+.     *------------------------------------------------------------------------
+> ---
+.     preserve
+ 26.     quietly areg lnmktcap, absorb(firmid)
+ 27.     predict double ry, dresiduals
+ 28.     quietly areg `x', absorb(firmid)
+ 29.     predict double rx, dresiduals
+ 30. 
+.     xtile bin = rx, nq(20)
+ 31.     collapse (mean) ry rx, by(bin)
+ 32. 
+.     local bb : display %6.3f `b2'
+ 33.     local ss : display %6.3f `se2'
+ 34. 
+.     gr two (scatter ry rx, msize(medlarge)) ///
+>            (lfit ry rx), ///
+>         legend(off) ///
+>         xtitle("`xtr'") ///
+>         ytitle("ln(market cap) (residual, after firm fixed effects)") ///
+>         title("`ttl'", size(medium)) ///
+>         note("Binned means (20 bins), firm-year data, CA and TX firms. Slope 
+> = `bb' (clustered s.e. `ss').")
+ 35.     graph export "output/figures/lnmktcap_`fn'_binned.png", replace width(
+> 2000)
+ 36.     graph save   "output/figures/lnmktcap_`fn'_binned.gph", replace
+ 37.     restore
+ 38. 
+.     *------------------------------------------------------------------------
+> ---
+.     * 4. SECONDARY GRAPH (replaces the event study): the slope on `x' in each
+.     *    year, with firm and year fixed effects. Each point is the coefficien
+> t
+.     *    on `x' x 1[year = t]; the bars are 95% CIs, s.e. clustered by firm.
+.     *------------------------------------------------------------------------
+> ---
+.     forvalues t = `firstyr'/`lastyr' {
+ 39.         gen xyr`t' = `x' * (pyear == `t')
+ 40.     }
+ 41. 
+.     areg lnmktcap xyr* i.pyear, absorb(firmid) vce(cluster gvkey)
+ 42. 
+.     gen slope = .
+ 43.     gen se    = .
+ 44.     forvalues t = `firstyr'/`lastyr' {
+ 45.         replace slope = _b[xyr`t']  if pyear == `t'
+ 46.         replace se    = _se[xyr`t'] if pyear == `t'
+ 47.     }
+ 48. 
+.     * check the numbers before plotting
+.     tabstat slope se, by(pyear) stat(mean) nototal
+ 49. 
+.     preserve
+ 50.     collapse (mean) slope se, by(pyear)
+ 51.     gen upper = slope + 1.96*se
+ 52.     gen lower = slope - 1.96*se
+ 53. 
+.     gr two (scatter slope pyear, yline(0, lc(black))) ///
+>            (rcap upper lower pyear, xline(2017.5, lp(dash))), ///
+>         legend(off) ///
+>         xlabel(`firstyr'(1)`lastyr') ///
+>         xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies
+>  from FY2018)") ///
+>         ytitle("Coefficient on `xt' (outcome: ln market cap)") ///
+>         title("Reduced Form by Year" "ln(market cap) on `xt'", size(medium)) 
+> ///
+>         note("Firm-year data, CA and TX firms, firm and year fixed effects." 
+> ///
+>              "Bars show 95% confidence intervals, standard errors clustered b
+> y firm. Dashed line = SB 826 signed 30 Sep 2018.")
+ 54.     graph export "output/figures/lnmktcap_`fn'_byyear.png", replace width(
+> 2000)
+ 55.     graph save   "output/figures/lnmktcap_`fn'_byyear.gph", replace
+ 56.     restore
+ 57. 
+.     drop xyr* slope se
+ 58. }
+
+
+------------------------------------------------------------------------------
+REDUCED FORM: ln(mktcap) on ShareWm
+------------------------------------------------------------------------------
+
+Linear regression                               Number of obs     =      7,906
+                                                F(1, 1300)        =     140.96
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0927
+                                                Root MSE          =     1.9774
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ShareWm |   .0532294   .0044833    11.87   0.000     .0444341    .0620248
+       _cons |   6.172289   .0714679    86.36   0.000     6.032084    6.312494
+------------------------------------------------------------------------------
+
+Linear regression, absorbing indicators             Number of obs     =  7,906
+Absorbed variable: firmid                           No. of categories =  1,301
+                                                    F(1, 1300)        =  52.77
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9215
+                                                    Adj R-squared     = 0.9061
+                                                    Root MSE          = 0.6362
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ShareWm |   .0153918   .0021188     7.26   0.000     .0112353    .0195484
+       _cons |    6.66352    .027507   242.25   0.000     6.609557    6.717483
+------------------------------------------------------------------------------
+
+Linear regression, absorbing indicators             Number of obs     =  7,906
+Absorbed variable: firmid                           No. of categories =  1,301
+                                                    F(10, 1300)       =  41.05
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9267
+                                                    Adj R-squared     = 0.9121
+                                                    Root MSE          = 0.6155
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ShareWm |   .0040805   .0023128     1.76   0.078    -.0004567    .0086177
+             |
+       pyear |
+       2012  |   .0630883   .0214661     2.94   0.003     .0209763    .1052004
+       2013  |   .3719445   .0293288    12.68   0.000     .3144075    .4294814
+       2014  |   .3998846   .0363049    11.01   0.000      .328662    .4711072
+       2015  |   .2820964   .0435281     6.48   0.000     .1967034    .3674894
+       2016  |   .3359079   .0456415     7.36   0.000     .2463688     .425447
+       2017  |   .5000695   .0503737     9.93   0.000     .4012468    .5988923
+       2018  |    .432435   .0560096     7.72   0.000     .3225558    .5423142
+       2019  |   .5451302   .0635223     8.58   0.000     .4205127    .6697478
+       2020  |    .661578   .0738425     8.96   0.000     .5167145    .8064416
+             |
+       _cons |   6.444809   .0372832   172.86   0.000     6.371667    6.517951
+------------------------------------------------------------------------------
+
+Reduced form: ln(mktcap) on ShareWm
+
+--------------------------------------------------
+    Variable | r1_Shar~m   r2_Shar~m   r3_Shar~m  
+-------------+------------------------------------
+     ShareWm |    0.0532      0.0154      0.0041  
+             |    0.0045      0.0021      0.0023  
+-------------+------------------------------------
+           N |      7906        7906        7906  
+          r2 |    0.0927      0.9215      0.9267  
+--------------------------------------------------
+                                      Legend: b/se
+file output/figures/lnmktcap_sharewm_binned.png written in PNG format
+file output/figures/lnmktcap_sharewm_binned.gph saved
+
+Linear regression, absorbing indicators             Number of obs     =  7,906
+Absorbed variable: firmid                           No. of categories =  1,301
+                                                    F(19, 1300)       =  22.26
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9271
+                                                    Adj R-squared     = 0.9125
+                                                    Root MSE          = 0.6139
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     xyr2011 |  -.0040277   .0045146    -0.89   0.372    -.0128844     .004829
+     xyr2012 |  -.0037617   .0043952    -0.86   0.392    -.0123841    .0048607
+     xyr2013 |   .0042793   .0033122     1.29   0.197    -.0022186    .0107771
+     xyr2014 |   .0040371   .0030464     1.33   0.185    -.0019393    .0100135
+     xyr2015 |   .0033951   .0028485     1.19   0.234     -.002193    .0089833
+     xyr2016 |   .0016041   .0027694     0.58   0.563     -.003829    .0070372
+     xyr2017 |   .0016153   .0026315     0.61   0.539    -.0035471    .0067777
+     xyr2018 |   .0038851   .0028423     1.37   0.172    -.0016909     .009461
+     xyr2019 |   .0047448   .0033012     1.44   0.151    -.0017315     .011221
+     xyr2020 |   .0139815   .0039663     3.53   0.000     .0062006    .0217625
+             |
+       pyear |
+       2012  |   .0632211   .0316202     2.00   0.046      .001189    .1252533
+       2013  |   .3021815    .041032     7.36   0.000     .2216854    .3826777
+       2014  |   .3317069   .0512199     6.48   0.000     .2312243    .4321896
+       2015  |   .2214897   .0609303     3.64   0.000     .1019571    .3410222
+       2016  |   .2965062   .0644377     4.60   0.000     .1700929    .4229195
+       2017  |   .4630774   .0689519     6.72   0.000     .3278082    .5983466
+       2018  |   .3658271    .076426     4.79   0.000     .2158952    .5157589
+       2019  |    .463626   .0949969     4.88   0.000     .2772621      .64999
+       2020  |   .3709982   .1166118     3.18   0.001     .1422302    .5997661
+             |
+       _cons |   6.513257   .0514041   126.71   0.000     6.412413    6.614101
+------------------------------------------------------------------------------
+(7,906 missing values generated)
+(7,906 missing values generated)
+(744 real changes made)
+(744 real changes made)
+(751 real changes made)
+(751 real changes made)
+(760 real changes made)
+(760 real changes made)
+(800 real changes made)
+(800 real changes made)
+(810 real changes made)
+(810 real changes made)
+(787 real changes made)
+(787 real changes made)
+(792 real changes made)
+(792 real changes made)
+(794 real changes made)
+(794 real changes made)
+(821 real changes made)
+(821 real changes made)
+(847 real changes made)
+(847 real changes made)
+
+Summary statistics: Mean
+Group variable: pyear (Fiscal year (calendar year of fiscal year end))
+
+   pyear |     slope        se
+---------+--------------------
+    2011 | -.0040277  .0045146
+    2012 | -.0037617  .0043952
+    2013 |  .0042793  .0033122
+    2014 |  .0040371  .0030464
+    2015 |  .0033951  .0028485
+    2016 |  .0016041  .0027694
+    2017 |  .0016153  .0026315
+    2018 |  .0038851  .0028423
+    2019 |  .0047448  .0033012
+    2020 |  .0139815  .0039663
+------------------------------
+file output/figures/lnmktcap_sharewm_byyear.png written in PNG format
+file output/figures/lnmktcap_sharewm_byyear.gph saved
+
+
+------------------------------------------------------------------------------
+REDUCED FORM: ln(mktcap) on OneWm
+------------------------------------------------------------------------------
+
+Linear regression                               Number of obs     =      7,906
+                                                F(1, 1300)        =     232.14
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1087
+                                                Root MSE          =     1.9599
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+       OneWm |   1.449452   .0951321    15.24   0.000     1.262823    1.636081
+       _cons |   5.899918   .0740991    79.62   0.000     5.754551    6.045285
+------------------------------------------------------------------------------
+
+Linear regression, absorbing indicators             Number of obs     =  7,906
+Absorbed variable: firmid                           No. of categories =  1,301
+                                                    F(1, 1300)        =  35.93
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9205
+                                                    Adj R-squared     = 0.9048
+                                                    Root MSE          = 0.6404
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+       OneWm |   .2813114   .0469303     5.99   0.000     .1892439    .3733789
+       _cons |   6.676363   .0311939   214.03   0.000     6.615167    6.737559
+------------------------------------------------------------------------------
+
+Linear regression, absorbing indicators             Number of obs     =  7,906
+Absorbed variable: firmid                           No. of categories =  1,301
+                                                    F(10, 1300)       =  40.60
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9266
+                                                    Adj R-squared     = 0.9121
+                                                    Root MSE          = 0.6156
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+       OneWm |   .0769177   .0464586     1.66   0.098    -.0142243    .1680598
+             |
+       pyear |
+       2012  |   .0629948   .0214717     2.93   0.003     .0208719    .1051177
+       2013  |   .3722015   .0292897    12.71   0.000     .3147413    .4296617
+       2014  |    .402246   .0358828    11.21   0.000     .3318515    .4726404
+       2015  |   .2857079    .042878     6.66   0.000     .2015902    .3698256
+       2016  |   .3403121   .0448045     7.60   0.000     .2524151    .4282092
+       2017  |   .5069365   .0490788    10.33   0.000     .4106541    .6032189
+       2018  |    .441695   .0540135     8.18   0.000     .3357319    .5476581
+       2019  |   .5619182   .0593794     9.46   0.000     .4454283    .6784081
+       2020  |   .6879774   .0670257    10.26   0.000      .556487    .8194679
+             |
+       _cons |   6.439405   .0400215   160.90   0.000     6.360891    6.517919
+------------------------------------------------------------------------------
+
+Reduced form: ln(mktcap) on OneWm
+
+--------------------------------------------------
+    Variable | r1_OneWm    r2_OneWm    r3_OneWm   
+-------------+------------------------------------
+       OneWm |    1.4495      0.2813      0.0769  
+             |    0.0951      0.0469      0.0465  
+-------------+------------------------------------
+           N |      7906        7906        7906  
+          r2 |    0.1087      0.9205      0.9266  
+--------------------------------------------------
+                                      Legend: b/se
+file output/figures/lnmktcap_onewm_binned.png written in PNG format
+file output/figures/lnmktcap_onewm_binned.gph saved
+
+Linear regression, absorbing indicators             Number of obs     =  7,906
+Absorbed variable: firmid                           No. of categories =  1,301
+                                                    F(19, 1300)       =  22.16
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9269
+                                                    Adj R-squared     = 0.9123
+                                                    Root MSE          = 0.6148
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     xyr2011 |  -.0748289   .0838512    -0.89   0.372    -.2393275    .0896696
+     xyr2012 |  -.0180739    .076509    -0.24   0.813    -.1681685    .1320206
+     xyr2013 |     .08401   .0665747     1.26   0.207    -.0465957    .2146157
+     xyr2014 |   .0788308   .0613125     1.29   0.199    -.0414515    .1991132
+     xyr2015 |   .0964642   .0593188     1.63   0.104    -.0199068    .2128353
+     xyr2016 |   .0717657   .0625374     1.15   0.251    -.0509196    .1944509
+     xyr2017 |   .0983795   .0626731     1.57   0.117     -.024572    .2213309
+     xyr2018 |   .1443213    .069761     2.07   0.039     .0074649    .2811777
+     xyr2019 |   .1352398   .1162241     1.16   0.245    -.0927675    .3632471
+     xyr2020 |   .4114025   .1674109     2.46   0.014     .0829775    .7398275
+             |
+       pyear |
+       2012  |   .0361816   .0325525     1.11   0.267    -.0276796    .1000427
+       2013  |   .2909992   .0456173     6.38   0.000     .2015077    .3804907
+       2014  |   .3230529   .0573213     5.64   0.000     .2106005    .4355053
+       2015  |   .1953022    .068932     2.83   0.005     .0600719    .3305324
+       2016  |   .2650895   .0727389     3.64   0.000      .122391     .407788
+       2017  |   .4129107   .0766124     5.39   0.000     .2626132    .5632081
+       2018  |   .3114462   .0893675     3.49   0.001     .1361258    .4867665
+       2019  |   .4311505   .1333705     3.23   0.001     .1695055    .6927955
+       2020  |   .3015673   .1766492     1.71   0.088    -.0449814    .6481159
+             |
+       _cons |   6.517952     .05634   115.69   0.000     6.407424    6.628479
+------------------------------------------------------------------------------
+(7,906 missing values generated)
+(7,906 missing values generated)
+(744 real changes made)
+(744 real changes made)
+(751 real changes made)
+(751 real changes made)
+(760 real changes made)
+(760 real changes made)
+(800 real changes made)
+(800 real changes made)
+(810 real changes made)
+(810 real changes made)
+(787 real changes made)
+(787 real changes made)
+(792 real changes made)
+(792 real changes made)
+(794 real changes made)
+(794 real changes made)
+(821 real changes made)
+(821 real changes made)
+(847 real changes made)
+(847 real changes made)
+
+Summary statistics: Mean
+Group variable: pyear (Fiscal year (calendar year of fiscal year end))
+
+   pyear |     slope        se
+---------+--------------------
+    2011 | -.0748289  .0838512
+    2012 | -.0180739   .076509
+    2013 |    .08401  .0665747
+    2014 |  .0788308  .0613125
+    2015 |  .0964642  .0593188
+    2016 |  .0717657  .0625374
+    2017 |  .0983794  .0626731
+    2018 |  .1443213   .069761
+    2019 |  .1352398  .1162241
+    2020 |  .4114025  .1674109
+------------------------------
+file output/figures/lnmktcap_onewm_byyear.png written in PNG format
+file output/figures/lnmktcap_onewm_byyear.gph saved
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/12_graphs_rf_by_year.log
+  log type:  text
+ closed on:  17 Nov 2026, 17:13:40
+-------------------------------------------------------------------------------

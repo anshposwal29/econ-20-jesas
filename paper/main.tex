@@ -98,7 +98,7 @@ We observe the difference in the market cap of companies in both California and 
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{doc_means_lnmktcap_2021.png}
+\includegraphics[width=\textwidth]{means_lnmktcap.png}
 \caption{Pre-trend: ln(market cap) before and after SB 826, California vs.\ Texas}
 \label{fig:pretrend}
 \end{figure}
@@ -211,20 +211,19 @@ Looking at Table~\ref{tab:iv} we see that the first stage confirms that the inst
 \clearpage
 \appendix
 \section{Additional Figures}
-% The doc's "initial graphs", in the doc's order. Files starting with doc_ are
-% copied from the Google Doc (no script in the repo makes them yet).
+% The doc's "initial graphs", in the doc's order (code/08-12, fiscal years 2011-2020).
 
 \newcommand{\appfig}[3]{\begin{figure}[H]\centering\includegraphics[width=0.9\textwidth]{#1}\caption{#2}\label{#3}\end{figure}}
 
 \subsection{Means and event study}
-\appfig{doc_means_lnmktcap_2025.png}{Firm value before and after SB 826, policy years 2011--2025}{fig:a_means_lnmktcap}
+\appfig{means_lnmktcap_boardsample.png}{Firm value before and after SB 826, firms with board data}{fig:a_means_lnmktcap}
 \appfig{means_onewm.png}{Share of firms with at least one woman on the board, before and after SB 826}{fig:a_means_onewm}
-\appfig{event_study_lnmktcap.png}{ln(market cap) event study, relative to 2018}{fig:a_es_lnmktcap}
+\appfig{event_study_lnmktcap.png}{ln(market cap) event study, relative to 2017}{fig:a_es_lnmktcap}
 
 \subsection{First stages}
-\appfig{doc_first_stage_onewm_2021.png}{First stage event study: at least one woman on the board}{fig:a_fs_onewm}
+\appfig{first_stage_onewm.png}{First stage event study: at least one woman on the board}{fig:a_fs_onewm}
 \appfig{first_stage_sharewm.png}{First stage event study: percent women on the board}{fig:a_fs_sharewm}
-\appfig{doc_means_sharewm_percent.png}{Average percent of the board that is women, before and after SB 826}{fig:a_means_sharewm}
+\appfig{means_sharewm.png}{Average percent of the board that is women, before and after SB 826}{fig:a_means_sharewm}
 
 \subsection{Reduced forms}
 \appfig{lnmktcap_sharewm_byyear.png}{Reduced form by year: ln(market cap) on percent women on the board}{fig:a_rf_sharewm}

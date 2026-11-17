@@ -1,0 +1,479 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/11_graphs_reduced_form.log
+  log type:  text
+ opened on:  17 Nov 2026, 17:13:32
+
+. 
+. use "final_data.dta", clear
+((null))
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 0. Build the outcome: ln(market cap)
+. *
+. *    >>> CHECK THIS: set the local below to the name of your market cap varia
+> ble
+. *        (e.g. mktcap, mkvalt, me). Run -describe- if you are not sure.
+. *    Logs need strictly positive values, so zero/negative/missing are dropped
+> .
+. *----------------------------------------------------------------------------
+> ---
+. local mcvar mktcap
+
+. 
+. * Keep the SAME sample as the first stage (firms with a BoardEx match)?
+. * 1 = yes (recommended for 2SLS so both stages use the same firms), 0 = no
+. local samesample 1
+
+. if `samesample' == 1 keep if board_matched == 1
+(2,268 observations deleted)
+
+. 
+. count if `mcvar' <= 0
+  0
+
+. count if missing(`mcvar')
+  0
+
+. 
+. label var lnmktcap "ln(market capitalization)"
+
+. drop if missing(lnmktcap)
+(0 observations deleted)
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 1. Define the event-time "year" (same as programs 2 and 3)
+. *----------------------------------------------------------------------------
+> ---
+. * year = fiscal year (calendar year of the fiscal year end), as in the other 
+> scripts
+. gen pyear = fyeyear
+
+. label var pyear "Fiscal year (calendar year of fiscal year end)"
+
+. 
+. * Settings you can change ---------------------------------------------------
+> ----
+. local refyr   2017     // omitted (reference) year = last fully pre-law fisca
+> l year
+
+. local firstyr 2011
+
+. local lastyr  2020
+
+. * To show only the pre-COVID window instead, use:  keep if mainwindow == 1
+. * To drop the 10 firms that moved out of California (robustness):
+. *   drop if mover == 1
+. * ---------------------------------------------------------------------------
+> ---
+. 
+. keep if pyear >= `firstyr' & pyear <= `lastyr'
+(4,776 observations deleted)
+
+. 
+. * Sanity checks: look at these before trusting any graph
+. tab pyear ca
+
+    Fiscal |
+      year |
+ (calendar |      =1 if HQ in
+   year of | California on 30 Sep
+    fiscal |   2018 (0 = Texas)
+ year end) |         0          1 |     Total
+-----------+----------------------+----------
+      2011 |       330        414 |       744 
+      2012 |       332        419 |       751 
+      2013 |       337        423 |       760 
+      2014 |       350        450 |       800 
+      2015 |       355        455 |       810 
+      2016 |       345        442 |       787 
+      2017 |       356        436 |       792 
+      2018 |       349        445 |       794 
+      2019 |       349        472 |       821 
+      2020 |       347        500 |       847 
+-----------+----------------------+----------
+     Total |     3,450      4,456 |     7,906 
+
+. summ lnmktcap, detail
+
+                  ln(market capitalization)
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%     2.264718       .2352461
+ 5%     3.479916       .6357988
+10%     4.199954       .7433433       Obs               7,906
+25%     5.495137       .8452466       Sum of wgt.       7,906
+
+50%     6.842698                      Mean           6.863347
+                        Largest       Std. dev.      2.075814
+75%     8.160256       13.81065
+90%     9.548758       13.88633       Variance       4.309003
+95%     10.40942       13.98392       Skewness       .1579094
+99%     12.13747       14.49155       Kurtosis       3.075164
+
+. tabstat lnmktcap, by(ca) stat(mean sd n)
+
+Summary for variables: lnmktcap
+Group variable: ca (=1 if HQ in California on 30 Sep 2018 (0 = Texas))
+
+      ca |      Mean        SD         N
+---------+------------------------------
+       0 |  6.884205  1.996067      3450
+       1 |  6.847197  2.135595      4456
+---------+------------------------------
+   Total |  6.863347  2.075814      7906
+----------------------------------------
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 2. The reduced-form regressions (this is your main result)
+. *    areg ..., absorb(gvkey) = firm fixed effects
+. *    Standard errors clustered by firm in every column.
+. *----------------------------------------------------------------------------
+> ---
+. gen caXpost = ca * post
+
+. label var caXpost "CA x Post"
+
+. assert caXpost == ca_post
+
+. 
+. * (1) no fixed effects
+. reg lnmktcap ca post caXpost, vce(cluster gvkey)
+
+Linear regression                               Number of obs     =      7,906
+                                                F(3, 1300)        =      15.83
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0057
+                                                Root MSE          =     2.0703
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.2227993   .1339979    -1.66   0.097    -.4856751    .0400766
+        post |  -.2308752     .06693    -3.45   0.001    -.3621779   -.0995726
+     caXpost |   .6368303   .0954402     6.67   0.000     .4495965    .8240641
+       _cons |   6.950925     .09799    70.94   0.000     6.758689    7.143161
+------------------------------------------------------------------------------
+
+. estimates store r1
+
+. test caXpost
+
+ ( 1)  caXpost = 0
+
+       F(  1,  1300) =   44.52
+            Prob > F =    0.0000
+
+. 
+. * (2) firm fixed effects  <-- your equation
+. areg lnmktcap post caXpost, absorb(gvkey) vce(cluster gvkey)
+
+Linear regression, absorbing indicators             Number of obs     =  7,906
+Absorbed variable: gvkey                            No. of categories =  1,301
+                                                    F(2, 1300)        =  63.32
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9244
+                                                    Adj R-squared     = 0.9095
+                                                    Root MSE          = 0.6245
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        post |  -.0652563   .0504253    -1.29   0.196    -.1641802    .0336677
+     caXpost |   .5845649   .0685611     8.53   0.000     .4500622    .7190675
+       _cons |   6.785725   .0099706   680.58   0.000     6.766165    6.805285
+------------------------------------------------------------------------------
+
+. estimates store r2
+
+. test caXpost
+
+ ( 1)  caXpost = 0
+
+       F(  1,  1300) =   72.70
+            Prob > F =    0.0000
+
+. 
+. * (3) firm AND year fixed effects (i.pyear absorbs Post)
+. areg lnmktcap caXpost i.pyear, absorb(gvkey) vce(cluster gvkey)
+
+Linear regression, absorbing indicators             Number of obs     =  7,906
+Absorbed variable: gvkey                            No. of categories =  1,301
+                                                    F(10, 1300)       =  44.66
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9290
+                                                    Adj R-squared     = 0.9149
+                                                    Root MSE          = 0.6056
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     caXpost |   .4910016    .062456     7.86   0.000      .368476    .6135271
+             |
+       pyear |
+       2012  |   .0651144   .0213415     3.05   0.002     .0232467     .106982
+       2013  |   .3782659   .0288469    13.11   0.000     .3216742    .4348575
+       2014  |   .4140858   .0350157    11.83   0.000     .3453924    .4827793
+       2015  |   .3034195   .0418657     7.25   0.000     .2212878    .3855513
+       2016  |   .3616051   .0433085     8.35   0.000      .276643    .4465673
+       2017  |   .5300882   .0473718    11.19   0.000     .4371546    .6230219
+       2018  |   .2668263   .0577409     4.62   0.000     .1535507    .3801019
+       2019  |   .3293166   .0647136     5.09   0.000     .2023621    .4562711
+       2020  |   .4592775   .0711313     6.46   0.000     .3197329    .5988221
+             |
+       _cons |   6.467342    .033162   195.02   0.000     6.402286    6.532399
+------------------------------------------------------------------------------
+
+. estimates store r3
+
+. test caXpost
+
+ ( 1)  caXpost = 0
+
+       F(  1,  1300) =   61.80
+            Prob > F =    0.0000
+
+. 
+. * side-by-side table
+. estimates table r1 r2 r3, keep(ca post caXpost) b(%9.4f) se(%9.4f) ///
+>     stats(N r2) title("Reduced form: ln(mktcap) on CA x Post")
+
+Reduced form: ln(mktcap) on CA x Post
+
+--------------------------------------------------
+    Variable |    r1          r2          r3      
+-------------+------------------------------------
+          ca |   -0.2228                          
+             |    0.1340                          
+        post |   -0.2309     -0.0653              
+             |    0.0669      0.0504              
+     caXpost |    0.6368      0.5846      0.4910  
+             |    0.0954      0.0686      0.0625  
+-------------+------------------------------------
+           N |      7906        7906        7906  
+          r2 |    0.0057      0.9244      0.9290  
+--------------------------------------------------
+                                      Legend: b/se
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 3. MAIN GRAPH: average ln(market cap), by state and year, with 95% CIs
+. *----------------------------------------------------------------------------
+> ---
+. preserve
+
+. collapse (mean) lnmktcap (semean) se_y=lnmktcap, by(ca pyear)
+
+. gen upper = lnmktcap + 1.96*se_y
+
+. gen lower = lnmktcap - 1.96*se_y
+
+. 
+. gr two (line lnmktcap pyear if ca==1) ///
+>        (line lnmktcap pyear if ca==0, xline(2017.5, lp(dash))) ///
+>        (rcap upper lower pyear if ca==1) ///
+>        (rcap upper lower pyear if ca==0), ///
+>     legend(label(1 "California") label(2 "Texas") order(1 2)) ///
+>     xlabel(`firstyr'(1)`lastyr') ///
+>     xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies fro
+> m FY2018)") ///
+>     ytitle("Average ln(market capitalization)") ///
+>     title("Firm Value Before and After California SB 826", size(medium)) ///
+>     note("Listed firms headquartered in CA (treated) or TX (comparison) on 30
+>  Sep 2018. Bars show 95% confidence intervals.")
+
+. graph export "output/figures/means_lnmktcap_boardsample.png", replace width(2
+> 000)
+(file output/figures/means_lnmktcap_boardsample.png not found)
+file output/figures/means_lnmktcap_boardsample.png written in PNG format
+
+. graph save   "output/figures/means_lnmktcap_boardsample.gph", replace
+(file output/figures/means_lnmktcap_boardsample.gph not found)
+file output/figures/means_lnmktcap_boardsample.gph saved
+
+. restore
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 4. SECONDARY GRAPH: event study (firm fixed effects + year dummies)
+. *    Year dummies are year fixed effects; firm FE absorb CA, so "ca" is omitt
+> ed.
+. *    Each CA x year coefficient = CA-TX gap in ln(mktcap) in that year minus 
+> the
+. *    gap in 2017.
+. *----------------------------------------------------------------------------
+> ---
+. forvalues t = `firstyr'/`lastyr' {
+  2.     if `t' != `refyr' {
+  3.         gen yrdum`t'    = (pyear == `t')
+  4.         gen caXyrdum`t' = ca * yrdum`t'
+  5.     }
+  6. }
+
+. 
+. areg lnmktcap yrdum* caXyrdum*, absorb(gvkey) vce(cluster gvkey)
+
+Linear regression, absorbing indicators             Number of obs     =  7,906
+Absorbed variable: gvkey                            No. of categories =  1,301
+                                                    F(18, 1300)       =  34.99
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9320
+                                                    Adj R-squared     = 0.9184
+                                                    Root MSE          = 0.5931
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   yrdum2011 |  -.3073444    .071165    -4.32   0.000    -.4469552   -.1677337
+   yrdum2012 |  -.2085403   .0624175    -3.34   0.001    -.3309903   -.0860903
+   yrdum2013 |   .0841009   .0559977     1.50   0.133    -.0257548    .1939566
+   yrdum2014 |   .0031319   .0495519     0.06   0.950    -.0940786    .1003424
+   yrdum2015 |  -.2306885   .0440955    -5.23   0.000    -.3171946   -.1441824
+   yrdum2016 |   -.079311   .0314432    -2.52   0.012    -.1409961    -.017626
+   yrdum2018 |  -.1755896   .0352378    -4.98   0.000    -.2447187   -.1064604
+   yrdum2019 |  -.0704397   .0479778    -1.47   0.142     -.164562    .0236827
+   yrdum2020 |   -.201794   .0630076    -3.20   0.001    -.3254017   -.0781863
+caXyrdum2011 |  -.4162558   .0935244    -4.45   0.000     -.599731   -.2327805
+caXyrdum2012 |  -.4755571   .0838457    -5.67   0.000    -.6400447   -.3110695
+caXyrdum2013 |  -.4340089   .0748297    -5.80   0.000    -.5808091   -.2872088
+caXyrdum2014 |  -.2218548   .0663626    -3.34   0.001    -.3520443   -.0916654
+caXyrdum2015 |   .0019719   .0591184     0.03   0.973     -.114006    .1179497
+caXyrdum2016 |  -.1615548   .0443139    -3.65   0.000    -.2484894   -.0746202
+caXyrdum2018 |   .2107909   .0495629     4.25   0.000     .1135589    .3080229
+caXyrdum2019 |   .2644524   .0652899     4.05   0.000     .1363673    .3925374
+caXyrdum2020 |   .7214668   .0852678     8.46   0.000     .5541893    .8887443
+       _cons |   7.000263    .021284   328.90   0.000     6.958509    7.042018
+------------------------------------------------------------------------------
+
+. 
+. * joint test of no pre-trends (all pre-period interactions = 0)
+. local pretest ""
+
+. forvalues t = `firstyr'/`=`refyr'-1' {
+  2.     local pretest `pretest' caXyrdum`t'
+  3. }
+
+. test `pretest'
+
+ ( 1)  caXyrdum2011 = 0
+ ( 2)  caXyrdum2012 = 0
+ ( 3)  caXyrdum2013 = 0
+ ( 4)  caXyrdum2014 = 0
+ ( 5)  caXyrdum2015 = 0
+ ( 6)  caXyrdum2016 = 0
+
+       F(  6,  1300) =   12.46
+            Prob > F =    0.0000
+
+. 
+. * store coefficients and standard errors by year
+. gen slope = 0          // reference year stays at 0
+
+. gen se    = .          // and has no standard error (no CI drawn)
+(7,906 missing values generated)
+
+. forvalues t = `firstyr'/`lastyr' {
+  2.     if `t' != `refyr' {
+  3.         replace slope = _b[caXyrdum`t'] if pyear == `t'
+  4.         replace se    = _se[caXyrdum`t'] if pyear == `t'
+  5.     }
+  6. }
+(744 real changes made)
+(744 real changes made)
+(751 real changes made)
+(751 real changes made)
+(760 real changes made)
+(760 real changes made)
+(800 real changes made)
+(800 real changes made)
+(810 real changes made)
+(810 real changes made)
+(787 real changes made)
+(787 real changes made)
+(794 real changes made)
+(794 real changes made)
+(821 real changes made)
+(821 real changes made)
+(847 real changes made)
+(847 real changes made)
+
+. 
+. * check the numbers before plotting (reference year should be 0 with no se)
+. tabstat slope se, by(pyear) stat(mean) nototal
+
+Summary statistics: Mean
+Group variable: pyear (Fiscal year (calendar year of fiscal year end))
+
+   pyear |     slope        se
+---------+--------------------
+    2011 | -.4162558  .0935244
+    2012 | -.4755571  .0838457
+    2013 | -.4340089  .0748297
+    2014 | -.2218548  .0663626
+    2015 |  .0019719  .0591184
+    2016 | -.1615548  .0443139
+    2017 |         0         .
+    2018 |  .2107909  .0495629
+    2019 |  .2644524  .0652899
+    2020 |  .7214668  .0852678
+------------------------------
+
+. 
+. preserve
+
+. collapse (mean) slope se, by(pyear)
+
+. gen upper = slope + 1.96*se
+(1 missing value generated)
+
+. gen lower = slope - 1.96*se
+(1 missing value generated)
+
+. 
+. gr two (scatter slope pyear, yline(0, lc(black))) ///
+>        (rcap upper lower pyear, xline(2017.5, lp(dash))), ///
+>     legend(off) ///
+>     xlabel(`firstyr'(1)`lastyr') ///
+>     xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies fro
+> m FY2018)") ///
+>     ytitle("CA - TX difference in ln(market cap), relative to 2017") ///
+>     title("Reduced Form Event Study" "California SB 826 (Board Gender Quota)"
+> , size(medium)) ///
+>     note("Firm-year data, CA vs. TX, firm and year fixed effects. 2017 (last 
+> fully pre-law year) is the omitted year." ///
+>          "Bars show 95% confidence intervals, standard errors clustered by fi
+> rm. Dashed line = SB 826 signed 30 Sep 2018.")
+
+. graph export "output/figures/reduced_form_lnmktcap.png", replace width(2000)
+file output/figures/reduced_form_lnmktcap.png written in PNG format
+
+. graph save   "output/figures/reduced_form_lnmktcap.gph", replace
+file output/figures/reduced_form_lnmktcap.gph saved
+
+. restore
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/11_graphs_reduced_form.log
+  log type:  text
+ closed on:  17 Nov 2026, 17:13:34
+-------------------------------------------------------------------------------
