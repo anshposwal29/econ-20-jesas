@@ -1,3 +1,4 @@
+
 clear all
 set more off
 cd "C:\Users\shinz\OneDrive\Desktop\Econ20 FinalProject"
@@ -8,142 +9,216 @@ log using "did_log.log", replace text
 use "final_data.dta", clear
 
 *==============================================================
-* SETUP: two-period DiD, fiscal year end 2018 (pre) vs 2019 (post)
+* SETUP: 2018 PRE vs. 2019-2020 POST
 *==============================================================
-encode gvkey, gen(firm_id)
 
+encode gvkey, gen(firm_id)
 gen fyr = fyeyear
 
-* Detrending: fit CA-specific linear trend on pre-law years (before 2018), then take residuals
-gen ca_year = ca*fyr
-reg lnmktcap ca i.fyr ca_year if fyr < 2018, cluster(firm_id)
-predict lnmktcap_hat, resid
 *==============================================================
-* TABLE 4: Pretrends
+* DETRENDING: FIT CALIFORNIA-SPECIFIC TREND THROUGH 2018
 *==============================================================
 
-* Generate California x year interactions
-forvalues y = 2010/2017 {
+gen yeartrend = fyr - 2011
+reg lnmktcap ca i.fyr i.ca#c.yeartrend if fyr < 2019, ///
+    cluster(firm_id)
+
+predict lnmktcap_hat, resid
+
+*==============================================================
+* TABLE 4: PRETRENDS
+*==============================================================
+
+forvalues y = 2011/2017 {
     gen ca_yr`y' = ca * (fyr == `y')
 }
-areg lnmktcap ca_yr2010-ca_yr2017 i.fyr ///
-    if fyr >= 2010 & fyr <= 2018, ///
-    absorb(firm_id) vce(cluster firm_id)
+
+areg lnmktcap ca_yr2011-ca_yr2017 i.fyr ///
+    if fyr >= 2011 & fyr <= 2018, ///
+    absorb(firm_id) cluster(firm_id)
 
 outreg2 using did_table4, excel replace dec(3) ///
-    keep(ca_yr2010-ca_yr2017) ///
+    keep(ca_yr2011-ca_yr2017) ///
     ctitle("(1) Pretrend coefficients") ///
     addtext(Firm FE, Yes, Year FE, Yes)
-	
-test ca_yr2010 ca_yr2011 ca_yr2012 ca_yr2013 ///
+
+test ca_yr2011 ca_yr2012 ca_yr2013 ///
      ca_yr2014 ca_yr2015 ca_yr2016 ca_yr2017
 
-*==================================================================
+*==============================================================
 * TWO-PERIOD DID SAMPLE
-*==================================================================
-keep if fyr==2018 | fyr==2019
+* 2018 PRE; 2019 AND 2020 POST
+*==============================================================
 
-gen post19    = (fyr==2019)
-gen ca_post19 = ca*post19
+keep if fyr == 2018 | fyr == 2019 | fyr == 2020
 
-gen onewoman   = (women >= 1) if women ~= .
-gen sharewoman = women / boardsize if women ~= . & boardsize ~= . & boardsize > 0
+gen post19 = (fyr >= 2019)
+gen ca_post19 = ca * post19
 
-gen woman_obs = (women >= 1) if fyr==2018
+gen onewoman = (women >= 1) if women != .
+gen sharewoman = women / boardsize if women != . ///
+    & boardsize != . & boardsize > 0
+
+* Identify firms with at least one woman in 2018
+gen woman_obs = (women >= 1) if fyr == 2018
 bysort firm_id: egen woman18 = max(woman_obs)
 
-
 *==============================================================
-* TABLE 1: MAIN DiD RESULTS
+* TABLE 1: MAIN DID RESULTS
+*==============================================================
+
 * (1) DiD, no controls
-* (2) DiD, controls
-* (3) Detrended DiD, no controls
-* (4) Detrended DiD, controls
-*==============================================================
+areg lnmktcap ca_post19 i.fyr, ///
+    absorb(firm_id) cluster(firm_id)
 
-reg lnmktcap ca post19 ca_post19, cluster(firm_id)
 outreg2 using did_table1, excel replace dec(3) ///
-    keep(ca post19 ca_post19) ///
-    ctitle("(1) lnmktcap") addtext(Controls, No, Detrended, No)
+    keep(ca_post19) ///
+    ctitle("(1) lnmktcap") ///
+    addtext(Firm FE, Yes, Year FE, Yes, Controls, No, Detrended, No)
 
-reg lnmktcap ca post19 ca_post19 lnassets roa leverage multinational, cluster(firm_id)
+
+* (2) DiD, controls
+areg lnmktcap ca_post19 i.fyr ///
+    lnassets roa leverage multinational, ///
+    absorb(firm_id) cluster(firm_id)
+
 outreg2 using did_table1, excel append dec(3) ///
-    keep(ca post19 ca_post19 lnassets roa leverage multinational) ///
-    ctitle("(2) lnmktcap") addtext(Controls, Yes, Detrended, No)
+    keep(ca_post19 lnassets roa leverage multinational) ///
+    ctitle("(2) lnmktcap") ///
+    addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes, Detrended, No)
 
-reg lnmktcap_hat ca post19 ca_post19, cluster(firm_id)
+
+* (3) Detrended DiD, no controls
+areg lnmktcap_hat ca_post19 i.fyr, ///
+    absorb(firm_id) cluster(firm_id)
+
 outreg2 using did_table1, excel append dec(3) ///
-    keep(ca post19 ca_post19) ///
-    ctitle("(3) lnmktcap") addtext(Controls, No, Detrended, Yes)
+    keep(ca_post19) ///
+    ctitle("(3) lnmktcap") ///
+    addtext(Firm FE, Yes, Year FE, Yes, Controls, No, Detrended, Yes)
 
-reg lnmktcap_hat ca post19 ca_post19 lnassets roa leverage multinational, cluster(firm_id)
+
+* (4) Detrended DiD, controls
+areg lnmktcap_hat ca_post19 i.fyr ///
+    lnassets roa leverage multinational, ///
+    absorb(firm_id) cluster(firm_id)
+
 outreg2 using did_table1, excel append dec(3) ///
-    keep(ca post19 ca_post19 lnassets roa leverage multinational) ///
-    ctitle("(4) lnmktcap") addtext(Controls, Yes, Detrended, Yes)
-
+    keep(ca_post19 lnassets roa leverage multinational) ///
+    ctitle("(4) lnmktcap") ///
+    addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes, Detrended, Yes)
 
 *==============================================================
 * TABLE 2: PLACEBO TEST
 * Sample: Companies with at least one woman on board in 2018
-* (1) No controls
-* (2) Controls
-* (3) Detrended
 *==============================================================
 
-reg lnmktcap ca post19 ca_post19 if woman18==1, cluster(firm_id)
+* (1) No controls
+areg lnmktcap ca_post19 i.fyr if woman18 == 1, ///
+    absorb(firm_id) cluster(firm_id)
+
 outreg2 using did_table2, excel replace dec(3) ///
-    keep(ca post19 ca_post19) ///
-    ctitle("(1) Placebo") addtext(Controls, No, Detrended, No)
+    keep(ca_post19) ///
+    ctitle("(1) lnmktcap") ///
+    addtext(Firm FE, Yes, Year FE, Yes, Controls, No)
 
-reg lnmktcap ca post19 ca_post19 lnassets roa leverage multinational if woman18==1, cluster(firm_id)
-outreg2 using did_table2, excel append dec(3) ///
-    keep(ca post19 ca_post19 lnassets roa leverage multinational) ///
-    ctitle("(2) Placebo") addtext(Controls, Yes, Detrended, No)
+* (2) Controls
+areg lnmktcap ca_post19 i.fyr ///
+    lnassets roa leverage multinational if woman18 == 1, ///
+    absorb(firm_id) cluster(firm_id)
 
-reg lnmktcap_hat ca post19 ca_post19 lnassets roa leverage multinational if woman18==1, cluster(firm_id)
 outreg2 using did_table2, excel append dec(3) ///
-    keep(ca post19 ca_post19 lnassets roa leverage multinational) ///
-    ctitle("(3) Placebo") addtext(Controls, Yes, Detrended, Yes)
+    keep(ca_post19 lnassets roa leverage multinational) ///
+    ctitle("(2) lnmktcap") ///
+    addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
+
+* (3) Detrended, with controls
+areg lnmktcap_hat ca_post19 i.fyr ///
+    lnassets roa leverage multinational if woman18 == 1, ///
+    absorb(firm_id) cluster(firm_id)
+
+outreg2 using did_table2, excel append dec(3) ///
+    keep(ca_post19 lnassets roa leverage multinational) ///
+    ctitle("(3) lnmktcap") ///
+    addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes, Detrended, Yes)
 
 
 *==============================================================
 * TABLE 3: FIRST STAGE, REDUCED FORM, AND IV
-* (1) First stage: One woman
-* (2) First stage: Share women
-* (3) Reduced form
-* (4) IV: One woman
-* (5) IV: Share women
 *==============================================================
+* (1) First stage: One woman
 
-reg onewoman ca post19 ca_post19 lnassets roa leverage multinational, cluster(firm_id)
+reg onewoman ca post19 ca_post19 ///
+    lnassets roa leverage multinational, cluster(firm_id)
+
 test ca_post19
+
 outreg2 using did_table3, excel replace dec(3) ///
     keep(ca post19 ca_post19) ///
-    ctitle("(1) First stage: One woman") addtext(Controls, Yes) ///
+    ctitle("(1) First stage: One woman") ///
+    addtext(Controls, Yes) ///
     addstat(First-stage F, r(F))
 
-reg sharewoman ca post19 ca_post19 lnassets roa leverage multinational, cluster(firm_id)
+
+* (2) First stage: Share women
+
+reg sharewoman ca post19 ca_post19 ///
+    lnassets roa leverage multinational, cluster(firm_id)
+
 test ca_post19
+
 outreg2 using did_table3, excel append dec(3) ///
     keep(ca post19 ca_post19) ///
-    ctitle("(2) First stage: Share women") addtext(Controls, Yes) ///
+    ctitle("(2) First stage: Share women") ///
+    addtext(Controls, Yes) ///
     addstat(First-stage F, r(F))
 
-reg lnmktcap ca post19 ca_post19 lnassets roa leverage multinational if onewoman ~= ., cluster(firm_id)
+
+* (3) Reduced form
+
+reg lnmktcap ca post19 ca_post19 ///
+    lnassets roa leverage multinational if onewoman != ., ///
+    cluster(firm_id)
+
 outreg2 using did_table3, excel append dec(3) ///
     keep(ca post19 ca_post19) ///
-    ctitle("(3) Reduced form") addtext(Controls, Yes)
+    ctitle("(3) Reduced form") ///
+    addtext(Controls, Yes)
 
-ivregress 2sls lnmktcap ca post19 lnassets roa leverage multinational ///
-    (onewoman = ca_post19), vce(cluster firm_id)
+
+* (4) IV: One woman
+
+ivreg lnmktcap ca post19 ///
+    lnassets roa leverage multinational ///
+    (onewoman = ca_post19), cluster(firm_id)
+
 outreg2 using did_table3, excel append dec(3) ///
     keep(onewoman ca post19) ///
-    ctitle("(4) IV: One woman") addtext(Controls, Yes)
+    ctitle("(4) IV: One woman") ///
+    addtext(Controls, Yes)
 
-ivregress 2sls lnmktcap ca post19 lnassets roa leverage multinational ///
-    (sharewoman = ca_post19), vce(cluster firm_id)
+
+* (5) IV: Share women
+
+ivreg lnmktcap ca post19 ///
+    lnassets roa leverage multinational ///
+    (sharewoman = ca_post19), cluster(firm_id)
+
 outreg2 using did_table3, excel append dec(3) ///
     keep(sharewoman ca post19) ///
-    ctitle("(5) IV: Share women") addtext(Controls, Yes)
+    ctitle("(5) IV: Share women") ///
+    addtext(Controls, Yes)
+
+* (6) DETRENDED IV: Share women
+
+ivreg lnmktcap_hat ca post19 ///
+    lnassets roa leverage multinational ///
+    (sharewoman = ca_post19), cluster(firm_id)
+
+outreg2 using did_table3, excel append dec(3) ///
+    keep(sharewoman ca post19) ///
+    ctitle("(7) Detrended IV: Share women") ///
+    addtext(Controls, Yes, Detrended, Yes)
+
 
 log close
