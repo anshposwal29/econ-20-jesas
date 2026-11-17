@@ -26,6 +26,9 @@ log using "logs/02_balance_test.log", replace text
 use "final_data.dta", clear
 * the paper uses fiscal years 2011-2020 everywhere
 keep if fyeyear >= 2011 & fyeyear <= 2020
+* pre = fiscal years 2011-2018, post = fiscal years 2019-2020
+replace post = (fyeyear >= 2019)
+replace ca_post = ca*post
 
 * Balance test variables (chosen in 01b_collinearity_tests.do).
 * age_missing and pifo_missing show how often age and foreign income are blank.

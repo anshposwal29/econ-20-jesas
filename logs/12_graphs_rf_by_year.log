@@ -3,7 +3,7 @@
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/12_graphs_rf_by_year.log
   log type:  text
- opened on:  17 Nov 2026, 17:13:34
+ opened on:  17 Nov 2026, 18:15:59
 
 . 
 . use "final_data.dta", clear
@@ -55,6 +55,13 @@
 . gen pyear = fyeyear
 
 . label var pyear "Fiscal year (calendar year of fiscal year end)"
+
+. * pre = fiscal years 2011-2018, post = fiscal years 2019-2020
+. replace post = (pyear >= 2019)
+(636 real changes made)
+
+. replace ca_post = ca*post
+(335 real changes made)
 
 . 
 . * Settings you can change ---------------------------------------------------
@@ -232,11 +239,11 @@ fiscal year |
  52.     gen lower = slope - 1.96*se
  53. 
 .     gr two (scatter slope pyear, yline(0, lc(black))) ///
->            (rcap upper lower pyear, xline(2017.5, lp(dash))), ///
+>            (rcap upper lower pyear, xline(2018.5, lp(dash))), ///
 >         legend(off) ///
 >         xlabel(`firstyr'(1)`lastyr') ///
->         xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies
->  from FY2018)") ///
+>         xtitle("Fiscal year (calendar year of fiscal year end; 2019 = first y
+> ear after SB 826)") ///
 >         ytitle("Coefficient on `xt' (outcome: ln market cap)") ///
 >         title("Reduced Form by Year" "ln(market cap) on `xt'", size(medium)) 
 > ///
@@ -578,5 +585,5 @@ file output/figures/lnmktcap_onewm_byyear.gph saved
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/12_graphs_rf_by_year.log
   log type:  text
- closed on:  17 Nov 2026, 17:13:40
+ closed on:  17 Nov 2026, 18:16:04
 -------------------------------------------------------------------------------

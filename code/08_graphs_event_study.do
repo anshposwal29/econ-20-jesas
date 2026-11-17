@@ -16,8 +16,8 @@
 
 * Eloise's graph script (was code/archive/Graph_and_EventStudy.do), now on fiscal years 2011-2020
 * like every other script. Changed: folder lines, the year variable (fiscal year
-* instead of policy year), the end year (2020) and the reference year (2017, as in
-* 07_panel_event_study_graphs.do). Everything else is Eloise's code.
+* instead of policy year), the end year (2020), and post = fiscal years 2019-2020.
+* Everything else is Eloise's code.
 cap log close
 clear all
 set more off
@@ -39,14 +39,16 @@ use "final_data.dta", clear
 *-------------------------------------------------------------------------------
 * 1. Define the event-time "year"
 *-------------------------------------------------------------------------------
-* SB 826 was signed 30 Sep 2018. Fiscal year 2018 mixes pre and post firms (a June
-* 2018 year-end is pre, a Dec 2018 year-end is post), so 2017 is the reference year.
+* SB 826 was signed 30 Sep 2018. Pre = fiscal years 2011-2018, post = 2019-2020.
 * year = fiscal year (calendar year of the fiscal year end), as in the other scripts
 gen pyear = fyeyear
 label var pyear "Fiscal year (calendar year of fiscal year end)"
+* pre = fiscal years 2011-2018, post = fiscal years 2019-2020
+replace post = (pyear >= 2019)
+replace ca_post = ca*post
 
 * Settings you can change -------------------------------------------------------
-local refyr   2017     // omitted (reference) year = last fully pre-law fiscal year
+local refyr   2018     // omitted (reference) year = last pre-law year
 local firstyr 2011
 local lastyr  2020
 * To show only the pre-COVID window instead, use:  keep if mainwindow == 1
@@ -102,15 +104,15 @@ collapse (mean) slope se, by(pyear)
 gen upper = slope + 1.96*se
 gen lower = slope - 1.96*se
 
-* vertical line sits between the last fully pre-law year (2017) and 2018
+* vertical line sits between the last pre year (2018) and first post year (2019)
 gr two (scatter slope pyear, yline(0, lc(black))) ///
-       (rcap upper lower pyear, xline(2017.5, lp(dash))), ///
+       (rcap upper lower pyear, xline(2018.5, lp(dash))), ///
     legend(off) ///
     xlabel(`firstyr'(1)`lastyr') ///
-    xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies from FY2018)") ///
-    ytitle("CA - TX difference in ln(market cap), relative to 2017") ///
+    xtitle("Fiscal year (calendar year of fiscal year end; 2019 = first year after SB 826)") ///
+    ytitle("CA - TX difference in ln(market cap), relative to 2018") ///
     title("ln(Market Cap) Event Study" "California SB 826 (Board Gender Quota)", size(medium)) ///
-    note("Firm-year data, CA vs. TX. Texas is the comparison group; 2017 (last fully pre-law year) is the omitted year." ///
+    note("Firm-year data, CA vs. TX. Texas is the comparison group; 2018 (last pre-law year) is the omitted year." ///
          "Bars show 95% confidence intervals, standard errors clustered by firm. Dashed line = SB 826 signed 30 Sep 2018.")
 graph export "output/figures/event_study_lnmktcap.png", replace width(2000)
 graph save   "output/figures/event_study_lnmktcap.gph", replace
@@ -126,12 +128,12 @@ gen upper = lnmktcap + 1.96*se_lnmktcap
 gen lower = lnmktcap - 1.96*se_lnmktcap
 
 gr two (line lnmktcap pyear if ca==1) ///
-       (line lnmktcap pyear if ca==0, xline(2017.5, lp(dash))) ///
+       (line lnmktcap pyear if ca==0, xline(2018.5, lp(dash))) ///
        (rcap upper lower pyear if ca==1) ///
        (rcap upper lower pyear if ca==0), ///
     legend(label(1 "California") label(2 "Texas") order(1 2)) ///
     xlabel(`firstyr'(1)`lastyr') ///
-    xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies from FY2018)") ///
+    xtitle("Fiscal year (calendar year of fiscal year end; 2019 = first year after SB 826)") ///
     ytitle("Mean ln(market cap, $ millions)") ///
     title("Mean ln(Market Cap) Before and After California SB 826", size(medium)) ///
     note("Listed firms headquartered in CA (treated) or TX (comparison) on 30 Sep 2018. Bars show 95% confidence intervals.")

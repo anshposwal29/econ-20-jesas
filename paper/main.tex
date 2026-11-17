@@ -3,6 +3,8 @@
 % by build_overleaf.sh (the do-files and code/03_table1_format.py write them there).
 % After rerunning the code: bash paper/build_overleaf.sh, then upload paper/overleaf.zip.
 % Compile locally from this folder with: tectonic main.tex
+% NOTE: tables and figures are current (2011-2020, pre = 2011-2018, post = 2019-2020).
+% The Results text still describes the old two-year numbers and needs rewriting.
 \documentclass[12pt]{article}
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath}
@@ -41,7 +43,7 @@ In recent years there has been a societal, political, and cultural push towards 
 
 The economic arguments surrounding the effect of women directors revolve around financial consequences. Opponents of quotas argue that the number of qualified women directors is too small, and that an underqualified woman's appointment would harm the firm's financial performance. In Norway, the quota did lead to younger and less experienced boards (Ahern and Dittmar, 2012). Proponents of quotas argue that more diverse boards monitor managers more closely, which could raise firm value (Adams and Ferreira, 2009). A third possibility is that the law did little to change the share of women on boards. In Norway, penalties for failing to satisfy quotas gradually grew more extreme over a period of four years when companies that didn't comply were threatened with dissolution. SB 826, however, listed the penalty for non-compliance as \$100,000 for the first-time offense, and \$300,000 going forward.
 
-We study this question with a difference-in-differences design that compares listed firms headquartered in California with listed firms headquartered in Texas. We use annual financial and stock market data from Compustat, merged with board composition data from BoardEx for fiscal years 2010 through 2019. Texas is a large state with many public companies and no board gender quota. Our outcome is the natural log of each firm's market capitalization at the fiscal year's end. Our main estimates compare two things: how California firms' market capitalization changed between fiscal year 2018, when the law was signed, and fiscal year 2019, when the first requirement took effect, with how Texas firms' market capitalization changed over those two years. We estimate this by ordinary least squares, with and without controls for firm size, profitability, leverage, and multinational status, and cluster standard errors by firm. For this comparison to measure the law's effect, the market capitalizations of California and Texas firms must have had parallel trajectories absent SB 826. We test this assumption with an event study from 2010 to 2018 that follows each firm over time, and because the test fails, we also report estimates that remove California's pre-law trend. As a placebo test, we repeat the analysis for firms that already had a woman director in 2018 since they were unbound by the 2019 requirement. Finally, we use the law as an instrument to estimate the value of adding women directors.
+We study this question with a difference-in-differences design that compares listed firms headquartered in California with listed firms headquartered in Texas. We use annual financial and stock market data from Compustat, merged with board composition data from BoardEx for fiscal years 2011 through 2020. Texas is a large state with many public companies and no board gender quota. Our outcome is the natural log of each firm's market capitalization at the fiscal year's end. Our main estimates compare two things: how California firms' market capitalization changed between fiscal year 2018, when the law was signed, and fiscal year 2019, when the first requirement took effect, with how Texas firms' market capitalization changed over those two years. We estimate this by ordinary least squares, with and without controls for firm size, profitability, leverage, and multinational status, and cluster standard errors by firm. For this comparison to measure the law's effect, the market capitalizations of California and Texas firms must have followed parallel paths absent SB 826. We test this assumption with an event study that follows each firm from 2011 to 2018. Because the test fails, we also report estimates that remove California's pre-law trend. We then extend the analysis in two ways: an event study that runs through 2020, and a version of our comparison with firm and year fixed effects that extends the post-law period through 2020. As a placebo test, we repeat the analysis for firms that already had a woman director in 2018 since they were unbound by the 2019 requirement. Finally, we use the law as an instrument to estimate the value of adding women directors.
 
 % TODO (required): paragraph summarizing the findings, with the size of the main estimates.
 
@@ -55,7 +57,7 @@ To analyze the impact of the California's Women on Boards law (SB 826) on market
 \ln(\text{mktcap})_{it} = b_0 + b_1 \text{Post}_t + b_2 (\text{CA}_i \times \text{Post}_t) + a_i + u_{it}
 \label{eq:did}
 \end{equation}
-Our dependent variable is the log market cap of a certain company $i$ at year $t$ (\texttt{lnmktcap} in our code). We estimate this using two variables: California ($\text{CA}_i$), a dummy indicating whether a company is based in California (instead of Texas) and a dummy variable for after the policy (Post) which equals 1 if the firm's fiscal year ended on or after October 1, 2018, the day after SB 826 was signed into law, and 0 otherwise. The California main effect is omitted since we control for company fixed effects ($a_i$). The means and standard deviations of the main variables used in the analysis are shown in Table~\ref{tab:means}.
+Our dependent variable is the log market cap of a certain company $i$ at year $t$ (\texttt{lnmktcap} in our code). We estimate this using two variables: California ($\text{CA}_i$), a dummy indicating whether a company is based in California (instead of Texas) and a dummy variable for after the policy (Post) which equals 1 for fiscal years 2019 and 2020, and 0 for fiscal years 2011 through 2018. The California main effect is omitted since we control for company fixed effects ($a_i$). The means and standard deviations of the main variables used in the analysis are shown in Table~\ref{tab:means}.
 
 We assume that absent the Women on Boards law in California, the market capitalization of companies would have increased by the same proportion in California and Texas. We calculate our standard errors to be robust to heteroskedasticity and autocorrelation by clustering on companies.
 
@@ -72,7 +74,7 @@ Our second assumption is that CA $\times$ Post is uncorrelated with any third fa
 \caption{Means and Balance Test: California vs.\ Texas, Before and After SB 826}
 \label{tab:means}
 \adjustbox{max width=\textwidth, max height=0.62\textheight}{\input{tables/Table1_means_balance.tex}}
-\tablenotes{Notes: Sample is firms headquartered in California or Texas on 30 September 2018, listed on the NYSE, AMEX or Nasdaq, excluding funds, trusts and shell companies (SIC 67xx) and firm-years with under \$1 million of total assets. ``Before'' is fiscal years ending January 2011 to September 2018; ``After'' is fiscal years ending October 2018 to December 2020. Columns (1)--(4) report unweighted means with standard deviations in brackets. Column (5) is the coefficient on a California dummy from a regression of the row variable on that dummy, before-the-law sample only. Column (6) is the coefficient on California $\times$ After from a regression of the row variable on California, After and their interaction, full sample. Standard errors in columns (5) and (6) are in parentheses and clustered by firm. Market cap is fiscal-year-end price times shares outstanding. Multinational equals 1 if Compustat reports nonzero foreign pretax income; blank values are counted as zero, and the share blank is shown in the row below. Years since IPO is missing where Compustat has no IPO date (mostly older firms); the share missing is shown in the row below. Board variables are from BoardEx and are available for 85 percent of firm-years. Sources: Compustat North America Fundamentals Annual and BoardEx North America, via WRDS.}
+\tablenotes{Notes: Sample is firms headquartered in California or Texas on 30 September 2018, listed on the NYSE, AMEX or Nasdaq, excluding funds, trusts and shell companies (SIC 67xx) and firm-years with under \$1 million of total assets. ``Before'' is fiscal years 2011 to 2018; ``After'' is fiscal years 2019 and 2020 (fiscal year = calendar year of the fiscal year end). Columns (1)--(4) report unweighted means with standard deviations in brackets. Column (5) is the coefficient on a California dummy from a regression of the row variable on that dummy, before-the-law sample only. Column (6) is the coefficient on California $\times$ After from a regression of the row variable on California, After and their interaction, full sample. Standard errors in columns (5) and (6) are in parentheses and clustered by firm. Market cap is fiscal-year-end price times shares outstanding. Multinational equals 1 if Compustat reports nonzero foreign pretax income; blank values are counted as zero, and the share blank is shown in the row below. Years since IPO is missing where Compustat has no IPO date (mostly older firms); the share missing is shown in the row below. Board variables are from BoardEx and are available for 85 percent of firm-years. Sources: Compustat North America Fundamentals Annual and BoardEx North America, via WRDS.}
 \end{table}
 
 Table~\ref{tab:means} reports means and a balance test for the firm characteristics we consider for controls. Before the law (column 5), California firms were smaller (ln assets 0.79 lower), less profitable (net income over assets 10 percentage points lower), and slightly less leveraged (liabilities over total assets 5 percentage points lower). They were also more often in technology (35 versus 10 percent), almost never in oil and gas (1 versus 24 percent), and less often listed on the NYSE (22 versus 52 percent). They were more likely to report foreign income (56 versus 38 percent), though Texas firms also leave that field blank more often. Firm age and board size did not differ significantly. These differences in initial characteristics do not threaten our design by themselves since the assumption is parallel trends, not parallel levels. We also include firm fixed effects to remove any fixed differences between firms.
@@ -83,18 +85,6 @@ We address these changes in firm characteristics through firm fixed effects and 
 
 %==============================================================================
 \section{Results}
-
-%------------------------------------------------------------------------------
-\begin{table}[H]
-\centering
-\caption{Pre-trends: California $\times$ year, relative to 2018}
-\label{tab:pretrend}
-\small
-\input{tables/did_table4.tex}
-\tablenotes{Notes: Standard errors in parentheses are robust to autocorrelation within firms and to heteroskedasticity.}
-\end{table}
-
-We observe the difference in the market cap of companies in both California and Texas before the Senate Bill came into effect. From Table~\ref{tab:pretrend} we notice that in the years leading up to 2018 (2010--2017), the market cap between California and Texas was significantly different than in our reference year (2018). We find that every year (except 2015) is significantly different at the 0.01 significance level. We also see that the differences between California and Texas change over the years. Indeed, this difference in log market cap is .605 log points ($\sim$45\%) lower in 2011 than in 2018 but only .137 log points ($\sim$13\%) lower in 2017 than in 2018. This indicates that before the Senate Bill passed, market caps of companies in California and Texas were following different trajectories. This brings up an important issue as we cannot assume that the pretrends were insignificant.
 
 \begin{figure}[H]
 \centering
@@ -108,17 +98,17 @@ Figure~\ref{fig:pretrend} demonstrates how California firms' market capital were
 %------------------------------------------------------------------------------
 \begin{table}[H]
 \centering
-\caption{Event study, CA $\times$ each year, relative to 2017, 2011--2020}
+\caption{Event study, CA $\times$ each year, relative to 2018, 2011--2020}
 \label{tab:eventstudy}
 \adjustbox{max width=\textwidth, max height=0.75\textheight}{\input{tables/table_event_study.tex}}
-\tablenotes{Notes: Standard errors in parentheses are robust to autocorrelation within firms and to heteroskedasticity. 2017 is the omitted year.}
+\tablenotes{Notes: Standard errors in parentheses are robust to autocorrelation within firms and to heteroskedasticity. 2018 is the omitted year. Column (3) removes California's linear pre-law trend (estimated on 2011--2018) from ln(market cap).}
 \end{table}
 
 Table~\ref{tab:eventstudy} reports the event-study coefficients that are plotted in Figures~\ref{fig:fs} and~\ref{fig:rf}. Each coefficient is the difference between California and Texas firms in a given fiscal year, relative to the same difference in fiscal year 2017, the last fully pre-law year. We use 2017 rather than 2018 because about 80 percent of fiscal-year-2018 observations end after the law was signed, so 2018 is a partly treated year. All specifications include firm and year fixed effects, with standard errors clustered by firm. Columns (1) and (2) use the probability that a board has at least one woman as the outcome (first stage), and columns (3) and (4) use ln(market cap) (reduced form). Columns (2) and (4) subtract California's linear pre-law trend from the outcome. The bottom rows report a joint F-test that all pre-law coefficients equal zero.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{es_onewoman_overlay.png}
+\includegraphics[width=\textwidth]{es_onewoman.png}
 \caption{First Stage Event Study}
 \label{fig:fs}
 \end{figure}
@@ -137,41 +127,26 @@ Columns (3) and (4) of Table~\ref{tab:eventstudy} and Figure~\ref{fig:rf} show a
 %------------------------------------------------------------------------------
 \begin{table}[H]
 \centering
-\caption{Two-period DiD, FY2018 vs.\ FY2019}
-\label{tab:did}
-\small
-\input{tables/did_table1.tex}
-\tablenotes{Notes: Standard errors in parentheses are robust to autocorrelation within firms and to heteroskedasticity.}
-\end{table}
-
-We observe the difference in the change of company market caps between California and Texas companies before and after the Senate Bill came into effect. Table~\ref{tab:did} shows that our interaction term is significant at the 1\% level in column 1 and 2. We see that absent detrending and controls (column 1) there is a 16.8\% higher change in market capitalization for Californian companies as opposed to Texan companies from 2018 to 2019. However, when accounting for past trends and controls we see that the difference in change between Californian and Texan company market capitalization drops to 6.2\%. We must account for the preexistent difference in trends because, as we saw in Table~\ref{tab:pretrend}, the pretrends differ quite significantly. To undertake our detrending we estimate a California specific time trend using the fiscal years preceding the passing of the law from 2010--2017, controlling for year fixed effects. We then project this trend forward and subtract it from the difference in log market capitalization found. Thus, the detrended coefficients measure the deviation from the path California was already on. By re-estimating this difference in difference, we can isolate the post law effect from the earlier trends. We see that the coefficient for the interaction variable is no longer significant at the 1\% level in column 3 and with added controls in column 4, the result becomes not significant even at 10\% level. These results indicate that the change in Californian companies' market capitalization is due to outside factors rather than the number of women on the board of directors.
-
-%------------------------------------------------------------------------------
-\begin{table}[H]
-\centering
-\caption{DiD with firm and year FE, extended post = 2019 and 2020}
+\caption{DiD with firm and year FE, pre = 2011--2018, post = 2019 and 2020}
 \label{tab:panel}
 \small
 \input{tables/table2_main.tex}
 \tablenotes{Notes: Standard errors in parentheses are robust to autocorrelation within firms and to heteroskedasticity.}
 \end{table}
 
-% NOTE: the doc's version of this table has 4 columns, including a detrended,
-% no-controls column (0.148**) that no pushed do-file produces. The text below
-% still describes 4 columns; code/06_panel_tables.do gives 3.
-As SB826 is a regulation, firms may not fully respond in the first year. Therefore, we expanded the post year window but only until 2020, to eliminate COVID19 shock. In this case, the regression includes fixed effects to absorb the region and year fixed effects, and only identifies the interaction coefficient along with other controls. The results are similar to Table~\ref{tab:did}, where the regression without controls in column (1) is statistically significant in 1\% level and adding controls in column (2) is also statistically significant in 1\% level but with smaller magnitude. The coefficient for the interaction variable is significant at 5\% level in column (3) but also is not even significant in 10\% level when detrending and adding controls in column (4).
+As SB826 is a regulation, firms may not fully respond in the first year. Therefore, we expanded the post year window but only until 2020, to eliminate COVID19 shock. In this case, the regression includes fixed effects to absorb the region and year fixed effects, and only identifies the interaction coefficient along with other controls. The results are similar to \textbf{[two-year table removed]}, where the regression without controls in column (1) is statistically significant in 1\% level and adding controls in column (2) is also statistically significant in 1\% level but with smaller magnitude. The coefficient for the interaction variable is significant at 5\% level in column (3) but also is not even significant in 10\% level when detrending and adding controls in column (4).
 
 %------------------------------------------------------------------------------
 \begin{table}[H]
 \centering
-\caption{Placebo test: firms with at least one woman on the board in 2018, same DiD as Table~\ref{tab:did}}
+\caption{Placebo test: firms with at least one woman on the board in 2018, same DiD as Table~\ref{tab:panel}}
 \label{tab:placebo}
 \small
-\input{tables/did_table2.tex}
+\input{tables/table2_plcbo.tex}
 \tablenotes{Notes: Standard errors in parentheses are robust to autocorrelation within firms and to heteroskedasticity.}
 \end{table}
 
-We now turn our attention to companies in California that already had a woman on their board prior to the Senate Bill. These companies were therefore unaffected by the passing of this law. We can analyze their progression and contrast it to the path followed by affected companies (those that had no women on board before the law came into effect). We see that the interaction term in column 1 (without controls or detrending) shows a difference of around 14.7\% for the change in log market capitalization between California and Texan companies between 2018 and 2019. This change, significant at the 5\% level, is of similar magnitude as the change seen in Table~\ref{tab:did} (which is of about 16.8\%). Thus, the unaffected companies saw similar trends as those affected by the Senate Bill. This would indicate that board composition was not the main factor behind the change in a company's market capitalization.
+We now turn our attention to companies in California that already had a woman on their board prior to the Senate Bill. These companies were therefore unaffected by the passing of this law. We can analyze their progression and contrast it to the path followed by affected companies (those that had no women on board before the law came into effect). We see that the interaction term in column 1 (without controls or detrending) shows a difference of around 14.7\% for the change in log market capitalization between California and Texan companies between 2018 and 2019. This change, significant at the 5\% level, is of similar magnitude as the change seen in \textbf{[two-year table removed]} (which is of about 16.8\%). Thus, the unaffected companies saw similar trends as those affected by the Senate Bill. This would indicate that board composition was not the main factor behind the change in a company's market capitalization.
 
 %------------------------------------------------------------------------------
 \subsection*{Instrumental Variables}
@@ -184,9 +159,9 @@ Looking at Table~\ref{tab:iv} we see that the first stage confirms that the inst
 
 \begin{table}[H]
 \centering
-\caption{First stage (cols 1--2), reduced form (col 3), IV (cols 4--5), FY2018--2019, not detrended}
+\caption{First stage (cols 1--2), reduced form (col 3), IV (cols 4--5), firm and year FE, 2011--2020}
 \label{tab:iv}
-\adjustbox{max width=\textwidth}{\input{tables/did_table3.tex}}
+\adjustbox{max width=\textwidth}{\input{tables/table4_iv.tex}}
 \tablenotes{Notes: Standard errors in parentheses are robust to autocorrelation within firms and to heteroskedasticity.}
 \end{table}
 
@@ -218,7 +193,7 @@ Looking at Table~\ref{tab:iv} we see that the first stage confirms that the inst
 \subsection{Means and event study}
 \appfig{means_lnmktcap_boardsample.png}{Firm value before and after SB 826, firms with board data}{fig:a_means_lnmktcap}
 \appfig{means_onewm.png}{Share of firms with at least one woman on the board, before and after SB 826}{fig:a_means_onewm}
-\appfig{event_study_lnmktcap.png}{ln(market cap) event study, relative to 2017}{fig:a_es_lnmktcap}
+\appfig{event_study_lnmktcap.png}{ln(market cap) event study, relative to 2018}{fig:a_es_lnmktcap}
 
 \subsection{First stages}
 \appfig{first_stage_onewm.png}{First stage event study: at least one woman on the board}{fig:a_fs_onewm}
@@ -230,7 +205,5 @@ Looking at Table~\ref{tab:iv} we see that the first stage confirms that the inst
 \appfig{lnmktcap_onewm_byyear.png}{Reduced form by year: ln(market cap) on at least one woman on the board}{fig:a_rf_onewm}
 \appfig{reduced_form_lnmktcap.png}{Reduced form event study: ln(market cap)}{fig:a_rf_es}
 
-\subsection{Pre-trend}
-\appfig{fig_table4_pretrend.png}{ln(market cap) pre-trend event study, relative to 2018 (the coefficients in Table~\ref{tab:pretrend})}{fig:a_pretrend}
 
 \end{document}

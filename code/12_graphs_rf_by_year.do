@@ -25,8 +25,8 @@
 
 * Eloise's graph script (was code/archive/ReducedStage_OneWm_ShareWm.do), now on fiscal years 2011-2020
 * like every other script. Changed: folder lines, the year variable (fiscal year
-* instead of policy year), the end year (2020) and the reference year (2017, as in
-* 07_panel_event_study_graphs.do). Everything else is Eloise's code.
+* instead of policy year), the end year (2020), and post = fiscal years 2019-2020.
+* Everything else is Eloise's code.
 cap log close
 clear all
 set more off
@@ -71,6 +71,9 @@ label var lnmktcap "ln(market capitalization)"
 * year = fiscal year (calendar year of the fiscal year end), as in the other scripts
 gen pyear = fyeyear
 label var pyear "Fiscal year (calendar year of fiscal year end)"
+* pre = fiscal years 2011-2018, post = fiscal years 2019-2020
+replace post = (pyear >= 2019)
+replace ca_post = ca*post
 
 * Settings you can change -------------------------------------------------------
 local firstyr 2011
@@ -188,10 +191,10 @@ foreach x in ShareWm OneWm {
     gen lower = slope - 1.96*se
 
     gr two (scatter slope pyear, yline(0, lc(black))) ///
-           (rcap upper lower pyear, xline(2017.5, lp(dash))), ///
+           (rcap upper lower pyear, xline(2018.5, lp(dash))), ///
         legend(off) ///
         xlabel(`firstyr'(1)`lastyr') ///
-        xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies from FY2018)") ///
+        xtitle("Fiscal year (calendar year of fiscal year end; 2019 = first year after SB 826)") ///
         ytitle("Coefficient on `xt' (outcome: ln market cap)") ///
         title("Reduced Form by Year" "ln(market cap) on `xt'", size(medium)) ///
         note("Firm-year data, CA and TX firms, firm and year fixed effects." ///

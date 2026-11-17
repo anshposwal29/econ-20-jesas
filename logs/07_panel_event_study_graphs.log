@@ -3,7 +3,7 @@
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/07_panel_event_study_graphs.log
   log type:  text
- opened on:  17 Nov 2026, 17:00:34
+ opened on:  17 Nov 2026, 18:15:41
 
 . 
 . use "final_data.dta", clear
@@ -47,95 +47,64 @@ Panel variable: firm_id (unbalanced)
 (1,065 missing values generated)
 
 . 
+. * pre = fiscal years 2011-2018, post = fiscal years 2019-2020
+. replace post = (fyr >= 2019)
+(714 real changes made)
+
+. 
 . *==============================================================
-. * DETRENDING: fit a CA-specific linear trend on the pre-law years (post==0)
-. * and keep the residuals. Same as Table 2 column (3) of Sophia's panel tables
-> .
+. * DETRENDING (ln market cap only): fit a CA-specific linear trend on the
+. * pre-law years (2011-2018) and keep the residuals. Same as the detrended
+. * columns of Sophia's panel tables.
 . *==============================================================
 . gen ca_year = ca*fyr
 
 . 
 . reg lnmktcap ca fyeardum* ca_year if post==0, cluster(firm_id)
-note: fyeardum8 omitted because of collinearity.
+note: fyeardum1 omitted because of collinearity.
 note: fyeardum9 omitted because of collinearity.
 note: fyeardum10 omitted because of collinearity.
 
-Linear regression                               Number of obs     =      6,401
-                                                F(9, 1241)        =      26.73
+Linear regression                               Number of obs     =      7,115
+                                                F(9, 1299)        =      27.11
                                                 Prob > F          =     0.0000
-                                                R-squared         =     0.0130
-                                                Root MSE          =     2.1348
+                                                R-squared         =     0.0111
+                                                Root MSE          =     2.1376
 
-                            (Std. err. adjusted for 1,242 clusters in firm_id)
+                            (Std. err. adjusted for 1,300 clusters in firm_id)
 ------------------------------------------------------------------------------
              |               Robust
     lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-          ca |  -198.7949   43.63643    -4.56   0.000    -284.4043   -113.1856
-   fyeardum1 |  -.1626788   .1933315    -0.84   0.400    -.5419714    .2166138
-   fyeardum2 |  -.1521553   .1849947    -0.82   0.411    -.5150922    .2107816
-   fyeardum3 |   .1215637   .1781114     0.68   0.495     -.227869    .4709963
-   fyeardum4 |    .054105   .1742237     0.31   0.756    -.2877005    .3959106
-   fyeardum5 |   -.201254   .1702309    -1.18   0.237    -.5352262    .1327181
-   fyeardum6 |  -.2205291   .1666322    -1.32   0.186    -.5474411    .1063829
-   fyeardum7 |  -.1332022   .1634192    -0.82   0.415    -.4538106    .1874062
-   fyeardum8 |          0  (omitted)
+          ca |  -176.9383   38.48194    -4.60   0.000    -252.4319   -101.4448
+   fyeardum1 |          0  (omitted)
+   fyeardum2 |   .0164707   .0328583     0.50   0.616    -.0479905     .080932
+   fyeardum3 |   .2962739   .0450497     6.58   0.000     .2078958     .384652
+   fyeardum4 |   .2350176   .0582252     4.04   0.000     .1207919    .3492433
+   fyeardum5 |  -.0142372   .0696949    -0.20   0.838    -.1509642    .1224897
+   fyeardum6 |  -.0274017   .0798726    -0.34   0.732    -.1840951    .1292917
+   fyeardum7 |   .0657947   .0874266     0.75   0.452     -.105718    .2373074
+   fyeardum8 |  -.0715946   .0970319    -0.74   0.461     -.261951    .1187617
    fyeardum9 |          0  (omitted)
   fyeardum10 |          0  (omitted)
-     ca_year |   .0985362   .0216706     4.55   0.000     .0560212    .1410511
-       _cons |    6.87385   .2007051    34.25   0.000     6.480091    7.267608
+     ca_year |   .0876786   .0191051     4.59   0.000     .0501984    .1251589
+       _cons |   6.698931     .10765    62.23   0.000     6.487744    6.910118
 ------------------------------------------------------------------------------
 
 . predict lnmktcap_hat, resid
 
 . 
-. reg onewoman ca fyeardum* ca_year if post==0, cluster(firm_id)
-note: fyeardum1 omitted because of collinearity.
-note: fyeardum9 omitted because of collinearity.
-note: fyeardum10 omitted because of collinearity.
-
-Linear regression                               Number of obs     =      5,602
-                                                F(9, 1101)        =      10.05
-                                                Prob > F          =     0.0000
-                                                R-squared         =     0.0199
-                                                Root MSE          =     .48769
-
-                            (Std. err. adjusted for 1,102 clusters in firm_id)
-------------------------------------------------------------------------------
-             |               Robust
-    onewoman | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
--------------+----------------------------------------------------------------
-          ca |   -26.4022   14.74128    -1.79   0.074    -55.32638    2.521989
-   fyeardum1 |          0  (omitted)
-   fyeardum2 |   .0133306   .0119251     1.12   0.264    -.0100678    .0367291
-   fyeardum3 |   .0354387   .0174949     2.03   0.043     .0011115    .0697658
-   fyeardum4 |   .0667491   .0217811     3.06   0.002      .024012    .1094862
-   fyeardum5 |   .0941447    .025216     3.73   0.000     .0446679    .1436216
-   fyeardum6 |   .0973001   .0289373     3.36   0.001     .0405217    .1540785
-   fyeardum7 |   .1335868   .0318623     4.19   0.000      .071069    .1961045
-   fyeardum8 |   .1785087   .0486039     3.67   0.000      .083142    .2738753
-   fyeardum9 |          0  (omitted)
-  fyeardum10 |          0  (omitted)
-     ca_year |   .0131313   .0073179     1.79   0.073    -.0012273      .02749
-       _cons |   .4945593   .0276933    17.86   0.000     .4402217    .5488969
-------------------------------------------------------------------------------
-
-. predict onewoman_hat, resid
-(1,065 missing values generated)
-
-. 
 . *==============================================================
-. * EVENT STUDIES (2011-2020, 2017 = reference year)
-. * Same sample in all four: firm-years with board data (onewoman ~= .)
+. * EVENT STUDIES (2011-2020, 2018 = reference year)
+. * Same sample in all three: firm-years with board data (onewoman ~= .)
 . *==============================================================
-. foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 {
+. foreach y in 2011 2012 2013 2014 2015 2016 2017 2019 2020 {
   2.     gen caXyr`y' = ca*(fyr==`y')
   3. }
 
 . 
-. * (1) first stage, original
-. xtreg onewoman caXyr* fyeardum* if onewoman ~= . & fyr >= 2011 & fyr <= 2020,
->  fe cluster(firm_id)
+. * (1) first stage
+. xtreg onewoman caXyr* fyeardum* if onewoman ~= ., fe cluster(firm_id)
 note: fyeardum10 omitted because of collinearity.
 
 Fixed-effects (within) regression               Number of obs     =      7,906
@@ -143,26 +112,26 @@ Group variable: firm_id                         Number of groups  =      1,301
 
 R-squared:                                      Obs per group:
      Within  = 0.1720                                         min =          1
-     Between = 0.0761                                         avg =        6.1
-     Overall = 0.0816                                         max =         11
+     Between = 0.0784                                         avg =        6.1
+     Overall = 0.0830                                         max =         11
 
                                                 F(18, 1300)       =      24.19
-corr(u_i, Xb) = -0.0267                         Prob > F          =     0.0000
+corr(u_i, Xb) = -0.0230                         Prob > F          =     0.0000
 
                             (Std. err. adjusted for 1,301 clusters in firm_id)
 ------------------------------------------------------------------------------
              |               Robust
     onewoman | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-   caXyr2011 |  -.0309296   .0407383    -0.76   0.448    -.1108497    .0489904
-   caXyr2012 |  -.0490285   .0388478    -1.26   0.207    -.1252397    .0271827
-   caXyr2013 |  -.0728527    .036279    -2.01   0.045    -.1440246   -.0016809
-   caXyr2014 |  -.0587542   .0317829    -1.85   0.065    -.1211056    .0035972
-   caXyr2015 |  -.0439868   .0277517    -1.59   0.113    -.0984298    .0104561
-   caXyr2016 |  -.0159128   .0217941    -0.73   0.465    -.0586682    .0268426
-   caXyr2018 |  -.0082117   .0230905    -0.36   0.722    -.0535104    .0370869
-   caXyr2019 |   .0488773    .032349     1.51   0.131    -.0145846    .1123392
-   caXyr2020 |   .0222339   .0348816     0.64   0.524    -.0461965    .0906643
+   caXyr2011 |  -.0227179   .0431098    -0.53   0.598    -.1072902    .0618544
+   caXyr2012 |  -.0408167   .0417977    -0.98   0.329    -.1228151    .0411816
+   caXyr2013 |   -.064641   .0395871    -1.63   0.103    -.1423026    .0130206
+   caXyr2014 |  -.0505425   .0368973    -1.37   0.171    -.1229272    .0218423
+   caXyr2015 |  -.0357751   .0341788    -1.05   0.295    -.1028268    .0312766
+   caXyr2016 |  -.0077011   .0303648    -0.25   0.800    -.0672704    .0518683
+   caXyr2017 |   .0082117   .0230905     0.36   0.722    -.0370869    .0535104
+   caXyr2019 |    .057089   .0262296     2.18   0.030     .0056321    .1085459
+   caXyr2020 |   .0304456   .0305312     1.00   0.319    -.0294501    .0903414
    fyeardum1 |  -.4015049   .0343856   -11.68   0.000    -.4689623   -.3340474
    fyeardum2 |  -.3708533   .0332122   -11.17   0.000    -.4360087   -.3056979
    fyeardum3 |  -.3267951   .0320056   -10.21   0.000    -.3895834   -.2640068
@@ -173,15 +142,15 @@ corr(u_i, Xb) = -0.0267                         Prob > F          =     0.0000
    fyeardum8 |  -.1405128   .0229747    -6.12   0.000    -.1855842   -.0954413
    fyeardum9 |  -.0539814   .0150856    -3.58   0.000    -.0835762   -.0243865
   fyeardum10 |          0  (omitted)
-       _cons |   .9025957   .0248009    36.39   0.000     .8539415      .95125
+       _cons |   .8979674   .0221695    40.50   0.000     .8544754    .9414594
 -------------+----------------------------------------------------------------
-     sigma_u |  .38358506
+     sigma_u |  .38307846
      sigma_e |  .29194853
-         rho |  .63319958   (fraction of variance due to u_i)
+         rho |  .63258548   (fraction of variance due to u_i)
 ------------------------------------------------------------------------------
 
-. * joint test that the pre-law years (2011-2016) are all zero
-. test caXyr2011 caXyr2012 caXyr2013 caXyr2014 caXyr2015 caXyr2016
+. * joint test that the pre-law years (2011-2017) are all zero
+. test caXyr2011 caXyr2012 caXyr2013 caXyr2014 caXyr2015 caXyr2016 caXyr2017
 
  ( 1)  caXyr2011 = 0
  ( 2)  caXyr2012 = 0
@@ -189,9 +158,10 @@ corr(u_i, Xb) = -0.0267                         Prob > F          =     0.0000
  ( 4)  caXyr2014 = 0
  ( 5)  caXyr2015 = 0
  ( 6)  caXyr2016 = 0
+ ( 7)  caXyr2017 = 0
 
-       F(  6,  1300) =    1.02
-            Prob > F =    0.4137
+       F(  7,  1300) =    0.87
+            Prob > F =    0.5277
 
 . outreg2 using output/table_event_study, excel tex(frag) replace dec(3) ///
 >     drop(fyeardum* o.fyeardum*) ///
@@ -207,7 +177,7 @@ dir : seeout
 . gen se_onewoman = .
 (8,971 missing values generated)
 
-. foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 {
+. foreach y in 2011 2012 2013 2014 2015 2016 2017 2019 2020 {
   2.     replace b_onewoman = _b[caXyr`y'] if fyr==`y'
   3.     replace se_onewoman = _se[caXyr`y'] if fyr==`y'
   4. }
@@ -223,115 +193,16 @@ dir : seeout
 (914 real changes made)
 (902 real changes made)
 (902 real changes made)
-(891 real changes made)
-(891 real changes made)
+(896 real changes made)
+(896 real changes made)
 (908 real changes made)
 (908 real changes made)
 (948 real changes made)
 (948 real changes made)
 
 . 
-. * (2) first stage, detrended
-. xtreg onewoman_hat caXyr* fyeardum* if onewoman ~= . & fyr >= 2011 & fyr <= 2
-> 020, fe cluster(firm_id)
-note: fyeardum10 omitted because of collinearity.
-
-Fixed-effects (within) regression               Number of obs     =      7,906
-Group variable: firm_id                         Number of groups  =      1,301
-
-R-squared:                                      Obs per group:
-     Within  = 0.1740                                         min =          1
-     Between = 0.0613                                         avg =        6.1
-     Overall = 0.0804                                         max =         11
-
-                                                F(18, 1300)       =      35.94
-corr(u_i, Xb) = -0.0134                         Prob > F          =     0.0000
-
-                            (Std. err. adjusted for 1,301 clusters in firm_id)
-------------------------------------------------------------------------------
-             |               Robust
-onewoman_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
--------------+----------------------------------------------------------------
-   caXyr2011 |   .0478584   .0407383     1.17   0.240    -.0320616    .1277785
-   caXyr2012 |   .0166283   .0388478     0.43   0.669    -.0595829    .0928395
-   caXyr2013 |  -.0203273    .036279    -0.56   0.575    -.0914992    .0508446
-   caXyr2014 |  -.0193602   .0317829    -0.61   0.543    -.0817116    .0429912
-   caXyr2015 |  -.0177241   .0277517    -0.64   0.523    -.0721671    .0367188
-   caXyr2016 |  -.0027814   .0217941    -0.13   0.898    -.0455368     .039974
-   caXyr2018 |  -.0213431   .0230905    -0.92   0.355    -.0666418    .0239556
-   caXyr2019 |   .0226146    .032349     0.70   0.485    -.0408473    .0860765
-   caXyr2020 |  -.0171602   .0348816    -0.49   0.623    -.0855905    .0512702
-   fyeardum1 |  -.4015049   .0343856   -11.68   0.000    -.4689623   -.3340474
-   fyeardum2 |   -.384184   .0332122   -11.57   0.000    -.4493394   -.3190286
-   fyeardum3 |  -.3622338   .0320056   -11.32   0.000    -.4250221   -.2994455
-   fyeardum4 |  -.3567858   .0304782   -11.71   0.000    -.4165777    -.296994
-   fyeardum5 |  -.3506217   .0297056   -11.80   0.000    -.4088979   -.2923456
-   fyeardum6 |  -.3561743   .0287309   -12.40   0.000    -.4125383   -.2998103
-   fyeardum7 |  -.3467344   .0270239   -12.83   0.000    -.3997497   -.2937191
-   fyeardum8 |  -.3190215   .0229747   -13.89   0.000    -.3640929     -.27395
-   fyeardum9 |  -.0539814   .0150856    -3.58   0.000    -.0835762   -.0243865
-  fyeardum10 |          0  (omitted)
-       _cons |   .3608417   .0248009    14.55   0.000     .3121874    .4094959
--------------+----------------------------------------------------------------
-     sigma_u |   .3803913
-     sigma_e |  .29194853
-         rho |  .62930721   (fraction of variance due to u_i)
-------------------------------------------------------------------------------
-
-. * joint test that the pre-law years (2011-2016) are all zero
-. test caXyr2011 caXyr2012 caXyr2013 caXyr2014 caXyr2015 caXyr2016
-
- ( 1)  caXyr2011 = 0
- ( 2)  caXyr2012 = 0
- ( 3)  caXyr2013 = 0
- ( 4)  caXyr2014 = 0
- ( 5)  caXyr2015 = 0
- ( 6)  caXyr2016 = 0
-
-       F(  6,  1300) =    1.17
-            Prob > F =    0.3223
-
-. outreg2 using output/table_event_study, excel tex(frag) append dec(3) ///
->     drop(fyeardum* o.fyeardum*) ///
->     ctitle("(2) First stage", "One woman") ///
->     addtext(Firm FE, Yes, Year FE, Yes, Detrended, Yes) ///
->     addstat(Joint pre-trend F, r(F), Joint pre-trend p, r(p))
-output/table_event_study.tex
-output/table_event_study.xml
-dir : seeout
-
-. gen b_onewoman_hat = 0
-
-. gen se_onewoman_hat = .
-(8,971 missing values generated)
-
-. foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 {
-  2.     replace b_onewoman_hat = _b[caXyr`y'] if fyr==`y'
-  3.     replace se_onewoman_hat = _se[caXyr`y'] if fyr==`y'
-  4. }
-(857 real changes made)
-(857 real changes made)
-(867 real changes made)
-(867 real changes made)
-(878 real changes made)
-(878 real changes made)
-(910 real changes made)
-(910 real changes made)
-(914 real changes made)
-(914 real changes made)
-(902 real changes made)
-(902 real changes made)
-(891 real changes made)
-(891 real changes made)
-(908 real changes made)
-(908 real changes made)
-(948 real changes made)
-(948 real changes made)
-
-. 
-. * (3) reduced form, original
-. xtreg lnmktcap caXyr* fyeardum* if onewoman ~= . & fyr >= 2011 & fyr <= 2020,
->  fe cluster(firm_id)
+. * (2) reduced form, original
+. xtreg lnmktcap caXyr* fyeardum* if onewoman ~= ., fe cluster(firm_id)
 note: fyeardum10 omitted because of collinearity.
 
 Fixed-effects (within) regression               Number of obs     =      7,906
@@ -339,26 +210,26 @@ Group variable: firm_id                         Number of groups  =      1,301
 
 R-squared:                                      Obs per group:
      Within  = 0.1611                                         min =          1
-     Between = 0.0120                                         avg =        6.1
-     Overall = 0.0114                                         max =         11
+     Between = 0.0114                                         avg =        6.1
+     Overall = 0.0102                                         max =         11
 
                                                 F(18, 1300)       =      41.89
-corr(u_i, Xb) = -0.0313                         Prob > F          =     0.0000
+corr(u_i, Xb) = -0.0491                         Prob > F          =     0.0000
 
                             (Std. err. adjusted for 1,301 clusters in firm_id)
 ------------------------------------------------------------------------------
              |               Robust
     lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-   caXyr2011 |  -.4162558   .0854698    -4.87   0.000    -.5839297   -.2485819
-   caXyr2012 |  -.4755571   .0766246    -6.21   0.000    -.6258786   -.3252356
-   caXyr2013 |  -.4340089   .0683851    -6.35   0.000    -.5681662   -.2998516
-   caXyr2014 |  -.2218548   .0606473    -3.66   0.000    -.3408321   -.1028776
-   caXyr2015 |   .0019719   .0540269     0.04   0.971    -.1040177    .1079614
-   caXyr2016 |  -.1615548   .0404975    -3.99   0.000    -.2410023   -.0821072
-   caXyr2018 |   .2107909   .0452944     4.65   0.000     .1219328     .299649
-   caXyr2019 |   .2644524   .0596669     4.43   0.000     .1473983    .3815064
-   caXyr2020 |   .7214668   .0779243     9.26   0.000     .5685957    .8743379
+   caXyr2011 |  -.6270467   .0917817    -6.83   0.000    -.8071032   -.4469902
+   caXyr2012 |   -.686348    .083808    -8.19   0.000    -.8507617   -.5219343
+   caXyr2013 |  -.6447998   .0756543    -8.52   0.000    -.7932178   -.4963819
+   caXyr2014 |  -.4326457   .0692523    -6.25   0.000    -.5685042   -.2967872
+   caXyr2015 |   -.208819   .0635803    -3.28   0.001    -.3335503   -.0840877
+   caXyr2016 |  -.3723457   .0574063    -6.49   0.000    -.4849649   -.2597265
+   caXyr2017 |  -.2107909   .0452944    -4.65   0.000     -.299649   -.1219328
+   caXyr2019 |   .0536615   .0387422     1.39   0.166    -.0223425    .1296655
+   caXyr2020 |   .5106759   .0649018     7.87   0.000     .3833523    .6379996
    fyeardum1 |  -.1055504   .0838103    -1.26   0.208    -.2699687    .0588679
    fyeardum2 |  -.0067463   .0776166    -0.09   0.931    -.1590138    .1455212
    fyeardum3 |   .2858949    .071998     3.97   0.000     .1446498      .42714
@@ -369,15 +240,15 @@ corr(u_i, Xb) = -0.0313                         Prob > F          =     0.0000
    fyeardum8 |   .0262044   .0487079     0.54   0.591    -.0693503    .1217592
    fyeardum9 |   .1313544   .0380915     3.45   0.001     .0566268    .2060819
   fyeardum10 |          0  (omitted)
-       _cons |   6.798469   .0544213   124.92   0.000     6.691706    6.905233
+       _cons |   6.917276   .0494855   139.78   0.000     6.820196    7.014356
 -------------+----------------------------------------------------------------
-     sigma_u |   1.881211
+     sigma_u |  1.8825218
      sigma_e |  .59308898
-         rho |  .90959116   (fraction of variance due to u_i)
+         rho |  .90970565   (fraction of variance due to u_i)
 ------------------------------------------------------------------------------
 
-. * joint test that the pre-law years (2011-2016) are all zero
-. test caXyr2011 caXyr2012 caXyr2013 caXyr2014 caXyr2015 caXyr2016
+. * joint test that the pre-law years (2011-2017) are all zero
+. test caXyr2011 caXyr2012 caXyr2013 caXyr2014 caXyr2015 caXyr2016 caXyr2017
 
  ( 1)  caXyr2011 = 0
  ( 2)  caXyr2012 = 0
@@ -385,13 +256,14 @@ corr(u_i, Xb) = -0.0313                         Prob > F          =     0.0000
  ( 4)  caXyr2014 = 0
  ( 5)  caXyr2015 = 0
  ( 6)  caXyr2016 = 0
+ ( 7)  caXyr2017 = 0
 
-       F(  6,  1300) =   14.92
+       F(  7,  1300) =   16.42
             Prob > F =    0.0000
 
 . outreg2 using output/table_event_study, excel tex(frag) append dec(3) ///
 >     drop(fyeardum* o.fyeardum*) ///
->     ctitle("(3) Reduced form", "ln(mkt cap)") ///
+>     ctitle("(2) Reduced form", "ln(mkt cap)") ///
 >     addtext(Firm FE, Yes, Year FE, Yes, Detrended, No) ///
 >     addstat(Joint pre-trend F, r(F), Joint pre-trend p, r(p))
 output/table_event_study.tex
@@ -403,7 +275,7 @@ dir : seeout
 . gen se_lnmktcap = .
 (8,971 missing values generated)
 
-. foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 {
+. foreach y in 2011 2012 2013 2014 2015 2016 2017 2019 2020 {
   2.     replace b_lnmktcap = _b[caXyr`y'] if fyr==`y'
   3.     replace se_lnmktcap = _se[caXyr`y'] if fyr==`y'
   4. }
@@ -419,63 +291,62 @@ dir : seeout
 (914 real changes made)
 (902 real changes made)
 (902 real changes made)
-(891 real changes made)
-(891 real changes made)
+(896 real changes made)
+(896 real changes made)
 (908 real changes made)
 (908 real changes made)
 (948 real changes made)
 (948 real changes made)
 
 . 
-. * (4) reduced form, detrended
-. xtreg lnmktcap_hat caXyr* fyeardum* if onewoman ~= . & fyr >= 2011 & fyr <= 2
-> 020, fe cluster(firm_id)
+. * (3) reduced form, detrended
+. xtreg lnmktcap_hat caXyr* fyeardum* if onewoman ~= ., fe cluster(firm_id)
 note: fyeardum10 omitted because of collinearity.
 
 Fixed-effects (within) regression               Number of obs     =      7,906
 Group variable: firm_id                         Number of groups  =      1,301
 
 R-squared:                                      Obs per group:
-     Within  = 0.0320                                         min =          1
-     Between = 0.0023                                         avg =        6.1
-     Overall = 0.0027                                         max =         11
+     Within  = 0.0415                                         min =          1
+     Between = 0.0002                                         avg =        6.1
+     Overall = 0.0004                                         max =         11
 
-                                                F(18, 1300)       =      17.12
-corr(u_i, Xb) = -0.0037                         Prob > F          =     0.0000
+                                                F(18, 1300)       =      10.30
+corr(u_i, Xb) = -0.0469                         Prob > F          =     0.0000
 
                             (Std. err. adjusted for 1,301 clusters in firm_id)
 ------------------------------------------------------------------------------
              |               Robust
 lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-   caXyr2011 |   .1749612   .0854698     2.05   0.041     .0072873    .3426351
-   caXyr2012 |   .0171237   .0766246     0.22   0.823    -.1331978    .1674452
-   caXyr2013 |  -.0398642   .0683851    -0.58   0.560    -.1740215    .0942931
-   caXyr2014 |   .0737537   .0606473     1.22   0.224    -.0452236    .1927309
-   caXyr2015 |   .1990442   .0540269     3.68   0.000     .0930547    .3050337
-   caXyr2016 |  -.0630186   .0404975    -1.56   0.120    -.1424661     .016429
-   caXyr2018 |   .1122548   .0452944     2.48   0.013     .0233966    .2011129
-   caXyr2019 |     .06738   .0596669     1.13   0.259     -.049674    .1844341
-   caXyr2020 |   .4258583   .0779243     5.47   0.000     .2729872    .5787294
-   fyeardum1 |   .0571284   .0838103     0.68   0.496    -.1072899    .2215467
-   fyeardum2 |    .145409   .0776166     1.87   0.061    -.0068585    .2976765
-   fyeardum3 |   .1643312    .071998     2.28   0.023     .0230861    .3055763
-   fyeardum4 |   .1508209    .067297     2.24   0.025     .0187983    .2828435
-   fyeardum5 |   .1723595   .0611039     2.82   0.005     .0524865    .2922326
-   fyeardum6 |   .3430121   .0609208     5.63   0.000     .2234983    .4625258
-   fyeardum7 |   .3349962   .0575812     5.82   0.000      .222034    .4479585
-   fyeardum8 |   .0262044   .0487079     0.54   0.591    -.0693503    .1217592
+   caXyr2011 |  -.0132964   .0917817    -0.14   0.885    -.1933529    .1667601
+   caXyr2012 |  -.1602764    .083808    -1.91   0.056      -.32469    .0041373
+   caXyr2013 |  -.2064068   .0756543    -2.73   0.006    -.3548248   -.0579889
+   caXyr2014 |  -.0819313   .0692523    -1.18   0.237    -.2177898    .0539272
+   caXyr2015 |   .0542168   .0635803     0.85   0.394    -.0705145    .1789481
+   caXyr2016 |  -.1969885   .0574063    -3.43   0.001    -.3096077   -.0843693
+   caXyr2017 |  -.1231123   .0452944    -2.72   0.007    -.2119705   -.0342542
+   caXyr2019 |  -.0340172   .0387422    -0.88   0.380    -.1100212    .0419869
+   caXyr2020 |   .3353187   .0649018     5.17   0.000      .207995    .4626424
+   fyeardum1 |  -.1055504   .0838103    -1.26   0.208    -.2699687    .0588679
+   fyeardum2 |   -.023217   .0776166    -0.30   0.765    -.1754845    .1290505
+   fyeardum3 |   -.010379    .071998    -0.14   0.885     -.151624    .1308661
+   fyeardum4 |  -.0300917    .067297    -0.45   0.655    -.1621143    .1019309
+   fyeardum5 |  -.0146572   .0611039    -0.24   0.810    -.1345303    .1052158
+   fyeardum6 |   .1498847   .0609208     2.46   0.014      .030371    .2693985
+   fyeardum7 |   .1359994   .0575812     2.36   0.018     .0230371    .2489617
+   fyeardum8 |   .0977991   .0487079     2.01   0.045     .0022444    .1933538
    fyeardum9 |   .1313544   .0380915     3.45   0.001     .0566268    .2060819
   fyeardum10 |          0  (omitted)
-       _cons |  -.0486065   .0544213    -0.89   0.372    -.1553697    .0581567
+       _cons |   .2199717   .0494855     4.45   0.000     .1228916    .3170518
 -------------+----------------------------------------------------------------
-     sigma_u |  1.8810108
+     sigma_u |  1.8825792
      sigma_e |  .59308898
-         rho |  .90957365   (fraction of variance due to u_i)
+         rho |  .90971066   (fraction of variance due to u_i)
 ------------------------------------------------------------------------------
 
-. * joint test that the pre-law years (2011-2016) are all zero
-. test caXyr2011 caXyr2012 caXyr2013 caXyr2014 caXyr2015 caXyr2016
+. * joint test that the pre-law years (2011-2017) are all zero
+. test caXyr2011 caXyr2012 caXyr2013 caXyr2014 caXyr2015 caXyr2016 caXyr2017
 
  ( 1)  caXyr2011 = 0
  ( 2)  caXyr2012 = 0
@@ -483,13 +354,14 @@ lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
  ( 4)  caXyr2014 = 0
  ( 5)  caXyr2015 = 0
  ( 6)  caXyr2016 = 0
+ ( 7)  caXyr2017 = 0
 
-       F(  6,  1300) =   12.19
+       F(  7,  1300) =   10.74
             Prob > F =    0.0000
 
 . outreg2 using output/table_event_study, excel tex(frag) append dec(3) ///
 >     drop(fyeardum* o.fyeardum*) ///
->     ctitle("(4) Reduced form", "ln(mkt cap)") ///
+>     ctitle("(3) Reduced form", "ln(mkt cap)") ///
 >     addtext(Firm FE, Yes, Year FE, Yes, Detrended, Yes) ///
 >     addstat(Joint pre-trend F, r(F), Joint pre-trend p, r(p))
 output/table_event_study.tex
@@ -501,7 +373,7 @@ dir : seeout
 . gen se_lnmktcap_hat = .
 (8,971 missing values generated)
 
-. foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 {
+. foreach y in 2011 2012 2013 2014 2015 2016 2017 2019 2020 {
   2.     replace b_lnmktcap_hat = _b[caXyr`y'] if fyr==`y'
   3.     replace se_lnmktcap_hat = _se[caXyr`y'] if fyr==`y'
   4. }
@@ -517,8 +389,8 @@ dir : seeout
 (914 real changes made)
 (902 real changes made)
 (902 real changes made)
-(891 real changes made)
-(891 real changes made)
+(896 real changes made)
+(896 real changes made)
 (908 real changes made)
 (908 real changes made)
 (948 real changes made)
@@ -526,15 +398,11 @@ dir : seeout
 
 . 
 . *==============================================================
-. * GRAPH 1: first stage, original vs detrended
+. * GRAPH 1: first stage (not detrended)
 . *==============================================================
 . preserve
 
-. keep if fyr >= 2011 & fyr <= 2020
-(0 observations deleted)
-
-. collapse (mean) b_onewoman se_onewoman b_onewoman_hat se_onewoman_hat, by(fyr
-> )
+. collapse (mean) b_onewoman se_onewoman, by(fyr)
 
 . gen upper = b_onewoman + 1.96*se_onewoman
 (1 missing value generated)
@@ -542,41 +410,25 @@ dir : seeout
 . gen lower = b_onewoman - 1.96*se_onewoman
 (1 missing value generated)
 
-. gen upper_hat = b_onewoman_hat + 1.96*se_onewoman_hat
-(1 missing value generated)
-
-. gen lower_hat = b_onewoman_hat - 1.96*se_onewoman_hat
-(1 missing value generated)
-
-. * move the two series slightly apart so the bars do not overlap
-. gen x = fyr - 0.12
-
-. gen x_hat = fyr + 0.12
-
 . 
-. gr two (rcap upper lower x, lc(gs11)) (scatter b_onewoman x, mc(gs8) ms(Oh)) 
-> ///
->        (rcap upper_hat lower_hat x_hat, lc(cranberry)) (scatter b_onewoman_ha
-> t x_hat, mc(blue) ms(O)), ///
->     yline(0, lc(black) lp(dash)) xline(2017.5, lp(dash) lc(black)) ///
->     legend(order(2 "Original" 4 "Detrended (CA linear pre-trend removed)") ri
-> ng(0) pos(11)) ///
+. gr two (rcap upper lower fyr, lc(cranberry)) (scatter b_onewoman fyr, mc(blue
+> ) ms(O)), ///
+>     yline(0, lc(black) lp(dash)) xline(2018.5, lp(dash) lc(black)) ///
+>     legend(off) ///
 >     xlabel(2011(1)2020) ///
->     xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies fro
-> m FY2018)") ///
->     ytitle("CA - TX difference in P(at least 1 woman), relative to 2017") ///
->     title("First Stage Event Study" "California SB 826: Original vs. Detrende
-> d", size(medium)) ///
->     note("CA-specific linear trend estimated on pre-law observations (post==0
-> ) and removed from the outcome." ///
->          "Bars show 95% CIs, standard errors clustered by firm. Dashed line =
->  SB 826 signed 30 Sep 2018.")
+>     xtitle("Fiscal year (calendar year of fiscal year end)") ///
+>     ytitle("CA - TX difference in P(at least 1 woman), relative to 2018") ///
+>     title("First Stage Event Study" "California SB 826", size(medium)) ///
+>     note("Firm and year fixed effects. Pre-law = fiscal years 2011-2018, post
+> -law = 2019-2020." ///
+>          "2018 is the omitted year. Bars show 95% CIs, standard errors cluste
+> red by firm.")
 
-. graph export "output/figures/es_onewoman_overlay.png", replace width(2000)
-file output/figures/es_onewoman_overlay.png written in PNG format
+. graph export "output/figures/es_onewoman.png", replace width(2000)
+file output/figures/es_onewoman.png written in PNG format
 
-. graph save "output/figures/es_onewoman_overlay.gph", replace
-file output/figures/es_onewoman_overlay.gph saved
+. graph save "output/figures/es_onewoman.gph", replace
+file output/figures/es_onewoman.gph saved
 
 . restore
 
@@ -585,9 +437,6 @@ file output/figures/es_onewoman_overlay.gph saved
 . * GRAPH 2: reduced form, original vs detrended
 . *==============================================================
 . preserve
-
-. keep if fyr >= 2011 & fyr <= 2020
-(0 observations deleted)
 
 . collapse (mean) b_lnmktcap se_lnmktcap b_lnmktcap_hat se_lnmktcap_hat, by(fyr
 > )
@@ -604,6 +453,7 @@ file output/figures/es_onewoman_overlay.gph saved
 . gen lower_hat = b_lnmktcap_hat - 1.96*se_lnmktcap_hat
 (1 missing value generated)
 
+. * move the two series slightly apart so the bars do not overlap
 . gen x = fyr - 0.12
 
 . gen x_hat = fyr + 0.12
@@ -613,19 +463,19 @@ file output/figures/es_onewoman_overlay.gph saved
 > ///
 >        (rcap upper_hat lower_hat x_hat, lc(cranberry)) (scatter b_lnmktcap_ha
 > t x_hat, mc(blue) ms(O)), ///
->     yline(0, lc(black) lp(dash)) xline(2017.5, lp(dash) lc(black)) ///
+>     yline(0, lc(black) lp(dash)) xline(2018.5, lp(dash) lc(black)) ///
 >     legend(order(2 "Original" 4 "Detrended (CA linear pre-trend removed)") ri
 > ng(0) pos(11)) ///
 >     xlabel(2011(1)2020) ///
->     xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies fro
-> m FY2018)") ///
->     ytitle("CA - TX difference in ln(market cap), relative to 2017") ///
+>     xtitle("Fiscal year (calendar year of fiscal year end)") ///
+>     ytitle("CA - TX difference in ln(market cap), relative to 2018") ///
 >     title("Reduced Form Event Study" "California SB 826: Original vs. Detrend
 > ed", size(medium)) ///
->     note("CA-specific linear trend estimated on pre-law observations (post==0
-> ) and removed from the outcome." ///
->          "Bars show 95% CIs, standard errors clustered by firm. Dashed line =
->  SB 826 signed 30 Sep 2018.")
+>     note("Detrended: California's linear trend over the pre-law years (2011-2
+> 018) is removed from ln(market cap)." ///
+>          "Pre-law = fiscal years 2011-2018, post-law = 2019-2020. 2018 is the
+>  omitted year." ///
+>          "Bars show 95% CIs, standard errors clustered by firm.")
 
 . graph export "output/figures/es_lnmktcap_overlay.png", replace width(2000)
 file output/figures/es_lnmktcap_overlay.png written in PNG format

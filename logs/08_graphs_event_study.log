@@ -3,7 +3,7 @@
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/08_graphs_event_study.log
   log type:  text
- opened on:  17 Nov 2026, 17:13:21
+ opened on:  17 Nov 2026, 18:15:48
 
 . 
 . use "final_data.dta", clear
@@ -15,21 +15,25 @@
 . * 1. Define the event-time "year"
 . *----------------------------------------------------------------------------
 > ---
-. * SB 826 was signed 30 Sep 2018. Fiscal year 2018 mixes pre and post firms (a
->  June
-. * 2018 year-end is pre, a Dec 2018 year-end is post), so 2017 is the referenc
-> e year.
+. * SB 826 was signed 30 Sep 2018. Pre = fiscal years 2011-2018, post = 2019-20
+> 20.
 . * year = fiscal year (calendar year of the fiscal year end), as in the other 
 > scripts
 . gen pyear = fyeyear
 
 . label var pyear "Fiscal year (calendar year of fiscal year end)"
 
+. * pre = fiscal years 2011-2018, post = fiscal years 2019-2020
+. replace post = (pyear >= 2019)
+(714 real changes made)
+
+. replace ca_post = ca*post
+(381 real changes made)
+
 . 
 . * Settings you can change ---------------------------------------------------
 > ----
-. local refyr   2017     // omitted (reference) year = last fully pre-law fisca
-> l year
+. local refyr   2018     // omitted (reference) year = last pre-law year
 
 . local firstyr 2011
 
@@ -104,26 +108,26 @@ Linear regression                               Number of obs     =      8,971
              |               Robust
     lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-   yrdum2011 |  -.1638621   .0922686    -1.78   0.076    -.3448544    .0171301
-   yrdum2012 |  -.0519457   .0783534    -0.66   0.507    -.2056421    .1017508
-   yrdum2013 |   .3280547   .0702785     4.67   0.000     .1901978    .4659115
-   yrdum2014 |   .1789703   .0614733     2.91   0.004     .0583856     .299555
-   yrdum2015 |  -.1382016   .0556182    -2.48   0.013    -.2473012    -.029102
-   yrdum2016 |  -.0430253   .0531228    -0.81   0.418    -.1472299    .0611792
-   yrdum2018 |  -.2072142   .0441706    -4.69   0.000    -.2938584   -.1205701
-   yrdum2019 |  -.1521497   .0638852    -2.38   0.017    -.2774657   -.0268337
-   yrdum2020 |  -.3383279   .0779044    -4.34   0.000    -.4911437   -.1855121
-          ca |   -.106625   .1462203    -0.73   0.466    -.3934479    .1801978
-caXyrdum2011 |   -.349279   .1251947    -2.79   0.005    -.5948585   -.1036996
-caXyrdum2012 |  -.4336758   .1110772    -3.90   0.000    -.6515626    -.215789
-caXyrdum2013 |  -.5228952   .1003416    -5.21   0.000    -.7197233    -.326067
-caXyrdum2014 |  -.2797487   .0896531    -3.12   0.002    -.4556104   -.1038869
-caXyrdum2015 |  -.0725031   .0812084    -0.89   0.372    -.2317998    .0867936
-caXyrdum2016 |  -.1762348   .0697256    -2.53   0.012    -.3130071   -.0394624
-caXyrdum2018 |   .2113038   .0614793     3.44   0.001     .0907072    .3319004
-caXyrdum2019 |   .3792915   .0856066     4.43   0.000     .2113672    .5472157
-caXyrdum2020 |   .9250814   .1049987     8.81   0.000     .7191181    1.131045
-       _cons |   6.773706   .1052564    64.35   0.000     6.567237    6.980174
+   yrdum2011 |   .0433521   .0962787     0.45   0.653    -.1455062    .2322104
+   yrdum2012 |   .1552686   .0847685     1.83   0.067    -.0110117    .3215488
+   yrdum2013 |   .5352689   .0764857     7.00   0.000     .3852361    .6853017
+   yrdum2014 |   .3861845   .0689863     5.60   0.000     .2508624    .5215067
+   yrdum2015 |   .0690127   .0650182     1.06   0.289    -.0585257     .196551
+   yrdum2016 |   .1641889   .0639799     2.57   0.010     .0386873    .2896906
+   yrdum2017 |   .2072142   .0441706     4.69   0.000     .1205701    .2938584
+   yrdum2019 |   .0550645   .0439075     1.25   0.210    -.0310635    .1411925
+   yrdum2020 |  -.1311137   .0679818    -1.93   0.054    -.2644655    .0022382
+          ca |   .1046788   .1484453     0.71   0.481    -.1865087    .3958662
+caXyrdum2011 |  -.5605828   .1309696    -4.28   0.000    -.8174902   -.3036754
+caXyrdum2012 |  -.6449796   .1196674    -5.39   0.000    -.8797168   -.4102424
+caXyrdum2013 |  -.7341989   .1091049    -6.73   0.000    -.9482169   -.5201809
+caXyrdum2014 |  -.4910525   .1003668    -4.89   0.000      -.68793   -.2941749
+caXyrdum2015 |  -.2838069    .094152    -3.01   0.003    -.4684935   -.0991202
+caXyrdum2016 |  -.3875385   .0867947    -4.47   0.000    -.5577933   -.2172837
+caXyrdum2017 |  -.2113038   .0614793    -3.44   0.001    -.3319004   -.0907072
+caXyrdum2019 |   .1679877   .0616528     2.72   0.007     .0470509    .2889245
+caXyrdum2020 |   .7137776    .091714     7.78   0.000     .5338733     .893682
+       _cons |   6.566491   .1061539    61.86   0.000     6.358262    6.774721
 ------------------------------------------------------------------------------
 
 . 
@@ -142,8 +146,9 @@ caXyrdum2020 |   .9250814   .1049987     8.81   0.000     .7191181    1.131045
  ( 4)  caXyrdum2014 = 0
  ( 5)  caXyrdum2015 = 0
  ( 6)  caXyrdum2016 = 0
+ ( 7)  caXyrdum2017 = 0
 
-       F(  6,  1469) =    7.44
+       F(  7,  1469) =    8.84
             Prob > F =    0.0000
 
 . 
@@ -176,8 +181,8 @@ caXyrdum2020 |   .9250814   .1049987     8.81   0.000     .7191181    1.131045
 (914 real changes made)
 (902 real changes made)
 (902 real changes made)
-(891 real changes made)
-(891 real changes made)
+(896 real changes made)
+(896 real changes made)
 (908 real changes made)
 (908 real changes made)
 (948 real changes made)
@@ -195,18 +200,19 @@ caXyrdum2020 |   .9250814   .1049987     8.81   0.000     .7191181    1.131045
 (1 missing value generated)
 
 . 
-. * vertical line sits between the last fully pre-law year (2017) and 2018
+. * vertical line sits between the last pre year (2018) and first post year (20
+> 19)
 . gr two (scatter slope pyear, yline(0, lc(black))) ///
->        (rcap upper lower pyear, xline(2017.5, lp(dash))), ///
+>        (rcap upper lower pyear, xline(2018.5, lp(dash))), ///
 >     legend(off) ///
 >     xlabel(`firstyr'(1)`lastyr') ///
->     xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies fro
-> m FY2018)") ///
->     ytitle("CA - TX difference in ln(market cap), relative to 2017") ///
+>     xtitle("Fiscal year (calendar year of fiscal year end; 2019 = first year 
+> after SB 826)") ///
+>     ytitle("CA - TX difference in ln(market cap), relative to 2018") ///
 >     title("ln(Market Cap) Event Study" "California SB 826 (Board Gender Quota
 > )", size(medium)) ///
->     note("Firm-year data, CA vs. TX. Texas is the comparison group; 2017 (las
-> t fully pre-law year) is the omitted year." ///
+>     note("Firm-year data, CA vs. TX. Texas is the comparison group; 2018 (las
+> t pre-law year) is the omitted year." ///
 >          "Bars show 95% confidence intervals, standard errors clustered by fi
 > rm. Dashed line = SB 826 signed 30 Sep 2018.")
 
@@ -235,13 +241,13 @@ file output/figures/event_study_lnmktcap.gph saved
 
 . 
 . gr two (line lnmktcap pyear if ca==1) ///
->        (line lnmktcap pyear if ca==0, xline(2017.5, lp(dash))) ///
+>        (line lnmktcap pyear if ca==0, xline(2018.5, lp(dash))) ///
 >        (rcap upper lower pyear if ca==1) ///
 >        (rcap upper lower pyear if ca==0), ///
 >     legend(label(1 "California") label(2 "Texas") order(1 2)) ///
 >     xlabel(`firstyr'(1)`lastyr') ///
->     xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies fro
-> m FY2018)") ///
+>     xtitle("Fiscal year (calendar year of fiscal year end; 2019 = first year 
+> after SB 826)") ///
 >     ytitle("Mean ln(market cap, $ millions)") ///
 >     title("Mean ln(Market Cap) Before and After California SB 826", size(medi
 > um)) ///
@@ -249,11 +255,9 @@ file output/figures/event_study_lnmktcap.gph saved
 >  Sep 2018. Bars show 95% confidence intervals.")
 
 . graph export "output/figures/means_lnmktcap.png", replace width(2000)
-(file output/figures/means_lnmktcap.png not found)
 file output/figures/means_lnmktcap.png written in PNG format
 
 . graph save   "output/figures/means_lnmktcap.gph", replace
-(file output/figures/means_lnmktcap.gph not found)
 file output/figures/means_lnmktcap.gph saved
 
 . restore
@@ -264,5 +268,5 @@ file output/figures/means_lnmktcap.gph saved
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/08_graphs_event_study.log
   log type:  text
- closed on:  17 Nov 2026, 17:13:26
+ closed on:  17 Nov 2026, 18:15:51
 -------------------------------------------------------------------------------

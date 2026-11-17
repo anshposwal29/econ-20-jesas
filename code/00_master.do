@@ -39,12 +39,7 @@ else {
 do "code/04_did_tests.do"
 do "code/05_did_graphs.do"
 
-* 06 and 07: Sophia's panel tables and Seohee's panel event studies.
-* 06 writes table2_plcbo with "append" only, so erase it first; otherwise
-* every rerun adds two more columns to it.
-capture erase "output/table2_plcbo.txt"
-capture erase "output/table2_plcbo.xml"
-capture erase "output/table2_plcbo.tex"
+* 06 and 07: Sophia's panel tables and Seohee's panel event studies
 do "code/06_panel_tables.do"
 do "code/07_panel_event_study_graphs.do"
 
