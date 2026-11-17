@@ -2,9 +2,10 @@
 * 04_did_tests.do -- main results: two-period DiD, CA vs TX, 2018 (pre) vs 2019 (post)
 * Author: Sophia (was code/did_tests.do)
 * Tables: 1 main DiD, 2 placebo (woman on board in 2018), 3 first stage / IV,
-*         4 pre-trends (2010-2017, 2018 = reference)
+*         4 pre-trends (2011-2017, 2018 = reference)
 * Input:  final_data.dta
-* Output: output/did_table1-4 (.txt/.xml), logs/04_did_tests.log (has the pre-trend F-test)
+* Output: output/did_table1-4 (.txt/.xml, and .tex for the LaTeX paper), logs/04_did_tests.log
+* tex(frag) in outreg2 writes a LaTeX copy of each table (same numbers as the Excel one)
 * Only the header, folder lines and comments were changed; the code is Sophia's.
 *==============================================================================
 cap log close
@@ -31,6 +32,8 @@ use "final_data.dta", clear
 encode gvkey, gen(firm_id)
 
 gen fyr = fyeyear
+* the paper uses fiscal years 2011-2020 everywhere
+keep if fyr >= 2011 & fyr <= 2020
 
 * Detrending: fit a CA-specific linear trend on the years before 2018, keep the residuals
 gen ca_year = ca*fyr
@@ -42,21 +45,21 @@ predict lnmktcap_hat, resid
 *==============================================================
 
 * Generate California x year interactions
-forvalues y = 2010/2017 {
+forvalues y = 2011/2017 {
     gen ca_yr`y' = ca * (fyr == `y')
 }
 * not from class: i.fyr = year dummies, vce(cluster firm_id) = cluster(firm_id); kept as Sophia wrote it
-areg lnmktcap ca_yr2010-ca_yr2017 i.fyr ///
-    if fyr >= 2010 & fyr <= 2018, ///
+areg lnmktcap ca_yr2011-ca_yr2017 i.fyr ///
+    if fyr >= 2011 & fyr <= 2018, ///
     absorb(firm_id) vce(cluster firm_id)
 
-outreg2 using output/did_table4, excel replace dec(3) ///
-    keep(ca_yr2010-ca_yr2017) ///
+outreg2 using output/did_table4, excel tex(frag) replace dec(3) ///
+    keep(ca_yr2011-ca_yr2017) ///
     ctitle("(1) Pretrend coefficients") ///
     addtext(Firm FE, Yes, Year FE, Yes)
 	
 * joint F-test that all pre-trend coefficients are zero
-test ca_yr2010 ca_yr2011 ca_yr2012 ca_yr2013 ///
+test ca_yr2011 ca_yr2012 ca_yr2013 ///
      ca_yr2014 ca_yr2015 ca_yr2016 ca_yr2017
 
 *==================================================================
@@ -84,22 +87,22 @@ bysort firm_id: egen woman18 = max(woman_obs)
 *==============================================================
 
 reg lnmktcap ca post19 ca_post19, cluster(firm_id)
-outreg2 using output/did_table1, excel replace dec(3) ///
+outreg2 using output/did_table1, excel tex(frag) replace dec(3) ///
     keep(ca post19 ca_post19) ///
     ctitle("(1) lnmktcap") addtext(Controls, No, Detrended, No)
 
 reg lnmktcap ca post19 ca_post19 lnassets roa leverage multinational, cluster(firm_id)
-outreg2 using output/did_table1, excel append dec(3) ///
+outreg2 using output/did_table1, excel tex(frag) append dec(3) ///
     keep(ca post19 ca_post19 lnassets roa leverage multinational) ///
     ctitle("(2) lnmktcap") addtext(Controls, Yes, Detrended, No)
 
 reg lnmktcap_hat ca post19 ca_post19, cluster(firm_id)
-outreg2 using output/did_table1, excel append dec(3) ///
+outreg2 using output/did_table1, excel tex(frag) append dec(3) ///
     keep(ca post19 ca_post19) ///
     ctitle("(3) lnmktcap") addtext(Controls, No, Detrended, Yes)
 
 reg lnmktcap_hat ca post19 ca_post19 lnassets roa leverage multinational, cluster(firm_id)
-outreg2 using output/did_table1, excel append dec(3) ///
+outreg2 using output/did_table1, excel tex(frag) append dec(3) ///
     keep(ca post19 ca_post19 lnassets roa leverage multinational) ///
     ctitle("(4) lnmktcap") addtext(Controls, Yes, Detrended, Yes)
 
@@ -113,17 +116,17 @@ outreg2 using output/did_table1, excel append dec(3) ///
 *==============================================================
 
 reg lnmktcap ca post19 ca_post19 if woman18==1, cluster(firm_id)
-outreg2 using output/did_table2, excel replace dec(3) ///
+outreg2 using output/did_table2, excel tex(frag) replace dec(3) ///
     keep(ca post19 ca_post19) ///
     ctitle("(1) Placebo") addtext(Controls, No, Detrended, No)
 
 reg lnmktcap ca post19 ca_post19 lnassets roa leverage multinational if woman18==1, cluster(firm_id)
-outreg2 using output/did_table2, excel append dec(3) ///
+outreg2 using output/did_table2, excel tex(frag) append dec(3) ///
     keep(ca post19 ca_post19 lnassets roa leverage multinational) ///
     ctitle("(2) Placebo") addtext(Controls, Yes, Detrended, No)
 
 reg lnmktcap_hat ca post19 ca_post19 lnassets roa leverage multinational if woman18==1, cluster(firm_id)
-outreg2 using output/did_table2, excel append dec(3) ///
+outreg2 using output/did_table2, excel tex(frag) append dec(3) ///
     keep(ca post19 ca_post19 lnassets roa leverage multinational) ///
     ctitle("(3) Placebo") addtext(Controls, Yes, Detrended, Yes)
 
@@ -139,34 +142,34 @@ outreg2 using output/did_table2, excel append dec(3) ///
 
 reg onewoman ca post19 ca_post19 lnassets roa leverage multinational, cluster(firm_id)
 test ca_post19
-outreg2 using output/did_table3, excel replace dec(3) ///
+outreg2 using output/did_table3, excel tex(frag) replace dec(3) ///
     keep(ca post19 ca_post19) ///
     ctitle("(1) First stage: One woman") addtext(Controls, Yes) ///
     addstat(First-stage F, r(F))
 
 reg sharewoman ca post19 ca_post19 lnassets roa leverage multinational, cluster(firm_id)
 test ca_post19
-outreg2 using output/did_table3, excel append dec(3) ///
+outreg2 using output/did_table3, excel tex(frag) append dec(3) ///
     keep(ca post19 ca_post19) ///
     ctitle("(2) First stage: Share women") addtext(Controls, Yes) ///
     addstat(First-stage F, r(F))
 
 reg lnmktcap ca post19 ca_post19 lnassets roa leverage multinational if onewoman ~= ., cluster(firm_id)
-outreg2 using output/did_table3, excel append dec(3) ///
+outreg2 using output/did_table3, excel tex(frag) append dec(3) ///
     keep(ca post19 ca_post19) ///
     ctitle("(3) Reduced form") addtext(Controls, Yes)
 
 * not from class: ivregress 2sls is the newer ivreg (its clustered SEs differ slightly); kept as Sophia wrote it
 ivregress 2sls lnmktcap ca post19 lnassets roa leverage multinational ///
     (onewoman = ca_post19), vce(cluster firm_id)
-outreg2 using output/did_table3, excel append dec(3) ///
+outreg2 using output/did_table3, excel tex(frag) append dec(3) ///
     keep(onewoman ca post19) ///
     ctitle("(4) IV: One woman") addtext(Controls, Yes)
 
 * not from class: ivregress 2sls is the newer ivreg (its clustered SEs differ slightly); kept as Sophia wrote it
 ivregress 2sls lnmktcap ca post19 lnassets roa leverage multinational ///
     (sharewoman = ca_post19), vce(cluster firm_id)
-outreg2 using output/did_table3, excel append dec(3) ///
+outreg2 using output/did_table3, excel tex(frag) append dec(3) ///
     keep(sharewoman ca post19) ///
     ctitle("(5) IV: Share women") addtext(Controls, Yes)
 

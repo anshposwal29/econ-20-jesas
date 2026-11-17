@@ -4,7 +4,8 @@ Author: Ansh (code/03_table1_format.py)
 Layout follows Dynarski (2003), Table 1: four means columns, then the pre-law
 CA - TX difference and the diff-in-diff. Nothing is computed here: every number
 comes from output/table1_balance.csv, written by 02_balance_test.do.
-Output: output/Table1_means_balance.xlsx (needs pandas and openpyxl)
+Output: output/Table1_means_balance.xlsx (needs pandas and openpyxl) and
+        output/Table1_means_balance.tex (the same table for the LaTeX paper)
 Run: python3 code/03_table1_format.py   (from any folder; also run by 00_master.do)
 """
 
@@ -18,6 +19,7 @@ from openpyxl.utils import get_column_letter
 PROJ = Path(__file__).resolve().parents[1]  # the project folder (one up from code/)
 IN = PROJ / "output" / "table1_balance.csv"
 OUT = PROJ / "output" / "Table1_means_balance.xlsx"
+OUT_TEX = PROJ / "output" / "Table1_means_balance.tex"
 
 # (variable, label in the table, decimals, indent). Rows with only a label are panel headings.
 # Indented rows are the "share blank" rows under multinational and age.
@@ -45,8 +47,8 @@ NOTES = (
     "Notes: Sample is firms headquartered in California or Texas on 30 September "
     "2018, listed on the NYSE, AMEX or Nasdaq, excluding funds, trusts and shell "
     "companies (SIC 67xx) and firm-years with under $1 million of total assets. "
-    "\"Before\" is fiscal years ending June 2010 to September 2018; \"After\" is "
-    "fiscal years ending October 2018 to December 2019. Columns (1)-(4) report "
+    "\"Before\" is fiscal years ending January 2011 to September 2018; \"After\" is "
+    "fiscal years ending October 2018 to December 2020. Columns (1)-(4) report "
     "unweighted means with standard deviations in brackets. Column (5) is the "
     "coefficient on a California dummy from a regression of the row variable on "
     "that dummy, before-the-law sample only. Column (6) is the coefficient on "
@@ -68,6 +70,44 @@ def fmt(x, d):
     if pd.isna(x):
         return ""
     return f"{x:,.{d}f}"
+
+
+def write_tex(t):
+    """LaTeX copy of Table 1: only the tabular, the caption and notes are in the paper."""
+    lines = []
+    lines.append(r"\begin{tabular}{lcccccc}")
+    lines.append(r"\hline\hline")
+    lines.append(r" & \multicolumn{2}{c}{Before the law} & \multicolumn{2}{c}{After the law} & CA $-$ TX & Difference- \\")
+    lines.append(r"\cline{2-3} \cline{4-5}")
+    lines.append(r" & Texas & California & Texas & California & before & in-differences \\")
+    lines.append(r" & (1) & (2) & (3) & (4) & (5) & (6) \\")
+    lines.append(r"\hline")
+    for spec in ROWS:
+        if spec[1] is None:
+            lines.append(r"\multicolumn{7}{l}{\textit{" + spec[0] + r"}} \\")
+            continue
+        var, label, d, indent = spec
+        x = t.loc[var]
+        lab = (r"\quad \textit{" + label + "}") if indent else label
+        lab = lab.replace("&", r"\&")
+        means = [fmt(m, d) for m in (x["mean_tx"], x["mean_ca"], x["mean_tx_post"], x["mean_ca_post"])]
+        sds = ["[" + fmt(s, d) + "]" for s in (x["sd_tx"], x["sd_ca"], x["sd_tx_post"], x["sd_ca_post"])]
+        if pd.isna(x["diff"]):
+            extra, extra_se = ["", ""], ["", ""]
+        else:
+            extra = [fmt(x["diff"], d), fmt(x["did"], d)]
+            extra_se = ["(" + fmt(x["diff_se"], d) + ")", "(" + fmt(x["did_se"], d) + ")"]
+        lines.append(lab + " & " + " & ".join(means + extra) + r" \\")
+        lines.append(" & " + " & ".join(sds + extra_se) + r" \\")
+    lines.append(r"\hline")
+    for key, label in (("firm_years", "Firm-years"), ("firms", "Firms")):
+        x = t.loc[key]
+        vals = [x["mean_tx"], x["mean_ca"], x["mean_tx_post"], x["mean_ca_post"], x["diff_n"], x["did_n"]]
+        lines.append(label + " & " + " & ".join(fmt(v, 0) for v in vals) + r" \\")
+    lines.append(r"\hline\hline")
+    lines.append(r"\end{tabular}")
+    OUT_TEX.write_text("\n".join(lines) + "\n")
+    print(f"wrote {OUT_TEX.relative_to(PROJ)}")
 
 
 def main():
@@ -172,6 +212,9 @@ def main():
 
     wb.save(OUT)
     print(f"wrote {OUT.relative_to(PROJ)}")
+
+    # LaTeX copy of the same table
+    write_tex(t)
 
 
 if __name__ == "__main__":

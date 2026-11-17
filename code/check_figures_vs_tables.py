@@ -96,7 +96,7 @@ def main():
         ("fig_table3_iv_coef", "onewoman"): (3, 4, "onewoman"),
         ("fig_table3_iv_coef", "sharewoman"): (3, 5, "sharewoman"),
     }
-    for y in range(2010, 2018):
+    for y in range(2011, 2018):
         links[("fig_table4_pretrend", f"ca_yr{y}")] = (4, 1, f"ca_yr{y}")
     fstats = {
         ("fig_table3_firststage_coef", "onewoman_F"): (3, 1),
@@ -142,7 +142,7 @@ def main():
 
     # pre-trend joint test: the table does not print it, so read Sophia's log
     log = LOG04.read_text(errors="replace")
-    m = re.search(r"test ca_yr2010.*?F\(\s*(\d+),\s*(\d+)\)\s*=\s*([\d.]+)\s*\n\s*Prob > F =\s*([\d.]+)", log, re.S)
+    m = re.search(r"test ca_yr2011.*?F\(\s*(\d+),\s*(\d+)\)\s*=\s*([\d.]+)\s*\n\s*Prob > F =\s*([\d.]+)", log, re.S)
     for item, group in (("joint_F", 3), ("joint_p", 4)):
         key = ("fig_table4_pretrend", item)
         if not m or key not in F:

@@ -1,10 +1,11 @@
 *==============================================================================
-* 06_panel_tables.do -- panel DiD with firm and year fixed effects, fiscal years 2010-2020
+* 06_panel_tables.do -- panel DiD with firm and year fixed effects, fiscal years 2011-2020
 * Author: Sophia (was code/paneldata_outreg2.do)
 * Tables: table2_main (main DiD), table2_plcbo (woman on board in 2017),
 *         table3_pretrend (2017 = reference), table4_iv (first stage, IV)
 * Input:  final_data.dta
-* Output: output/table2_main, table2_plcbo, table3_pretrend, table4_iv (.txt/.xml)
+* Output: output/table2_main, table2_plcbo, table3_pretrend, table4_iv (.txt/.xml/.tex)
+* tex(frag) in outreg2 writes a LaTeX copy of each table (same numbers as the Excel one)
 * table2_plcbo only uses "append", so 00_master.do erases it before running this file.
 * Only the header, folder lines and comments were changed; the code is Sophia's.
 *==============================================================================
@@ -43,6 +44,8 @@ tab fyr
 * Year dummies from fyr. xtset on firm only: some firms have two fiscal year-ends
 * in one calendar year, which would break xtset firm_id fyr
 drop if fyr>2020
+* the paper uses fiscal years 2011-2020 everywhere
+drop if fyr<2011
 tab fyr, gen(fyeardum)
 xtset firm_id
 
@@ -52,14 +55,14 @@ xtset firm_id
 
 * (1) No controls
 xtreg lnmktcap ca_post fyeardum*, fe cluster(firm_id)
-outreg2 using output/table2_main, excel replace dec(3) ///
+outreg2 using output/table2_main, excel tex(frag) replace dec(3) ///
 	drop(fyeardum* o.fyeardum*) ///
     ctitle("(1) No controls") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, No)
 
 * (2) With controls
 xtreg lnmktcap ca_post fyeardum* lnassets roa leverage multinational, fe cluster(firm_id)
-outreg2 using output/table2_main, excel append dec(3) ///
+outreg2 using output/table2_main, excel tex(frag) append dec(3) ///
 	drop(fyeardum* o.fyeardum*) ///
     ctitle("(2) Controls") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
@@ -70,7 +73,7 @@ reg lnmktcap ca fyeardum* ca_year if post==0, cluster(firm_id)
 predict lnmktcap_hat, resid
 
 xtreg lnmktcap_hat ca_post fyeardum* lnassets roa leverage multinational, fe cluster(firm_id)
-outreg2 using output/table2_main, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
+outreg2 using output/table2_main, excel tex(frag) append drop(fyeardum* o.fyeardum*) dec(3) ///
 	ctitle("(3) Detrended") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
 
@@ -80,7 +83,7 @@ gen woman_pre_obs = (women >= 1) if fyr==2017
 bysort firm_id: egen woman_pre = max(woman_pre_obs)
 
 xtreg lnmktcap ca_post fyeardum* lnassets roa leverage multinational if woman_pre==1, fe cluster(firm_id)
-outreg2 using output/table2_plcbo, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
+outreg2 using output/table2_plcbo, excel tex(frag) append drop(fyeardum* o.fyeardum*) dec(3) ///
 	ctitle("(4) Woman pre-law") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
 
@@ -89,7 +92,7 @@ reg lnmktcap ca fyeardum* ca_year if post==0 & woman_pre==1, cluster(firm_id)
 predict lnmktcap_hat_w if woman_pre==1, resid
 
 xtreg lnmktcap_hat_w ca_post fyeardum* lnassets roa leverage multinational if woman_pre==1, fe cluster(firm_id)
-outreg2 using output/table2_plcbo, excel append dec(3) ///
+outreg2 using output/table2_plcbo, excel tex(frag) append dec(3) ///
     drop(fyeardum* o.fyeardum*) ///
 	ctitle("(5) Woman pre-law, detrended") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
@@ -97,14 +100,14 @@ outreg2 using output/table2_plcbo, excel append dec(3) ///
 *==============================================================
 * TABLE 3: Pre-trend (event study), pre-law years only, 2017 = reference
 *==============================================================
-forvalues y = 2010/2016 {
+forvalues y = 2011/2016 {
     gen ca_yr`y' = ca * (fyr == `y')
 }
 
 * not from class: i.fyr = year dummies (same fit as tab fyr, gen(yrdum)); kept as Sophia wrote it
-xtreg lnmktcap ca_yr2010-ca_yr2016 i.fyr if fyr <= 2017, fe cluster(firm_id)
-test ca_yr2010 ca_yr2011 ca_yr2012 ca_yr2013 ca_yr2014 ca_yr2015 ca_yr2016
-outreg2 using output/table3_pretrend, excel replace keep(ca_yr*) dec(3) ///
+xtreg lnmktcap ca_yr2011-ca_yr2016 i.fyr if fyr <= 2017, fe cluster(firm_id)
+test ca_yr2011 ca_yr2012 ca_yr2013 ca_yr2014 ca_yr2015 ca_yr2016
+outreg2 using output/table3_pretrend, excel tex(frag) replace keep(ca_yr*) dec(3) ///
     ctitle("ln(market cap)") ///
     addtext(Firm FE, Yes, Year FE, Yes) ///
     addstat(Joint F-test, r(F), p-value, r(p))
@@ -118,7 +121,7 @@ gen sharewoman = women / boardsize if women ~= . & boardsize ~= . & boardsize > 
 * (1) First stage: at least one woman
 xtreg onewoman ca_post lnassets roa leverage multinational if fyeyear < 2020, fe cluster(firm_id)
 test ca_post
-outreg2 using output/table4_iv, excel replace drop(fyeardum*) dec(3) ///
+outreg2 using output/table4_iv, excel tex(frag) replace drop(fyeardum*) dec(3) ///
     ctitle("(1) First stage", "One woman") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes) ///
     addstat(First-stage F, r(F))
@@ -126,28 +129,28 @@ outreg2 using output/table4_iv, excel replace drop(fyeardum*) dec(3) ///
 * (2) First stage: share of women
 xtreg sharewoman ca_post lnassets roa leverage multinational if fyeyear < 2020, fe cluster(firm_id)
 test ca_post
-outreg2 using output/table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
+outreg2 using output/table4_iv, excel tex(frag) append drop(fyeardum* o.fyeardum*) dec(3) ///
     ctitle("(2) First stage", "Share women") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes) ///
     addstat(First-stage F, r(F))
 
 * (3) Reduced form, same sample as the first stages
 xtreg lnmktcap ca_post fyeardum* lnassets roa leverage multinational if onewoman ~= ., fe cluster(firm_id)
-outreg2 using output/table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
+outreg2 using output/table4_iv, excel tex(frag) append drop(fyeardum* o.fyeardum*) dec(3) ///
     ctitle("(3) Reduced form", "ln(mkt cap)") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
 
 * (4) IV: one woman
 * not from class: xtivreg ..., fe = IV with firm fixed effects (no class command for this); kept as Sophia wrote it
 xtivreg lnmktcap fyeardum* lnassets roa leverage multinational (onewoman = ca_post), fe vce(cluster firm_id)
-outreg2 using output/table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
+outreg2 using output/table4_iv, excel tex(frag) append drop(fyeardum* o.fyeardum*) dec(3) ///
     ctitle("(4) IV", "ln(mkt cap)") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
 
 * (5) IV: share of women
 * not from class: xtivreg ..., fe = IV with firm fixed effects (no class command for this); kept as Sophia wrote it
 xtivreg lnmktcap fyeardum* lnassets roa leverage multinational (sharewoman = ca_post), fe vce(cluster firm_id)
-outreg2 using output/table4_iv, excel append drop(fyeardum* o.fyeardum*) dec(3) ///
+outreg2 using output/table4_iv, excel tex(frag) append drop(fyeardum* o.fyeardum*) dec(3) ///
     ctitle("(5) IV", "ln(mkt cap)") ///
     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
 

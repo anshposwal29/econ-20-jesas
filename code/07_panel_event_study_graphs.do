@@ -1,11 +1,12 @@
 *==============================================================================
 * 07_panel_event_study_graphs.do -- panel event studies, original vs detrended
 * Author: Seohee (was code/paneldata_outreg2_graphs.do)
-* Event studies for fiscal years 2011-2021 (2017 = reference year), for the
+* Event studies for fiscal years 2011-2020 (2017 = reference year), for the
 * first stage (onewoman) and the reduced form (lnmktcap), each shown as is and
 * after removing a California-specific linear pre-trend.
 * Input:  final_data.dta
-* Output: output/figures/es_onewoman_overlay.png/.gph, es_lnmktcap_overlay.png/.gph
+* Output: output/figures/es_onewoman_overlay.png/.gph, es_lnmktcap_overlay.png/.gph,
+*         output/table_event_study (.txt/.xml/.tex) = the numbers behind both graphs
 *==============================================================================
 cap log close
 clear
@@ -27,8 +28,10 @@ use "final_data.dta", clear
 
 encode gvkey, gen(firm_id)
 gen fyr = fyeyear
+* the paper uses fiscal years 2011-2020 everywhere
+keep if fyr >= 2011 & fyr <= 2020
 
-* year dummies (all years in the data). xtset on firm only: some firms have two
+* year dummies (2011-2020). xtset on firm only: some firms have two
 * fiscal year-ends in one calendar year, which would break xtset firm_id fyr.
 tab fyr, gen(fyeardum)
 xtset firm_id
@@ -48,45 +51,73 @@ reg onewoman ca fyeardum* ca_year if post==0, cluster(firm_id)
 predict onewoman_hat, resid
 
 *==============================================================
-* EVENT STUDIES (2011-2021, 2017 = reference year)
+* EVENT STUDIES (2011-2020, 2017 = reference year)
 * Same sample in all four: firm-years with board data (onewoman ~= .)
 *==============================================================
-foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 2021 {
+foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 {
     gen caXyr`y' = ca*(fyr==`y')
 }
 
 * (1) first stage, original
-xtreg onewoman caXyr* fyeardum* if onewoman ~= . & fyr >= 2011 & fyr <= 2021, fe cluster(firm_id)
+xtreg onewoman caXyr* fyeardum* if onewoman ~= . & fyr >= 2011 & fyr <= 2020, fe cluster(firm_id)
+* joint test that the pre-law years (2011-2016) are all zero
+test caXyr2011 caXyr2012 caXyr2013 caXyr2014 caXyr2015 caXyr2016
+outreg2 using output/table_event_study, excel tex(frag) replace dec(3) ///
+    drop(fyeardum* o.fyeardum*) ///
+    ctitle("(1) First stage", "One woman") ///
+    addtext(Firm FE, Yes, Year FE, Yes, Detrended, No) ///
+    addstat(Joint pre-trend F, r(F), Joint pre-trend p, r(p))
 gen b_onewoman = 0
 gen se_onewoman = .
-foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 2021 {
+foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 {
     replace b_onewoman = _b[caXyr`y'] if fyr==`y'
     replace se_onewoman = _se[caXyr`y'] if fyr==`y'
 }
 
 * (2) first stage, detrended
-xtreg onewoman_hat caXyr* fyeardum* if onewoman ~= . & fyr >= 2011 & fyr <= 2021, fe cluster(firm_id)
+xtreg onewoman_hat caXyr* fyeardum* if onewoman ~= . & fyr >= 2011 & fyr <= 2020, fe cluster(firm_id)
+* joint test that the pre-law years (2011-2016) are all zero
+test caXyr2011 caXyr2012 caXyr2013 caXyr2014 caXyr2015 caXyr2016
+outreg2 using output/table_event_study, excel tex(frag) append dec(3) ///
+    drop(fyeardum* o.fyeardum*) ///
+    ctitle("(2) First stage", "One woman") ///
+    addtext(Firm FE, Yes, Year FE, Yes, Detrended, Yes) ///
+    addstat(Joint pre-trend F, r(F), Joint pre-trend p, r(p))
 gen b_onewoman_hat = 0
 gen se_onewoman_hat = .
-foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 2021 {
+foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 {
     replace b_onewoman_hat = _b[caXyr`y'] if fyr==`y'
     replace se_onewoman_hat = _se[caXyr`y'] if fyr==`y'
 }
 
 * (3) reduced form, original
-xtreg lnmktcap caXyr* fyeardum* if onewoman ~= . & fyr >= 2011 & fyr <= 2021, fe cluster(firm_id)
+xtreg lnmktcap caXyr* fyeardum* if onewoman ~= . & fyr >= 2011 & fyr <= 2020, fe cluster(firm_id)
+* joint test that the pre-law years (2011-2016) are all zero
+test caXyr2011 caXyr2012 caXyr2013 caXyr2014 caXyr2015 caXyr2016
+outreg2 using output/table_event_study, excel tex(frag) append dec(3) ///
+    drop(fyeardum* o.fyeardum*) ///
+    ctitle("(3) Reduced form", "ln(mkt cap)") ///
+    addtext(Firm FE, Yes, Year FE, Yes, Detrended, No) ///
+    addstat(Joint pre-trend F, r(F), Joint pre-trend p, r(p))
 gen b_lnmktcap = 0
 gen se_lnmktcap = .
-foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 2021 {
+foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 {
     replace b_lnmktcap = _b[caXyr`y'] if fyr==`y'
     replace se_lnmktcap = _se[caXyr`y'] if fyr==`y'
 }
 
 * (4) reduced form, detrended
-xtreg lnmktcap_hat caXyr* fyeardum* if onewoman ~= . & fyr >= 2011 & fyr <= 2021, fe cluster(firm_id)
+xtreg lnmktcap_hat caXyr* fyeardum* if onewoman ~= . & fyr >= 2011 & fyr <= 2020, fe cluster(firm_id)
+* joint test that the pre-law years (2011-2016) are all zero
+test caXyr2011 caXyr2012 caXyr2013 caXyr2014 caXyr2015 caXyr2016
+outreg2 using output/table_event_study, excel tex(frag) append dec(3) ///
+    drop(fyeardum* o.fyeardum*) ///
+    ctitle("(4) Reduced form", "ln(mkt cap)") ///
+    addtext(Firm FE, Yes, Year FE, Yes, Detrended, Yes) ///
+    addstat(Joint pre-trend F, r(F), Joint pre-trend p, r(p))
 gen b_lnmktcap_hat = 0
 gen se_lnmktcap_hat = .
-foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 2021 {
+foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 {
     replace b_lnmktcap_hat = _b[caXyr`y'] if fyr==`y'
     replace se_lnmktcap_hat = _se[caXyr`y'] if fyr==`y'
 }
@@ -95,7 +126,7 @@ foreach y in 2011 2012 2013 2014 2015 2016 2018 2019 2020 2021 {
 * GRAPH 1: first stage, original vs detrended
 *==============================================================
 preserve
-keep if fyr >= 2011 & fyr <= 2021
+keep if fyr >= 2011 & fyr <= 2020
 collapse (mean) b_onewoman se_onewoman b_onewoman_hat se_onewoman_hat, by(fyr)
 gen upper = b_onewoman + 1.96*se_onewoman
 gen lower = b_onewoman - 1.96*se_onewoman
@@ -109,7 +140,7 @@ gr two (rcap upper lower x, lc(gs11)) (scatter b_onewoman x, mc(gs8) ms(Oh)) ///
        (rcap upper_hat lower_hat x_hat, lc(cranberry)) (scatter b_onewoman_hat x_hat, mc(blue) ms(O)), ///
     yline(0, lc(black) lp(dash)) xline(2017.5, lp(dash) lc(black)) ///
     legend(order(2 "Original" 4 "Detrended (CA linear pre-trend removed)") ring(0) pos(11)) ///
-    xlabel(2011(2)2021) ///
+    xlabel(2011(1)2020) ///
     xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies from FY2018)") ///
     ytitle("CA - TX difference in P(at least 1 woman), relative to 2017") ///
     title("First Stage Event Study" "California SB 826: Original vs. Detrended", size(medium)) ///
@@ -123,7 +154,7 @@ restore
 * GRAPH 2: reduced form, original vs detrended
 *==============================================================
 preserve
-keep if fyr >= 2011 & fyr <= 2021
+keep if fyr >= 2011 & fyr <= 2020
 collapse (mean) b_lnmktcap se_lnmktcap b_lnmktcap_hat se_lnmktcap_hat, by(fyr)
 gen upper = b_lnmktcap + 1.96*se_lnmktcap
 gen lower = b_lnmktcap - 1.96*se_lnmktcap
@@ -136,7 +167,7 @@ gr two (rcap upper lower x, lc(gs11)) (scatter b_lnmktcap x, mc(gs8) ms(Oh)) ///
        (rcap upper_hat lower_hat x_hat, lc(cranberry)) (scatter b_lnmktcap_hat x_hat, mc(blue) ms(O)), ///
     yline(0, lc(black) lp(dash)) xline(2017.5, lp(dash) lc(black)) ///
     legend(order(2 "Original" 4 "Detrended (CA linear pre-trend removed)") ring(0) pos(11)) ///
-    xlabel(2011(2)2021) ///
+    xlabel(2011(1)2020) ///
     xtitle("Fiscal year (calendar year of fiscal year end; SB 826 applies from FY2018)") ///
     ytitle("CA - TX difference in ln(market cap), relative to 2017") ///
     title("Reduced Form Event Study" "California SB 826: Original vs. Detrended", size(medium)) ///

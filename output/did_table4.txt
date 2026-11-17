@@ -1,27 +1,25 @@
 	(1)
 VARIABLES	(1) Pretrend coefficients
 	
-ca_yr2010	-0.544***
-	(0.109)
-ca_yr2011	-0.605***
-	(0.105)
-ca_yr2012	-0.636***
+ca_yr2011	-0.595***
+	(0.106)
+ca_yr2012	-0.629***
 	(0.095)
-ca_yr2013	-0.633***
+ca_yr2013	-0.622***
 	(0.086)
-ca_yr2014	-0.404***
+ca_yr2014	-0.397***
 	(0.077)
-ca_yr2015	-0.125*
-	(0.071)
-ca_yr2016	-0.275***
+ca_yr2015	-0.122*
+	(0.072)
+ca_yr2016	-0.273***
 	(0.069)
 ca_yr2017	-0.137***
 	(0.048)
-Constant	6.627***
-	(0.068)
+Constant	6.607***
+	(0.069)
 	
-Observations	7,854
-R-squared	0.934
+Observations	7,115
+R-squared	0.938
 Firm FE	Yes
 Year FE	Yes
 Robust standard errors in parentheses	

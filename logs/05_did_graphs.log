@@ -3,7 +3,7 @@
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/05_did_graphs.log
   log type:  text
- opened on:  13 Nov 2026, 22:04:26
+ opened on:  17 Nov 2026, 17:00:24
 
 . 
 . use final_data.dta, clear
@@ -14,77 +14,64 @@
 
 . gen fyr = fyeyear
 
+. * the paper uses fiscal years 2011-2020 everywhere
+. keep if fyr >= 2011 & fyr <= 2020
+(5,979 observations deleted)
+
 . 
-. * year dummies: yrdum1 = 2010, yrdum2 = 2011, ..., yrdum16 = 2025
+. * year dummies: yrdum1 = 2011, yrdum2 = 2012, ..., yrdum10 = 2020
 . tab fyr, gen(yrdum)
 
         fyr |      Freq.     Percent        Cum.
 ------------+-----------------------------------
-       2010 |        739        4.94        4.94
-       2011 |        857        5.73       10.68
-       2012 |        867        5.80       16.47
-       2013 |        878        5.87       22.35
-       2014 |        910        6.09       28.43
-       2015 |        914        6.11       34.55
-       2016 |        902        6.03       40.58
-       2017 |        896        5.99       46.58
-       2018 |        891        5.96       52.54
-       2019 |        908        6.07       58.61
-       2020 |        948        6.34       64.95
-       2021 |      1,049        7.02       71.97
-       2022 |      1,056        7.06       79.03
-       2023 |      1,060        7.09       86.12
-       2024 |      1,047        7.00       93.12
-       2025 |      1,028        6.88      100.00
+       2011 |        857        9.55        9.55
+       2012 |        867        9.66       19.22
+       2013 |        878        9.79       29.00
+       2014 |        910       10.14       39.15
+       2015 |        914       10.19       49.34
+       2016 |        902       10.05       59.39
+       2017 |        896        9.99       69.38
+       2018 |        891        9.93       79.31
+       2019 |        908       10.12       89.43
+       2020 |        948       10.57      100.00
 ------------+-----------------------------------
-      Total |     14,950      100.00
+      Total |      8,971      100.00
 
 . 
 . * Detrending, same as Sophia's 04_did_tests.do: fit a CA-specific linear tren
 > d
-. * on the years before 2018 and keep the residuals. yrdum1 (2010) is the base 
+. * on the years before 2018 and keep the residuals. yrdum1 (2011) is the base 
 > year.
 . gen ca_year = ca*fyr
 
-. reg lnmktcap ca yrdum2-yrdum16 ca_year if fyr < 2018, cluster(firm_id)
+. reg lnmktcap ca yrdum2-yrdum10 ca_year if fyr < 2018, cluster(firm_id)
+note: yrdum8 omitted because of collinearity.
 note: yrdum9 omitted because of collinearity.
 note: yrdum10 omitted because of collinearity.
-note: yrdum11 omitted because of collinearity.
-note: yrdum12 omitted because of collinearity.
-note: yrdum13 omitted because of collinearity.
-note: yrdum14 omitted because of collinearity.
-note: yrdum15 omitted because of collinearity.
-note: yrdum16 omitted because of collinearity.
 
-Linear regression                               Number of obs     =      6,963
-                                                F(9, 1275)        =      25.41
+Linear regression                               Number of obs     =      6,224
+                                                F(8, 1234)        =      28.80
                                                 Prob > F          =     0.0000
-                                                R-squared         =     0.0133
-                                                Root MSE          =     2.1138
+                                                R-squared         =     0.0128
+                                                Root MSE          =     2.1245
 
-                            (Std. err. adjusted for 1,276 clusters in firm_id)
+                            (Std. err. adjusted for 1,235 clusters in firm_id)
 ------------------------------------------------------------------------------
              |               Robust
     lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-          ca |  -121.5455   39.46122    -3.08   0.002    -198.9615   -44.12939
-      yrdum2 |  -.1181194   .0423318    -2.79   0.005     -.201167   -.0350718
-      yrdum3 |  -.0867341   .0535105    -1.62   0.105    -.1917125    .0182442
-      yrdum4 |   .2083496   .0608885     3.42   0.001      .088897    .3278022
-      yrdum5 |   .1626764   .0710181     2.29   0.022     .0233512    .3020015
-      yrdum6 |   -.071002    .082244    -0.86   0.388    -.2323505    .0903465
-      yrdum7 |  -.0686547   .0926739    -0.74   0.459    -.2504648    .1131553
-      yrdum8 |   .0395612   .1009941     0.39   0.695    -.1585717     .237694
+          ca |  -145.9816   42.82193    -3.41   0.001    -229.9934   -61.96974
+      yrdum2 |   .0248941   .0334362     0.74   0.457     -.040704    .0904922
+      yrdum3 |   .3133147   .0462772     6.77   0.000      .222524    .4041054
+      yrdum4 |   .2608431   .0602243     4.33   0.000     .1426898    .3789965
+      yrdum5 |    .020234   .0725972     0.28   0.781    -.1221935    .1626615
+      yrdum6 |   .0157243   .0842947     0.19   0.852    -.1496524     .181101
+      yrdum7 |   .1172339   .0932316     1.26   0.209    -.0656761     .300144
+      yrdum8 |          0  (omitted)
       yrdum9 |          0  (omitted)
      yrdum10 |          0  (omitted)
-     yrdum11 |          0  (omitted)
-     yrdum12 |          0  (omitted)
-     yrdum13 |          0  (omitted)
-     yrdum14 |          0  (omitted)
-     yrdum15 |          0  (omitted)
-     yrdum16 |          0  (omitted)
-     ca_year |   .0601735   .0195989     3.07   0.002     .0217238    .0986231
-       _cons |   6.772711   .1098807    61.64   0.000     6.557144    6.988278
+     ca_year |   .0723005   .0212634     3.40   0.001     .0305841    .1140168
+       _cons |   6.681595   .1077775    61.99   0.000     6.470148    6.893043
 ------------------------------------------------------------------------------
 
 . predict lnmktcap_hat, resid
@@ -92,10 +79,10 @@ Linear regression                               Number of obs     =      6,963
 . 
 . 
 . *==============================================================
-. * TABLE 4 GRAPH: PRE-TRENDS EVENT STUDY (2010-2018, 2018 = reference year)
+. * TABLE 4 GRAPH: PRE-TRENDS EVENT STUDY (2011-2018, 2018 = reference year)
 . * Same regression as did_table4 column (1).
 . *==============================================================
-. foreach y in 2010 2011 2012 2013 2014 2015 2016 2017 {
+. foreach y in 2011 2012 2013 2014 2015 2016 2017 {
   2.     gen ca_yr`y' = ca*(fyr==`y')
   3. }
 
@@ -103,105 +90,87 @@ Linear regression                               Number of obs     =      6,963
 . preserve
 
 . * step (0): regression with firm and year fixed effects
-. areg lnmktcap ca_yr2010-ca_yr2017 yrdum* if fyr >= 2010 & fyr <= 2018, ///
+. areg lnmktcap ca_yr2011-ca_yr2017 yrdum* if fyr >= 2011 & fyr <= 2018, ///
 >     absorb(firm_id) cluster(firm_id)
+note: yrdum8 omitted because of collinearity.
 note: yrdum9 omitted because of collinearity.
 note: yrdum10 omitted because of collinearity.
-note: yrdum11 omitted because of collinearity.
-note: yrdum12 omitted because of collinearity.
-note: yrdum13 omitted because of collinearity.
-note: yrdum14 omitted because of collinearity.
-note: yrdum15 omitted because of collinearity.
-note: yrdum16 omitted because of collinearity.
 
-Linear regression, absorbing indicators             Number of obs     =  7,854
-Absorbed variable: firm_id                          No. of categories =  1,341
-                                                    F(16, 1340)       =  32.67
+Linear regression, absorbing indicators             Number of obs     =  7,115
+Absorbed variable: firm_id                          No. of categories =  1,300
+                                                    F(14, 1299)       =  35.25
                                                     Prob > F          = 0.0000
-                                                    R-squared         = 0.9344
-                                                    Adj R-squared     = 0.9207
-                                                    Root MSE          = 0.6022
+                                                    R-squared         = 0.9380
+                                                    Adj R-squared     = 0.9239
+                                                    Root MSE          = 0.5925
 
-                            (Std. err. adjusted for 1,341 clusters in firm_id)
+                            (Std. err. adjusted for 1,300 clusters in firm_id)
 ------------------------------------------------------------------------------
              |               Robust
     lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-   ca_yr2010 |  -.5441568   .1089404    -4.99   0.000    -.7578691   -.3304444
-   ca_yr2011 |  -.6047873   .1054234    -5.74   0.000    -.8116001   -.3979745
-   ca_yr2012 |  -.6356152   .0950068    -6.69   0.000    -.8219935    -.449237
-   ca_yr2013 |  -.6331458   .0858966    -7.37   0.000    -.8016523   -.4646394
-   ca_yr2014 |  -.4035308   .0767565    -5.26   0.000    -.5541069   -.2529548
-   ca_yr2015 |  -.1252087   .0713761    -1.75   0.080    -.2652299    .0148124
-   ca_yr2016 |  -.2753525   .0690403    -3.99   0.000    -.4107913   -.1399138
-   ca_yr2017 |  -.1366892   .0483184    -2.83   0.005    -.2314771   -.0419013
-      yrdum1 |  -.1114245    .080464    -1.38   0.166    -.2692737    .0464247
-      yrdum2 |  -.1166087   .0804796    -1.45   0.148    -.2744884    .0412709
-      yrdum3 |  -.0359373   .0701955    -0.51   0.609    -.1736423    .1017677
-      yrdum4 |   .3021571   .0626234     4.82   0.000     .1793064    .4250077
-      yrdum5 |   .2013459   .0543276     3.71   0.000     .0947695    .3079224
-      yrdum6 |  -.0922252     .05051    -1.83   0.068    -.1913124    .0068621
-      yrdum7 |   .0477713   .0523128     0.91   0.361    -.0548526    .1503952
-      yrdum8 |   .1537657   .0339319     4.53   0.000     .0872002    .2203312
+   ca_yr2011 |  -.5948435   .1058195    -5.62   0.000    -.8024394   -.3872475
+   ca_yr2012 |  -.6288346    .095225    -6.60   0.000    -.8156463   -.4420229
+   ca_yr2013 |  -.6215829   .0861042    -7.22   0.000    -.7905014   -.4526645
+   ca_yr2014 |   -.397356   .0769396    -5.16   0.000    -.5482955   -.2464165
+   ca_yr2015 |  -.1216554   .0716164    -1.70   0.090    -.2621518     .018841
+   ca_yr2016 |  -.2732743   .0693791    -3.94   0.000    -.4093817   -.1371669
+   ca_yr2017 |  -.1372678   .0484584    -2.83   0.005    -.2323332   -.0422025
+      yrdum1 |  -.1173636   .0809031    -1.45   0.147    -.2760786    .0413514
+      yrdum2 |  -.0351638   .0703688    -0.50   0.617    -.1732127    .1028851
+      yrdum3 |   .2991702   .0627459     4.77   0.000     .1760758    .4222647
+      yrdum4 |   .2002446    .054427     3.68   0.000     .0934702     .307019
+      yrdum5 |  -.0923449   .0507467    -1.82   0.069    -.1918993    .0072094
+      yrdum6 |   .0470057   .0525856     0.89   0.372    -.0561562    .1501677
+      yrdum7 |   .1548049   .0340184     4.55   0.000     .0880679     .221542
+      yrdum8 |          0  (omitted)
       yrdum9 |          0  (omitted)
      yrdum10 |          0  (omitted)
-     yrdum11 |          0  (omitted)
-     yrdum12 |          0  (omitted)
-     yrdum13 |          0  (omitted)
-     yrdum14 |          0  (omitted)
-     yrdum15 |          0  (omitted)
-     yrdum16 |          0  (omitted)
-       _cons |   6.738812   .0310065   217.34   0.000     6.677985    6.799639
+       _cons |   6.724428   .0295463   227.59   0.000     6.666464    6.782391
 ------------------------------------------------------------------------------
-
-. display "fig_table4_pretrend ca_yr2010: b = " _b[ca_yr2010] ", se = " _se[ca_
-> yr2010] ", N = " e(N)
-fig_table4_pretrend ca_yr2010: b = -.54415675, se = .10894043, N = 7854
 
 . display "fig_table4_pretrend ca_yr2011: b = " _b[ca_yr2011] ", se = " _se[ca_
 > yr2011] ", N = " e(N)
-fig_table4_pretrend ca_yr2011: b = -.60478728, se = .10542336, N = 7854
+fig_table4_pretrend ca_yr2011: b = -.59484347, se = .10581954, N = 7115
 
 . display "fig_table4_pretrend ca_yr2012: b = " _b[ca_yr2012] ", se = " _se[ca_
 > yr2012] ", N = " e(N)
-fig_table4_pretrend ca_yr2012: b = -.63561525, se = .09500678, N = 7854
+fig_table4_pretrend ca_yr2012: b = -.62883461, se = .09522502, N = 7115
 
 . display "fig_table4_pretrend ca_yr2013: b = " _b[ca_yr2013] ", se = " _se[ca_
 > yr2013] ", N = " e(N)
-fig_table4_pretrend ca_yr2013: b = -.63314584, se = .08589658, N = 7854
+fig_table4_pretrend ca_yr2013: b = -.62158294, se = .08610416, N = 7115
 
 . display "fig_table4_pretrend ca_yr2014: b = " _b[ca_yr2014] ", se = " _se[ca_
 > yr2014] ", N = " e(N)
-fig_table4_pretrend ca_yr2014: b = -.40353084, se = .07675654, N = 7854
+fig_table4_pretrend ca_yr2014: b = -.39735603, se = .07693962, N = 7115
 
 . display "fig_table4_pretrend ca_yr2015: b = " _b[ca_yr2015] ", se = " _se[ca_
 > yr2015] ", N = " e(N)
-fig_table4_pretrend ca_yr2015: b = -.12520873, se = .07137615, N = 7854
+fig_table4_pretrend ca_yr2015: b = -.1216554, se = .07161635, N = 7115
 
 . display "fig_table4_pretrend ca_yr2016: b = " _b[ca_yr2016] ", se = " _se[ca_
 > yr2016] ", N = " e(N)
-fig_table4_pretrend ca_yr2016: b = -.27535251, se = .06904026, N = 7854
+fig_table4_pretrend ca_yr2016: b = -.2732743, se = .06937911, N = 7115
 
 . display "fig_table4_pretrend ca_yr2017: b = " _b[ca_yr2017] ", se = " _se[ca_
 > yr2017] ", N = " e(N)
-fig_table4_pretrend ca_yr2017: b = -.13668917, se = .04831838, N = 7854
+fig_table4_pretrend ca_yr2017: b = -.13726785, se = .04845841, N = 7115
 
 . 
 . * step (1): create empty variables for the slope and standard error
 . gen slope = 0
 
 . gen se = .
-(14,950 missing values generated)
+(8,971 missing values generated)
 
 . 
 . * step (2): copy the slopes and standard errors of each year into these varia
 > bles
-. foreach y in 2010 2011 2012 2013 2014 2015 2016 2017 {
+. foreach y in 2011 2012 2013 2014 2015 2016 2017 {
   2.     replace slope = _b[ca_yr`y'] if fyr==`y'
   3.     replace se = _se[ca_yr`y'] if fyr==`y'
   4. }
-(739 real changes made)
-(739 real changes made)
 (857 real changes made)
 (857 real changes made)
 (867 real changes made)
@@ -220,33 +189,32 @@ fig_table4_pretrend ca_yr2017: b = -.13668917, se = .04831838, N = 7854
 . 
 . * joint test that all pre-period coefficients are zero (p-value goes in the n
 > ote)
-. test ca_yr2010 ca_yr2011 ca_yr2012 ca_yr2013 ///
+. test ca_yr2011 ca_yr2012 ca_yr2013 ///
 >      ca_yr2014 ca_yr2015 ca_yr2016 ca_yr2017
 
- ( 1)  ca_yr2010 = 0
- ( 2)  ca_yr2011 = 0
- ( 3)  ca_yr2012 = 0
- ( 4)  ca_yr2013 = 0
- ( 5)  ca_yr2014 = 0
- ( 6)  ca_yr2015 = 0
- ( 7)  ca_yr2016 = 0
- ( 8)  ca_yr2017 = 0
+ ( 1)  ca_yr2011 = 0
+ ( 2)  ca_yr2012 = 0
+ ( 3)  ca_yr2013 = 0
+ ( 4)  ca_yr2014 = 0
+ ( 5)  ca_yr2015 = 0
+ ( 6)  ca_yr2016 = 0
+ ( 7)  ca_yr2017 = 0
 
-       F(  8,  1340) =   11.22
+       F(  7,  1299) =   12.07
             Prob > F =    0.0000
 
 . display "fig_table4_pretrend joint_F: b = " r(F)
-fig_table4_pretrend joint_F: b = 11.21867
+fig_table4_pretrend joint_F: b = 12.067965
 
 . display "fig_table4_pretrend joint_p: b = " r(p)
-fig_table4_pretrend joint_p: b = 1.831e-15
+fig_table4_pretrend joint_p: b = 5.384e-15
 
 . local pjoint : display %5.3f r(p)
 
 . 
 . * step (3): collapse to the year level
-. keep if fyr >= 2010 & fyr <= 2018
-(7,096 observations deleted)
+. keep if fyr >= 2011 & fyr <= 2018
+(1,856 observations deleted)
 
 . collapse (mean) slope se, by(fyr)
 
@@ -266,7 +234,7 @@ fig_table4_pretrend joint_p: b = 1.831e-15
 >     title("ln(Market Cap) Pre-trend Event Study" "California SB 826", size(me
 > dium)) ///
 >     xtitle("Fiscal year") ytitle("CA - TX difference, relative to 2018") ///
->     xlabel(2010(1)2018) ///
+>     xlabel(2011(1)2018) ///
 >     note("Firm and year FE; SEs clustered by firm. TX is the comparison group
 > . Bars show 95% CI." ///
 >          "Joint test that all pre-period coefficients = 0: p = `pjoint'.")
@@ -282,7 +250,7 @@ file output/figures/fig_table4_pretrend.png written in PNG format
 . * TWO-PERIOD DiD SAMPLE (2018 vs 2019), same as 04_did_tests.do
 . *==============================================================
 . keep if fyr==2018 | fyr==2019
-(13,151 observations deleted)
+(7,172 observations deleted)
 
 . 
 . gen post19    = (fyr==2019)
@@ -384,7 +352,7 @@ file output/figures/fig_table1_means.png written in PNG format
 
 . display "fig_table1_means_detrended raw_did: b = " (lnmktcap_hat[4]-lnmktcap_
 > hat[3]) - (lnmktcap_hat[2]-lnmktcap_hat[1])
-fig_table1_means_detrended raw_did: b = .10781426
+fig_table1_means_detrended raw_did: b = .09568723
 
 . local did : display %6.3f (lnmktcap_hat[4]-lnmktcap_hat[3]) - (lnmktcap_hat[2
 > ]-lnmktcap_hat[1])
@@ -477,9 +445,9 @@ fig_table1_coefplot col2: b = .12174366, se = .04283895, N = 1789
 . reg lnmktcap_hat ca post19 ca_post19, cluster(firm_id)
 
 Linear regression                               Number of obs     =      1,799
-                                                F(3, 958)         =       6.61
-                                                Prob > F          =     0.0002
-                                                R-squared         =     0.0045
+                                                F(3, 958)         =       5.57
+                                                Prob > F          =     0.0009
+                                                R-squared         =     0.0034
                                                 Root MSE          =     2.2452
 
                               (Std. err. adjusted for 959 clusters in firm_id)
@@ -487,15 +455,15 @@ Linear regression                               Number of obs     =      1,799
              |               Robust
 lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-          ca |   .2201037   .1484388     1.48   0.138    -.0711991    .5114065
+          ca |   .1839351   .1484388     1.24   0.216    -.1073677    .4752379
       post19 |   .0550645   .0439055     1.25   0.210    -.0310976    .1412267
-   ca_post19 |   .1078143     .06165     1.75   0.081    -.0131705     .228799
-       _cons |  -.2062197   .1061492    -1.94   0.052    -.4145315    .0020922
+   ca_post19 |   .0956872   .0616501     1.55   0.121    -.0252975     .216672
+       _cons |   -.115104   .1061492    -1.08   0.278    -.3234158    .0932079
 ------------------------------------------------------------------------------
 
 . display "fig_table1_coefplot col3: b = " _b[ca_post19] ", se = " _se[ca_post1
 > 9] ", N = " e(N)
-fig_table1_coefplot col3: b = .10781427, se = .06165005, N = 1799
+fig_table1_coefplot col3: b = .09568723, se = .06165005, N = 1799
 
 . local b3 = _b[ca_post19]
 
@@ -507,9 +475,9 @@ fig_table1_coefplot col3: b = .10781427, se = .06165005, N = 1799
 > ster(firm_id)
 
 Linear regression                               Number of obs     =      1,789
-                                                F(7, 955)         =     489.83
+                                                F(7, 955)         =     488.15
                                                 Prob > F          =     0.0000
-                                                R-squared         =     0.7795
+                                                R-squared         =     0.7792
                                                 Root MSE          =      1.058
 
                               (Std. err. adjusted for 956 clusters in firm_id)
@@ -517,19 +485,19 @@ Linear regression                               Number of obs     =      1,789
              |               Robust
 lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-          ca |   .5868737   .0730798     8.03   0.000     .4434582    .7302893
+          ca |   .5507052   .0730798     7.54   0.000     .4072896    .6941208
       post19 |   .0227423   .0326458     0.70   0.486    -.0413235     .086808
-   ca_post19 |   .0615702    .042839     1.44   0.151    -.0224991    .1456396
+   ca_post19 |   .0494432    .042839     1.15   0.249    -.0346262    .1335125
     lnassets |   .8497065    .019628    43.29   0.000     .8111875    .8882256
          roa |  -.0534259   .0830038    -0.64   0.520    -.2163167    .1094649
     leverage |  -.6109338   .1678554    -3.64   0.000    -.9403418   -.2815258
 multinatio~l |   .6352281   .0696937     9.11   0.000     .4984577    .7719985
-       _cons |  -6.030191   .1261584   -47.80   0.000    -6.277771   -5.782611
+       _cons |  -5.939075   .1261584   -47.08   0.000    -6.186655   -5.691496
 ------------------------------------------------------------------------------
 
 . display "fig_table1_coefplot col4: b = " _b[ca_post19] ", se = " _se[ca_post1
 > 9] ", N = " e(N)
-fig_table1_coefplot col4: b = .06157023, se = .04283895, N = 1789
+fig_table1_coefplot col4: b = .04944319, se = .04283895, N = 1789
 
 . local b4 = _b[ca_post19]
 
@@ -714,9 +682,9 @@ fig_table2_coefplot full_spec2: b = .12174366, se = .04283895, N = 1789
 > ster(firm_id)
 
 Linear regression                               Number of obs     =      1,789
-                                                F(7, 955)         =     489.83
+                                                F(7, 955)         =     488.15
                                                 Prob > F          =     0.0000
-                                                R-squared         =     0.7795
+                                                R-squared         =     0.7792
                                                 Root MSE          =      1.058
 
                               (Std. err. adjusted for 956 clusters in firm_id)
@@ -724,19 +692,19 @@ Linear regression                               Number of obs     =      1,789
              |               Robust
 lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-          ca |   .5868737   .0730798     8.03   0.000     .4434582    .7302893
+          ca |   .5507052   .0730798     7.54   0.000     .4072896    .6941208
       post19 |   .0227423   .0326458     0.70   0.486    -.0413235     .086808
-   ca_post19 |   .0615702    .042839     1.44   0.151    -.0224991    .1456396
+   ca_post19 |   .0494432    .042839     1.15   0.249    -.0346262    .1335125
     lnassets |   .8497065    .019628    43.29   0.000     .8111875    .8882256
          roa |  -.0534259   .0830038    -0.64   0.520    -.2163167    .1094649
     leverage |  -.6109338   .1678554    -3.64   0.000    -.9403418   -.2815258
 multinatio~l |   .6352281   .0696937     9.11   0.000     .4984577    .7719985
-       _cons |  -6.030191   .1261584   -47.80   0.000    -6.277771   -5.782611
+       _cons |  -5.939075   .1261584   -47.08   0.000    -6.186655   -5.691496
 ------------------------------------------------------------------------------
 
 . display "fig_table2_coefplot full_spec3: b = " _b[ca_post19] ", se = " _se[ca
 > _post19] ", N = " e(N)
-fig_table2_coefplot full_spec3: b = .06157023, se = .04283895, N = 1789
+fig_table2_coefplot full_spec3: b = .04944319, se = .04283895, N = 1789
 
 . local b3 = _b[ca_post19]
 
@@ -808,7 +776,7 @@ fig_table2_coefplot placebo_spec2: b = .0827906, se = .04757022, N = 1328
 > oman18==1, cluster(firm_id)
 
 Linear regression                               Number of obs     =      1,328
-                                                F(7, 686)         =     340.94
+                                                F(7, 686)         =     340.13
                                                 Prob > F          =     0.0000
                                                 R-squared         =     0.7798
                                                 Root MSE          =     1.0761
@@ -818,19 +786,19 @@ Linear regression                               Number of obs     =      1,328
              |               Robust
 lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-          ca |   .5542526    .084657     6.55   0.000     .3880346    .7204706
+          ca |    .518084    .084657     6.12   0.000      .351866    .6843021
       post19 |  -.0138816   .0380793    -0.36   0.716    -.0886476    .0608845
-   ca_post19 |   .0226172   .0475702     0.48   0.635    -.0707835    .1160179
+   ca_post19 |   .0104901   .0475702     0.22   0.826    -.0829106    .1038908
     lnassets |   .8329062   .0223129    37.33   0.000     .7890965     .876716
-         roa |  -.0001087   .1038855    -0.00   0.999    -.2040805    .2038631
+         roa |  -.0001088   .1038855    -0.00   0.999    -.2040806    .2038631
     leverage |  -.5317777   .1932271    -2.75   0.006    -.9111652   -.1523901
-multinatio~l |   .7820242   .0822107     9.51   0.000     .6206093     .943439
-       _cons |  -5.950816    .164831   -36.10   0.000     -6.27445   -5.627182
+multinatio~l |   .7820242   .0822107     9.51   0.000     .6206093    .9434391
+       _cons |  -5.859701    .164831   -35.55   0.000    -6.183335   -5.536067
 ------------------------------------------------------------------------------
 
 . display "fig_table2_coefplot placebo_spec3: b = " _b[ca_post19] ", se = " _se
 > [ca_post19] ", N = " e(N)
-fig_table2_coefplot placebo_spec3: b = .02261716, se = .04757022, N = 1328
+fig_table2_coefplot placebo_spec3: b = .01049012, se = .04757022, N = 1328
 
 . local b6 = _b[ca_post19]
 

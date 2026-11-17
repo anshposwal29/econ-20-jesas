@@ -27,30 +27,31 @@ use final_data.dta, clear
 
 encode gvkey, gen(firm_id)
 gen fyr = fyeyear
+* the paper uses fiscal years 2011-2020 everywhere
+keep if fyr >= 2011 & fyr <= 2020
 
-* year dummies: yrdum1 = 2010, yrdum2 = 2011, ..., yrdum16 = 2025
+* year dummies: yrdum1 = 2011, yrdum2 = 2012, ..., yrdum10 = 2020
 tab fyr, gen(yrdum)
 
 * Detrending, same as Sophia's 04_did_tests.do: fit a CA-specific linear trend
-* on the years before 2018 and keep the residuals. yrdum1 (2010) is the base year.
+* on the years before 2018 and keep the residuals. yrdum1 (2011) is the base year.
 gen ca_year = ca*fyr
-reg lnmktcap ca yrdum2-yrdum16 ca_year if fyr < 2018, cluster(firm_id)
+reg lnmktcap ca yrdum2-yrdum10 ca_year if fyr < 2018, cluster(firm_id)
 predict lnmktcap_hat, resid
 
 
 *==============================================================
-* TABLE 4 GRAPH: PRE-TRENDS EVENT STUDY (2010-2018, 2018 = reference year)
+* TABLE 4 GRAPH: PRE-TRENDS EVENT STUDY (2011-2018, 2018 = reference year)
 * Same regression as did_table4 column (1).
 *==============================================================
-foreach y in 2010 2011 2012 2013 2014 2015 2016 2017 {
+foreach y in 2011 2012 2013 2014 2015 2016 2017 {
     gen ca_yr`y' = ca*(fyr==`y')
 }
 
 preserve
 * step (0): regression with firm and year fixed effects
-areg lnmktcap ca_yr2010-ca_yr2017 yrdum* if fyr >= 2010 & fyr <= 2018, ///
+areg lnmktcap ca_yr2011-ca_yr2017 yrdum* if fyr >= 2011 & fyr <= 2018, ///
     absorb(firm_id) cluster(firm_id)
-display "fig_table4_pretrend ca_yr2010: b = " _b[ca_yr2010] ", se = " _se[ca_yr2010] ", N = " e(N)
 display "fig_table4_pretrend ca_yr2011: b = " _b[ca_yr2011] ", se = " _se[ca_yr2011] ", N = " e(N)
 display "fig_table4_pretrend ca_yr2012: b = " _b[ca_yr2012] ", se = " _se[ca_yr2012] ", N = " e(N)
 display "fig_table4_pretrend ca_yr2013: b = " _b[ca_yr2013] ", se = " _se[ca_yr2013] ", N = " e(N)
@@ -64,20 +65,20 @@ gen slope = 0
 gen se = .
 
 * step (2): copy the slopes and standard errors of each year into these variables
-foreach y in 2010 2011 2012 2013 2014 2015 2016 2017 {
+foreach y in 2011 2012 2013 2014 2015 2016 2017 {
     replace slope = _b[ca_yr`y'] if fyr==`y'
     replace se = _se[ca_yr`y'] if fyr==`y'
 }
 
 * joint test that all pre-period coefficients are zero (p-value goes in the note)
-test ca_yr2010 ca_yr2011 ca_yr2012 ca_yr2013 ///
+test ca_yr2011 ca_yr2012 ca_yr2013 ///
      ca_yr2014 ca_yr2015 ca_yr2016 ca_yr2017
 display "fig_table4_pretrend joint_F: b = " r(F)
 display "fig_table4_pretrend joint_p: b = " r(p)
 local pjoint : display %5.3f r(p)
 
 * step (3): collapse to the year level
-keep if fyr >= 2010 & fyr <= 2018
+keep if fyr >= 2011 & fyr <= 2018
 collapse (mean) slope se, by(fyr)
 
 * step (4): confidence interval
@@ -90,7 +91,7 @@ gr two (scatter slope fyr, yline(0, lc(black))) ///
     legend(off) ///
     title("ln(Market Cap) Pre-trend Event Study" "California SB 826", size(medium)) ///
     xtitle("Fiscal year") ytitle("CA - TX difference, relative to 2018") ///
-    xlabel(2010(1)2018) ///
+    xlabel(2011(1)2018) ///
     note("Firm and year FE; SEs clustered by firm. TX is the comparison group. Bars show 95% CI." ///
          "Joint test that all pre-period coefficients = 0: p = `pjoint'.")
 graph export "output/figures/fig_table4_pretrend.png", replace width(1600)

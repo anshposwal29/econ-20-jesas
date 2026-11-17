@@ -2,7 +2,7 @@
 # run_check.sh -- checks that every number in Seohee's figures matches Sophia's tables
 # Author: Ansh
 # Reruns code/04_did_tests.do (tables) and code/05_did_graphs.do (figures), then
-# code/check_figures_vs_tables.py compares them. Must end with "30 match, 0 problem(s)".
+# code/check_figures_vs_tables.py compares them. Must end with "29 match, 0 problem(s)".
 # Run from any folder:  bash code/run_check.sh
 # If Stata is somewhere else on your Mac, run:  STATA=/path/to/stata bash code/run_check.sh
 set -euo pipefail

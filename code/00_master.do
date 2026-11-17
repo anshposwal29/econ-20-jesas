@@ -44,6 +44,7 @@ do "code/05_did_graphs.do"
 * every rerun adds two more columns to it.
 capture erase "output/table2_plcbo.txt"
 capture erase "output/table2_plcbo.xml"
+capture erase "output/table2_plcbo.tex"
 do "code/06_panel_tables.do"
 do "code/07_panel_event_study_graphs.do"
 
