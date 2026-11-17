@@ -2,7 +2,7 @@
 * 07_panel_event_study_graphs.do -- panel event studies, original vs detrended
 * Author: Seohee (was code/paneldata_outreg2_graphs.do)
 * Event studies for fiscal years 2011-2020 (2018 = reference year, the last
-* pre-law year), for the first stage (onewoman) and the reduced form (lnmktcap).
+* pre-law year), for the board outcome (onewoman) and the main outcome (lnmktcap).
 * Only lnmktcap is detrended: it is the outcome that fails the pre-trend test.
 * Input:  final_data.dta
 * Output: output/figures/es_onewoman.png/.gph, es_lnmktcap_overlay.png/.gph,
@@ -75,13 +75,13 @@ foreach y in 2011 2012 2013 2014 2015 2016 2017 2019 2020 {
     replace se_onewoman = _se[caXyr`y'] if fyr==`y'
 }
 
-* (2) reduced form, original
+* (2) ln(market cap), original
 xtreg lnmktcap caXyr* fyeardum* if onewoman ~= ., fe cluster(firm_id)
 * joint test that the pre-law years (2011-2017) are all zero
 test caXyr2011 caXyr2012 caXyr2013 caXyr2014 caXyr2015 caXyr2016 caXyr2017
 outreg2 using output/table_event_study, excel tex(frag) append dec(3) ///
     drop(fyeardum* o.fyeardum*) ///
-    ctitle("(2) Reduced form", "ln(mkt cap)") ///
+    ctitle("(2) ln(mkt cap)", "Original") ///
     addtext(Firm FE, Yes, Year FE, Yes, Detrended, No) ///
     addstat(Joint pre-trend F, r(F), Joint pre-trend p, r(p))
 gen b_lnmktcap = 0
@@ -91,13 +91,13 @@ foreach y in 2011 2012 2013 2014 2015 2016 2017 2019 2020 {
     replace se_lnmktcap = _se[caXyr`y'] if fyr==`y'
 }
 
-* (3) reduced form, detrended
+* (3) ln(market cap), detrended
 xtreg lnmktcap_hat caXyr* fyeardum* if onewoman ~= ., fe cluster(firm_id)
 * joint test that the pre-law years (2011-2017) are all zero
 test caXyr2011 caXyr2012 caXyr2013 caXyr2014 caXyr2015 caXyr2016 caXyr2017
 outreg2 using output/table_event_study, excel tex(frag) append dec(3) ///
     drop(fyeardum* o.fyeardum*) ///
-    ctitle("(3) Reduced form", "ln(mkt cap)") ///
+    ctitle("(3) ln(mkt cap)", "Detrended") ///
     addtext(Firm FE, Yes, Year FE, Yes, Detrended, Yes) ///
     addstat(Joint pre-trend F, r(F), Joint pre-trend p, r(p))
 gen b_lnmktcap_hat = 0
@@ -129,7 +129,7 @@ graph save "output/figures/es_onewoman.gph", replace
 restore
 
 *==============================================================
-* GRAPH 2: reduced form, original vs detrended
+* GRAPH 2: ln(market cap), original vs detrended
 *==============================================================
 preserve
 collapse (mean) b_lnmktcap se_lnmktcap b_lnmktcap_hat se_lnmktcap_hat, by(fyr)
@@ -148,7 +148,7 @@ gr two (rcap upper lower x, lc(gs11)) (scatter b_lnmktcap x, mc(gs8) ms(Oh)) ///
     xlabel(2011(1)2020) ///
     xtitle("Fiscal year (calendar year of fiscal year end)") ///
     ytitle("CA - TX difference in ln(market cap), relative to 2018") ///
-    title("Reduced Form Event Study" "California SB 826: Original vs. Detrended", size(medium)) ///
+    title("ln(Market Cap) Event Study" "California SB 826: Original vs. Detrended", size(medium)) ///
     note("Detrended: California's linear trend over the pre-law years (2011-2018) is removed from ln(market cap)." ///
          "Pre-law = fiscal years 2011-2018, post-law = 2019-2020. 2018 is the omitted year." ///
          "Bars show 95% CIs, standard errors clustered by firm.")

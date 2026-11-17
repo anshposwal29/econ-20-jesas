@@ -3,7 +3,7 @@
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/07_panel_event_study_graphs.log
   log type:  text
- opened on:  17 Nov 2026, 18:15:41
+ opened on:  17 Nov 2026, 18:17:56
 
 . 
 . use "final_data.dta", clear
@@ -201,7 +201,7 @@ dir : seeout
 (948 real changes made)
 
 . 
-. * (2) reduced form, original
+. * (2) ln(market cap), original
 . xtreg lnmktcap caXyr* fyeardum* if onewoman ~= ., fe cluster(firm_id)
 note: fyeardum10 omitted because of collinearity.
 
@@ -263,7 +263,7 @@ corr(u_i, Xb) = -0.0491                         Prob > F          =     0.0000
 
 . outreg2 using output/table_event_study, excel tex(frag) append dec(3) ///
 >     drop(fyeardum* o.fyeardum*) ///
->     ctitle("(2) Reduced form", "ln(mkt cap)") ///
+>     ctitle("(2) ln(mkt cap)", "Original") ///
 >     addtext(Firm FE, Yes, Year FE, Yes, Detrended, No) ///
 >     addstat(Joint pre-trend F, r(F), Joint pre-trend p, r(p))
 output/table_event_study.tex
@@ -299,7 +299,7 @@ dir : seeout
 (948 real changes made)
 
 . 
-. * (3) reduced form, detrended
+. * (3) ln(market cap), detrended
 . xtreg lnmktcap_hat caXyr* fyeardum* if onewoman ~= ., fe cluster(firm_id)
 note: fyeardum10 omitted because of collinearity.
 
@@ -361,7 +361,7 @@ lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 
 . outreg2 using output/table_event_study, excel tex(frag) append dec(3) ///
 >     drop(fyeardum* o.fyeardum*) ///
->     ctitle("(3) Reduced form", "ln(mkt cap)") ///
+>     ctitle("(3) ln(mkt cap)", "Detrended") ///
 >     addtext(Firm FE, Yes, Year FE, Yes, Detrended, Yes) ///
 >     addstat(Joint pre-trend F, r(F), Joint pre-trend p, r(p))
 output/table_event_study.tex
@@ -434,7 +434,7 @@ file output/figures/es_onewoman.gph saved
 
 . 
 . *==============================================================
-. * GRAPH 2: reduced form, original vs detrended
+. * GRAPH 2: ln(market cap), original vs detrended
 . *==============================================================
 . preserve
 
@@ -469,8 +469,8 @@ file output/figures/es_onewoman.gph saved
 >     xlabel(2011(1)2020) ///
 >     xtitle("Fiscal year (calendar year of fiscal year end)") ///
 >     ytitle("CA - TX difference in ln(market cap), relative to 2018") ///
->     title("Reduced Form Event Study" "California SB 826: Original vs. Detrend
-> ed", size(medium)) ///
+>     title("ln(Market Cap) Event Study" "California SB 826: Original vs. Detre
+> nded", size(medium)) ///
 >     note("Detrended: California's linear trend over the pre-law years (2011-2
 > 018) is removed from ln(market cap)." ///
 >          "Pre-law = fiscal years 2011-2018, post-law = 2019-2020. 2018 is the
