@@ -1,0 +1,478 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/10_graphs_first_stage_sharewm.log
+  log type:  text
+ opened on:  17 Nov 2026, 20:39:38
+
+. 
+. use "final_data.dta", clear
+((null))
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 0. Build the outcome: ShareWm = 100 * (women on board / board size)
+. *    Firms with no BoardEx match have missing board data, so they are dropped
+> .
+. *
+. *    >>> CHECK THIS: set the local below to whatever variable holds the TOTAL
+. *        number of directors in your data (e.g. boardsize, board_size, nbod).
+. *        Run  -describe-  if you are not sure what it is called.
+. *----------------------------------------------------------------------------
+> ---
+. local bsvar boardsize
+
+. 
+. keep if board_matched == 1
+(2,268 observations deleted)
+
+. gen ShareWm = 100 * women / `bsvar' if women < . & `bsvar' < . & `bsvar' > 0
+
+. label var ShareWm "Percent of board that is women"
+
+. assert !missing(ShareWm)
+
+. assert inrange(ShareWm, 0, 100)
+
+. assert (ShareWm == 0) == zerowomen
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 1. Define the event-time "year" (same as program 2)
+. *----------------------------------------------------------------------------
+> ---
+. * year = fiscal year (calendar year of the fiscal year end), as in the other 
+> scripts
+. gen pyear = fyeyear
+
+. label var pyear "Fiscal year (calendar year of fiscal year end)"
+
+. * pre = fiscal years 2011-2018, post = fiscal years 2019-2020
+. replace post = (pyear >= 2019)
+(636 real changes made)
+
+. replace ca_post = ca*post
+(335 real changes made)
+
+. 
+. * Settings you can change ---------------------------------------------------
+> ----
+. local refyr   2018     // omitted (reference) year = last pre-law year
+
+. local firstyr 2011
+
+. local lastyr  2020
+
+. * To show only the pre-COVID window instead, use:  keep if mainwindow == 1
+. * To drop the 10 firms that moved out of California (robustness):
+. *   drop if mover == 1
+. * ---------------------------------------------------------------------------
+> ---
+. 
+. keep if pyear >= `firstyr' & pyear <= `lastyr'
+(4,776 observations deleted)
+
+. 
+. * Sanity checks: look at these before trusting any graph
+. tab pyear ca
+
+    Fiscal |
+      year |
+ (calendar |      =1 if HQ in
+   year of | California on 30 Sep
+    fiscal |   2018 (0 = Texas)
+ year end) |         0          1 |     Total
+-----------+----------------------+----------
+      2011 |       330        414 |       744 
+      2012 |       332        419 |       751 
+      2013 |       337        423 |       760 
+      2014 |       350        450 |       800 
+      2015 |       355        455 |       810 
+      2016 |       345        442 |       787 
+      2017 |       356        436 |       792 
+      2018 |       349        445 |       794 
+      2019 |       349        472 |       821 
+      2020 |       347        500 |       847 
+-----------+----------------------+----------
+     Total |     3,450      4,456 |     7,906 
+
+. summ ShareWm, detail
+
+               Percent of board that is women
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            0              0
+ 5%            0              0
+10%            0              0       Obs               7,906
+25%            0              0       Sum of wgt.       7,906
+
+50%         12.5                      Mean           12.98263
+                        Largest       Std. dev.      11.87312
+75%           20       66.66666
+90%     28.57143       66.66666       Variance       140.9711
+95%     33.33333       71.42857       Skewness       .7129031
+99%     44.44444       71.42857       Kurtosis       3.284324
+
+. tabstat ShareWm, by(ca) stat(mean sd n)
+
+Summary for variables: ShareWm
+Group variable: ca (=1 if HQ in California on 30 Sep 2018 (0 = Texas))
+
+      ca |      Mean        SD         N
+---------+------------------------------
+       0 |  11.38459    11.009      3450
+       1 |   14.2199  12.36131      4456
+---------+------------------------------
+   Total |  12.98263  11.87312      7906
+----------------------------------------
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 2. The first-stage regressions (this is your main result)
+. *    areg ..., absorb(gvkey) = firm fixed effects
+. *    Standard errors clustered by firm in every column.
+. *----------------------------------------------------------------------------
+> ---
+. gen caXpost = ca * post
+
+. label var caXpost "CA x Post"
+
+. assert caXpost == ca_post
+
+. 
+. * (1) no fixed effects
+. reg ShareWm ca post caXpost, vce(cluster gvkey)
+
+Linear regression                               Number of obs     =      7,906
+                                                F(3, 1300)        =     312.15
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1327
+                                                Root MSE          =     11.059
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+     ShareWm | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   1.695343   .6061503     2.80   0.005     .5062029    2.884482
+        post |   7.040563   .5320621    13.23   0.000     5.996768    8.084357
+     caXpost |   4.696911    .695239     6.76   0.000     3.332998    6.060824
+       _cons |    9.96423   .4351722    22.90   0.000     9.110513    10.81795
+------------------------------------------------------------------------------
+
+. estimates store m1
+
+. test caXpost
+
+ ( 1)  caXpost = 0
+
+       F(  1,  1300) =   45.64
+            Prob > F =    0.0000
+
+. 
+. * (2) firm fixed effects  <-- your equation
+. areg ShareWm post caXpost, absorb(gvkey) vce(cluster gvkey)
+
+Linear regression, absorbing indicators             Number of obs     =  7,906
+Absorbed variable: gvkey                            No. of categories =  1,301
+                                                    F(2, 1300)        = 378.63
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.7470
+                                                    Adj R-squared     = 0.6972
+                                                    Root MSE          = 6.5340
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+     ShareWm | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        post |   7.680992   .5470645    14.04   0.000     6.607766    8.754218
+     caXpost |   2.874017   .7058172     4.07   0.000     1.489352    4.258682
+       _cons |   11.00876   .0729785   150.85   0.000     10.86559    11.15193
+------------------------------------------------------------------------------
+
+. estimates store m2
+
+. test caXpost
+
+ ( 1)  caXpost = 0
+
+       F(  1,  1300) =   16.58
+            Prob > F =    0.0000
+
+. 
+. * (3) firm AND year fixed effects (i.pyear absorbs Post)
+. areg ShareWm caXpost i.pyear, absorb(gvkey) vce(cluster gvkey)
+
+Linear regression, absorbing indicators             Number of obs     =  7,906
+Absorbed variable: gvkey                            No. of categories =  1,301
+                                                    F(10, 1300)       =  85.99
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.7770
+                                                    Adj R-squared     = 0.7327
+                                                    Root MSE          = 6.1383
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+     ShareWm | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     caXpost |   3.058179   .7017772     4.36   0.000     1.681439    4.434919
+             |
+       pyear |
+       2012  |   .3684347   .2006528     1.84   0.067     -.025204    .7620735
+       2013  |   1.038211    .287599     3.61   0.000     .4740017     1.60242
+       2014  |   2.394267   .3466827     6.91   0.000     1.714149    3.074386
+       2015  |   3.488429   .3877739     9.00   0.000     2.727698     4.24916
+       2016  |   3.932649   .4301798     9.14   0.000     3.088726    4.776572
+       2017  |   5.554143    .470181    11.81   0.000     4.631746    6.476539
+       2018  |   7.436454   .5103409    14.57   0.000     6.435273    8.437636
+       2019  |    9.81613   .6904302    14.22   0.000      8.46165    11.17061
+       2020  |   12.90557   .7116109    18.14   0.000     11.50954     14.3016
+             |
+       _cons |   7.775474   .3160276    24.60   0.000     7.155494    8.395454
+------------------------------------------------------------------------------
+
+. estimates store m3
+
+. test caXpost
+
+ ( 1)  caXpost = 0
+
+       F(  1,  1300) =   18.99
+            Prob > F =    0.0000
+
+. 
+. * side-by-side table; with one instrument, first-stage F = t^2 on caXpost
+. estimates table m1 m2 m3, keep(ca post caXpost) b(%9.4f) se(%9.4f) ///
+>     stats(N r2) title("First stage: ShareWm on CA x Post")
+
+First stage: ShareWm on CA x Post
+
+--------------------------------------------------
+    Variable |    m1          m2          m3      
+-------------+------------------------------------
+          ca |    1.6953                          
+             |    0.6062                          
+        post |    7.0406      7.6810              
+             |    0.5321      0.5471              
+     caXpost |    4.6969      2.8740      3.0582  
+             |    0.6952      0.7058      0.7018  
+-------------+------------------------------------
+           N |      7906        7906        7906  
+          r2 |    0.1327      0.7470      0.7770  
+--------------------------------------------------
+                                      Legend: b/se
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 3. MAIN GRAPH: average percent women on the board,
+. *    by state and year, with 95% CIs
+. *----------------------------------------------------------------------------
+> ---
+. preserve
+
+. collapse (mean) ShareWm (semean) se_y=ShareWm, by(ca pyear)
+
+. gen upper = ShareWm + 1.96*se_y
+
+. gen lower = ShareWm - 1.96*se_y
+
+. 
+. gr two (line ShareWm pyear if ca==1) ///
+>        (line ShareWm pyear if ca==0, xline(2018.5, lp(dash))) ///
+>        (rcap upper lower pyear if ca==1) ///
+>        (rcap upper lower pyear if ca==0), ///
+>     legend(label(1 "California") label(2 "Texas") order(1 2)) ///
+>     xlabel(`firstyr'(1)`lastyr') ///
+>     xtitle("Fiscal year (calendar year of fiscal year end; 2019 = first year 
+> after SB 826)") ///
+>     ytitle("Average percent of board that is women") ///
+>     title("Women on Boards Before and After California SB 826", size(medium))
+>  ///
+>     note("Listed firms headquartered in CA (treated) or TX (comparison) on 30
+>  Sep 2018. Bars show 95% confidence intervals.")
+
+. graph export "output/figures/means_sharewm.png", replace width(2000)
+file output/figures/means_sharewm.png written in PNG format
+
+. graph save   "output/figures/means_sharewm.gph", replace
+file output/figures/means_sharewm.gph saved
+
+. restore
+
+. 
+. *----------------------------------------------------------------------------
+> ---
+. * 4. SECONDARY GRAPH: event study (firm fixed effects + year dummies)
+. *    Year dummies are year fixed effects; firm FE absorb CA, so "ca" is omitt
+> ed.
+. *    Each CA x year coefficient = CA-TX gap in that year minus the gap in 201
+> 8.
+. *----------------------------------------------------------------------------
+> ---
+. forvalues t = `firstyr'/`lastyr' {
+  2.     if `t' != `refyr' {
+  3.         gen yrdum`t'    = (pyear == `t')
+  4.         gen caXyrdum`t' = ca * yrdum`t'
+  5.     }
+  6. }
+
+. 
+. areg ShareWm yrdum* caXyrdum*, absorb(gvkey) vce(cluster gvkey)
+
+Linear regression, absorbing indicators             Number of obs     =  7,906
+Absorbed variable: gvkey                            No. of categories =  1,301
+                                                    F(18, 1300)       =  49.03
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.7773
+                                                    Adj R-squared     = 0.7328
+                                                    Root MSE          = 6.1377
+
+                              (Std. err. adjusted for 1,301 clusters in gvkey)
+------------------------------------------------------------------------------
+             |               Robust
+     ShareWm | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   yrdum2011 |   -7.15887   .7671915    -9.33   0.000    -8.663938   -5.653801
+   yrdum2012 |  -6.659499   .7408384    -8.99   0.000    -8.112869    -5.20613
+   yrdum2013 |   -5.72342   .7149168    -8.01   0.000    -7.125937   -4.320903
+   yrdum2014 |  -4.580179   .6338871    -7.23   0.000    -5.823733   -3.336625
+   yrdum2015 |  -3.493749   .5754056    -6.07   0.000    -4.622574   -2.364924
+   yrdum2016 |  -3.151686    .498538    -6.32   0.000    -4.129713   -2.173659
+   yrdum2017 |  -1.891444   .3582531    -5.28   0.000    -2.594261   -1.188626
+   yrdum2019 |   2.994573   .4085455     7.33   0.000     2.193093    3.796054
+   yrdum2020 |   5.399073   .5327431    10.13   0.000     4.353943    6.444204
+caXyrdum2011 |  -.5155754   1.026652    -0.50   0.616    -2.529651      1.4985
+caXyrdum2012 |  -.7534071   .9690916    -0.78   0.437    -2.654562    1.147748
+caXyrdum2013 |  -1.229857   .9162873    -1.34   0.180     -3.02742    .5677069
+caXyrdum2014 |  -.8415572   .8248002    -1.02   0.308    -2.459642     .776528
+caXyrdum2015 |  -.8193454    .769822    -1.06   0.287    -2.329575    .6908841
+caXyrdum2016 |  -.6282251   .6664707    -0.94   0.346    -1.935701    .6792508
+caXyrdum2017 |   .0235286    .484484     0.05   0.961    -.9269275    .9739847
+caXyrdum2019 |   1.974245   .6004958     3.29   0.001     .7961977    3.152292
+caXyrdum2020 |   3.168058   .7617222     4.16   0.000     1.673719    4.662397
+       _cons |   15.21772   .2661422    57.18   0.000     14.69561    15.73984
+------------------------------------------------------------------------------
+
+. 
+. * joint test of no pre-trends (all pre-period interactions = 0)
+. local pretest ""
+
+. forvalues t = `firstyr'/`=`refyr'-1' {
+  2.     local pretest `pretest' caXyrdum`t'
+  3. }
+
+. test `pretest'
+
+ ( 1)  caXyrdum2011 = 0
+ ( 2)  caXyrdum2012 = 0
+ ( 3)  caXyrdum2013 = 0
+ ( 4)  caXyrdum2014 = 0
+ ( 5)  caXyrdum2015 = 0
+ ( 6)  caXyrdum2016 = 0
+ ( 7)  caXyrdum2017 = 0
+
+       F(  7,  1300) =    0.62
+            Prob > F =    0.7438
+
+. 
+. * store coefficients and standard errors by year
+. gen slope = 0          // reference year stays at 0
+
+. gen se    = .          // and has no standard error (no CI drawn)
+(7,906 missing values generated)
+
+. forvalues t = `firstyr'/`lastyr' {
+  2.     if `t' != `refyr' {
+  3.         replace slope = _b[caXyrdum`t'] if pyear == `t'
+  4.         replace se    = _se[caXyrdum`t'] if pyear == `t'
+  5.     }
+  6. }
+(744 real changes made)
+(744 real changes made)
+(751 real changes made)
+(751 real changes made)
+(760 real changes made)
+(760 real changes made)
+(800 real changes made)
+(800 real changes made)
+(810 real changes made)
+(810 real changes made)
+(787 real changes made)
+(787 real changes made)
+(792 real changes made)
+(792 real changes made)
+(821 real changes made)
+(821 real changes made)
+(847 real changes made)
+(847 real changes made)
+
+. 
+. * check the numbers before plotting (reference year should be 0 with no se)
+. tabstat slope se, by(pyear) stat(mean) nototal
+
+Summary statistics: Mean
+Group variable: pyear (Fiscal year (calendar year of fiscal year end))
+
+   pyear |     slope        se
+---------+--------------------
+    2011 | -.5155754  1.026652
+    2012 | -.7534071  .9690917
+    2013 | -1.229857  .9162873
+    2014 | -.8415572  .8248002
+    2015 | -.8193454   .769822
+    2016 | -.6282251  .6664707
+    2017 |  .0235286   .484484
+    2018 |         0         .
+    2019 |  1.974245  .6004958
+    2020 |  3.168058  .7617222
+------------------------------
+
+. 
+. preserve
+
+. collapse (mean) slope se, by(pyear)
+
+. gen upper = slope + 1.96*se
+(1 missing value generated)
+
+. gen lower = slope - 1.96*se
+(1 missing value generated)
+
+. 
+. gr two (scatter slope pyear, yline(0, lc(black))) ///
+>        (rcap upper lower pyear, xline(2018.5, lp(dash))), ///
+>     legend(off) ///
+>     xlabel(`firstyr'(1)`lastyr') ///
+>     xtitle("Fiscal year (calendar year of fiscal year end; 2019 = first year 
+> after SB 826)") ///
+>     ytitle("CA - TX difference in percent women on board, relative to 2018") 
+> ///
+>     title("First Stage Event Study" "California SB 826 (Board Gender Quota)",
+>  size(medium)) ///
+>     note("Firm-year data, CA vs. TX, firm and year fixed effects. 2018 (last 
+> pre-law year) is the omitted year." ///
+>          "Bars show 95% confidence intervals, standard errors clustered by fi
+> rm. Dashed line = SB 826 signed 30 Sep 2018.")
+
+. graph export "output/figures/first_stage_sharewm.png", replace width(2000)
+file output/figures/first_stage_sharewm.png written in PNG format
+
+. graph save   "output/figures/first_stage_sharewm.gph", replace
+file output/figures/first_stage_sharewm.gph saved
+
+. restore
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/10_graphs_first_stage_sharewm.log
+  log type:  text
+ closed on:  17 Nov 2026, 20:39:40
+-------------------------------------------------------------------------------

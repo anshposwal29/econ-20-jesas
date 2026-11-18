@@ -1,0 +1,711 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/04_did_tests.log
+  log type:  text
+ opened on:  17 Nov 2026, 20:39:35
+
+. 
+. use "final_data.dta", clear
+((null))
+
+. 
+. *==============================================================
+. * SETUP: 2018 PRE vs. 2019-2020 POST
+. *==============================================================
+. 
+. encode gvkey, gen(firm_id)
+
+. gen fyr = fyeyear
+
+. 
+. *==============================================================
+. * DETRENDING: FIT CALIFORNIA-SPECIFIC TREND THROUGH 2018
+. *==============================================================
+. 
+. gen yeartrend = fyr - 2011
+
+. reg lnmktcap ca i.fyr i.ca#c.yeartrend if fyr < 2019, ///
+>     cluster(firm_id)
+note: 1.ca#c.yeartrend omitted because of collinearity.
+
+Linear regression                               Number of obs     =      7,854
+                                                F(10, 1340)       =      24.06
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0116
+                                                Root MSE          =      2.127
+
+                            (Std. err. adjusted for 1,341 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -.5583531   .1380775    -4.04   0.000    -.8292247   -.2874815
+             |
+         fyr |
+       2011  |  -.0508633   .0424568    -1.20   0.231    -.1341524    .0324258
+       2012  |   .0474422   .0504182     0.94   0.347    -.0514649    .1463493
+       2013  |   .4092634   .0559172     7.32   0.000     .2995685    .5189583
+       2014  |   .4301652   .0638636     6.74   0.000     .3048817    .5554488
+       2015  |   .2632871   .0737435     3.57   0.000     .1186219    .4079523
+       2016  |   .3323961    .082499     4.03   0.000     .1705549    .4942372
+       2017  |   .5077514   .0907458     5.60   0.000     .3297322    .6857706
+       2018  |   .4527347   .0977442     4.63   0.000     .2609863     .644483
+             |
+          ca#|
+ c.yeartrend |
+          0  |  -.0752153   .0178559    -4.21   0.000    -.1102439   -.0401868
+          1  |          0  (omitted)
+             |
+       _cons |    6.71749   .1048716    64.05   0.000      6.51176     6.92322
+------------------------------------------------------------------------------
+
+. 
+. predict lnmktcap_hat, resid
+
+. 
+. *==============================================================
+. * TABLE 4: PRETRENDS
+. *==============================================================
+. 
+. forvalues y = 2011/2017 {
+  2.     gen ca_yr`y' = ca * (fyr == `y')
+  3. }
+
+. 
+. areg lnmktcap ca_yr2011-ca_yr2017 i.fyr ///
+>     if fyr >= 2011 & fyr <= 2018, ///
+>     absorb(firm_id) cluster(firm_id)
+
+Linear regression, absorbing indicators             Number of obs     =  7,115
+Absorbed variable: firm_id                          No. of categories =  1,300
+                                                    F(14, 1299)       =  35.25
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9380
+                                                    Adj R-squared     = 0.9239
+                                                    Root MSE          = 0.5925
+
+                            (Std. err. adjusted for 1,300 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   ca_yr2011 |  -.5948435   .1058195    -5.62   0.000    -.8024394   -.3872475
+   ca_yr2012 |  -.6288346    .095225    -6.60   0.000    -.8156463   -.4420229
+   ca_yr2013 |  -.6215829   .0861042    -7.22   0.000    -.7905014   -.4526645
+   ca_yr2014 |   -.397356   .0769396    -5.16   0.000    -.5482955   -.2464165
+   ca_yr2015 |  -.1216554   .0716164    -1.70   0.090    -.2621518     .018841
+   ca_yr2016 |  -.2732743   .0693791    -3.94   0.000    -.4093817   -.1371669
+   ca_yr2017 |  -.1372678   .0484584    -2.83   0.005    -.2323332   -.0422025
+             |
+         fyr |
+       2012  |   .0821998   .0330892     2.48   0.013     .0172857    .1471139
+       2013  |   .4165339   .0442166     9.42   0.000     .3297902    .5032776
+       2014  |   .3176083   .0560178     5.67   0.000      .207713    .4275035
+       2015  |   .0250187   .0702942     0.36   0.722     -.112884    .1629214
+       2016  |   .1643694   .0732228     2.24   0.025     .0207216    .3080172
+       2017  |   .2721686   .0767067     3.55   0.000     .1216859    .4226512
+       2018  |   .1173636   .0809031     1.45   0.147    -.0413514    .2760786
+             |
+       _cons |   6.607064   .0692931    95.35   0.000     6.471125    6.743003
+------------------------------------------------------------------------------
+
+. 
+. outreg2 using output/did_table4, excel tex(frag) replace dec(3) ///
+>     keep(ca_yr2011-ca_yr2017) ///
+>     ctitle("(1) Pretrend coefficients") ///
+>     addtext(Firm FE, Yes, Year FE, Yes)
+output/did_table4.tex
+output/did_table4.xml
+dir : seeout
+
+. 
+. test ca_yr2011 ca_yr2012 ca_yr2013 ///
+>      ca_yr2014 ca_yr2015 ca_yr2016 ca_yr2017
+
+ ( 1)  ca_yr2011 = 0
+ ( 2)  ca_yr2012 = 0
+ ( 3)  ca_yr2013 = 0
+ ( 4)  ca_yr2014 = 0
+ ( 5)  ca_yr2015 = 0
+ ( 6)  ca_yr2016 = 0
+ ( 7)  ca_yr2017 = 0
+
+       F(  7,  1299) =   12.07
+            Prob > F =    0.0000
+
+. 
+. *==============================================================
+. * TWO-PERIOD DID SAMPLE
+. * 2018 PRE; 2019 AND 2020 POST
+. *==============================================================
+. 
+. keep if fyr == 2018 | fyr == 2019 | fyr == 2020
+(12,203 observations deleted)
+
+. 
+. gen post19 = (fyr >= 2019)
+
+. gen ca_post19 = ca * post19
+
+. 
+. gen onewoman = (women >= 1) if women != .
+(285 missing values generated)
+
+. gen sharewoman = women / boardsize if women != . ///
+>     & boardsize != . & boardsize > 0
+(285 missing values generated)
+
+. 
+. * Identify firms with at least one woman in 2018
+. gen woman_obs = (women >= 1) if fyr == 2018
+(1,856 missing values generated)
+
+. bysort firm_id: egen woman18 = max(woman_obs)
+(234 missing values generated)
+
+. 
+. *==============================================================
+. * TABLE 1: MAIN DID RESULTS
+. *==============================================================
+. 
+. * (1) DiD, no controls
+. areg lnmktcap ca_post19 i.fyr, ///
+>     absorb(firm_id) cluster(firm_id)
+
+Linear regression, absorbing indicators             Number of obs     =  2,747
+Absorbed variable: firm_id                          No. of categories =  1,062
+                                                    F(3, 1061)        =  20.71
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9595
+                                                    Adj R-squared     = 0.9338
+                                                    Root MSE          = 0.5779
+
+                            (Std. err. adjusted for 1,062 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   ca_post19 |   .2971185   .0644153     4.61   0.000     .1707226    .4235144
+             |
+         fyr |
+       2019  |  -.0545014   .0486395    -1.12   0.263    -.1499419    .0409391
+       2020  |    .045262   .0630329     0.72   0.473    -.0784213    .1689453
+             |
+       _cons |   6.661702   .0212724   313.16   0.000     6.619962    6.703443
+------------------------------------------------------------------------------
+
+. 
+. outreg2 using output/did_table1, excel tex(frag) replace dec(3) ///
+>     keep(ca_post19) ///
+>     ctitle("(1) lnmktcap") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, No, Detrended, No)
+output/did_table1.tex
+output/did_table1.xml
+dir : seeout
+
+. 
+. 
+. * (2) DiD, controls
+. areg lnmktcap ca_post19 i.fyr ///
+>     lnassets roa leverage multinational, ///
+>     absorb(firm_id) cluster(firm_id)
+
+Linear regression, absorbing indicators             Number of obs     =  2,722
+Absorbed variable: firm_id                          No. of categories =  1,048
+                                                    F(7, 1047)        =  29.60
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9709
+                                                    Adj R-squared     = 0.9524
+                                                    Root MSE          = 0.4913
+
+                            (Std. err. adjusted for 1,048 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   ca_post19 |   .1654394   .0526896     3.14   0.002     .0620501    .2688286
+             |
+         fyr |
+       2019  |  -.0662492   .0424418    -1.56   0.119    -.1495298    .0170314
+       2020  |   -.096515    .059384    -1.63   0.104    -.2130402    .0200101
+             |
+    lnassets |   .9647894   .0987215     9.77   0.000     .7710749    1.158504
+         roa |  -.0043172   .1429677    -0.03   0.976    -.2848529    .2762186
+    leverage |  -.1936993   .2275771    -0.85   0.395    -.6402584    .2528597
+multinatio~l |  -.0852379   .1753636    -0.49   0.627    -.4293421    .2588663
+       _cons |   .4614773   .6805298     0.68   0.498    -.8738803    1.796835
+------------------------------------------------------------------------------
+
+. 
+. outreg2 using output/did_table1, excel tex(frag) append dec(3) ///
+>     keep(ca_post19 lnassets roa leverage multinational) ///
+>     ctitle("(2) lnmktcap") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes, Detrended, No)
+output/did_table1.tex
+output/did_table1.xml
+dir : seeout
+
+. 
+. 
+. * (3) Detrended DiD, no controls
+. areg lnmktcap_hat ca_post19 i.fyr, ///
+>     absorb(firm_id) cluster(firm_id)
+
+Linear regression, absorbing indicators             Number of obs     =  2,747
+Absorbed variable: firm_id                          No. of categories =  1,062
+                                                    F(3, 1061)        = 196.94
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9607
+                                                    Adj R-squared     = 0.9358
+                                                    Root MSE          = 0.5743
+
+                            (Std. err. adjusted for 1,062 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   ca_post19 |   .1860717   .0644071     2.89   0.004     .0596919    .3124515
+             |
+         fyr |
+       2019  |   .4940772   .0485639    10.17   0.000      .398785    .5893694
+       2020  |   .6261609    .062957     9.95   0.000     .5026266    .7496953
+             |
+       _cons |   .0361049   .0212689     1.70   0.090     -.005629    .0778388
+------------------------------------------------------------------------------
+
+. 
+. outreg2 using output/did_table1, excel tex(frag) append dec(3) ///
+>     keep(ca_post19) ///
+>     ctitle("(3) lnmktcap") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, No, Detrended, Yes)
+output/did_table1.tex
+output/did_table1.xml
+dir : seeout
+
+. 
+. 
+. * (4) Detrended DiD, controls
+. areg lnmktcap_hat ca_post19 i.fyr ///
+>     lnassets roa leverage multinational, ///
+>     absorb(firm_id) cluster(firm_id)
+
+Linear regression, absorbing indicators             Number of obs     =  2,722
+Absorbed variable: firm_id                          No. of categories =  1,048
+                                                    F(7, 1047)        = 132.35
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9716
+                                                    Adj R-squared     = 0.9537
+                                                    Root MSE          = 0.4891
+
+                            (Std. err. adjusted for 1,048 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   ca_post19 |   .0562674   .0527147     1.07   0.286     -.047171    .1597059
+             |
+         fyr |
+       2019  |   .4824429   .0423703    11.39   0.000     .3993025    .5655834
+       2020  |   .4859332   .0592542     8.20   0.000     .3696627    .6022037
+             |
+    lnassets |   .9538943   .0983344     9.70   0.000     .7609393    1.146849
+         roa |  -.0063699   .1415355    -0.05   0.964    -.2840955    .2713556
+    leverage |  -.1935603   .2272341    -0.85   0.395    -.6394465    .2523258
+multinatio~l |  -.0943498   .1751533    -0.54   0.590    -.4380412    .2493417
+       _cons |  -6.088411   .6788524    -8.97   0.000    -7.420477   -4.756345
+------------------------------------------------------------------------------
+
+. 
+. outreg2 using output/did_table1, excel tex(frag) append dec(3) ///
+>     keep(ca_post19 lnassets roa leverage multinational) ///
+>     ctitle("(4) lnmktcap") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes, Detrended, Yes)
+output/did_table1.tex
+output/did_table1.xml
+dir : seeout
+
+. 
+. *==============================================================
+. * TABLE 2: PLACEBO TEST
+. * Sample: Companies with at least one woman on board in 2018
+. *==============================================================
+. 
+. * (1) No controls
+. areg lnmktcap ca_post19 i.fyr if woman18 == 1, ///
+>     absorb(firm_id) cluster(firm_id)
+
+Linear regression, absorbing indicators             Number of obs     =  1,937
+Absorbed variable: firm_id                          No. of categories =    687
+                                                    F(3, 686)         =  17.35
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9588
+                                                    Adj R-squared     = 0.9360
+                                                    Root MSE          = 0.5842
+
+                              (Std. err. adjusted for 687 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   ca_post19 |   .3317025    .073664     4.50   0.000     .1870685    .4763364
+             |
+         fyr |
+       2019  |  -.0985911    .057884    -1.70   0.089    -.2122421    .0150599
+       2020  |  -.0356526   .0763624    -0.47   0.641    -.1855847    .1142795
+             |
+       _cons |   7.042914   .0221561   317.88   0.000     6.999412    7.086416
+------------------------------------------------------------------------------
+
+. 
+. outreg2 using output/did_table2, excel tex(frag) replace dec(3) ///
+>     keep(ca_post19) ///
+>     ctitle("(1) lnmktcap") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, No)
+output/did_table2.tex
+output/did_table2.xml
+dir : seeout
+
+. 
+. * (2) Controls
+. areg lnmktcap ca_post19 i.fyr ///
+>     lnassets roa leverage multinational if woman18 == 1, ///
+>     absorb(firm_id) cluster(firm_id)
+
+Linear regression, absorbing indicators             Number of obs     =  1,931
+Absorbed variable: firm_id                          No. of categories =    687
+                                                    F(7, 686)         =  20.29
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9695
+                                                    Adj R-squared     = 0.9525
+                                                    Root MSE          = 0.5038
+
+                              (Std. err. adjusted for 687 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   ca_post19 |   .1736768   .0597934     2.90   0.004     .0562767     .291077
+             |
+         fyr |
+       2019  |  -.0995333   .0507876    -1.96   0.050    -.1992512    .0001845
+       2020  |  -.1566279   .0727967    -2.15   0.032    -.2995591   -.0136967
+             |
+    lnassets |   .9602067   .1170151     8.21   0.000      .730456    1.189957
+         roa |    .011549   .1475763     0.08   0.938    -.2782064    .3013044
+    leverage |  -.1122986   .2085887    -0.54   0.590    -.5218475    .2972503
+multinatio~l |  -.0594795   .2408687    -0.25   0.805    -.5324079    .4134489
+       _cons |   .3983049   .8688605     0.46   0.647     -1.30764     2.10425
+------------------------------------------------------------------------------
+
+. 
+. outreg2 using output/did_table2, excel tex(frag) append dec(3) ///
+>     keep(ca_post19 lnassets roa leverage multinational) ///
+>     ctitle("(2) lnmktcap") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes)
+output/did_table2.tex
+output/did_table2.xml
+dir : seeout
+
+. 
+. * (3) Detrended, with controls
+. areg lnmktcap_hat ca_post19 i.fyr ///
+>     lnassets roa leverage multinational if woman18 == 1, ///
+>     absorb(firm_id) cluster(firm_id)
+
+Linear regression, absorbing indicators             Number of obs     =  1,931
+Absorbed variable: firm_id                          No. of categories =    687
+                                                    F(7, 686)         = 106.19
+                                                    Prob > F          = 0.0000
+                                                    R-squared         = 0.9703
+                                                    Adj R-squared     = 0.9537
+                                                    Root MSE          = 0.5016
+
+                              (Std. err. adjusted for 687 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   ca_post19 |   .0648842   .0598555     1.08   0.279    -.0526377     .182406
+             |
+         fyr |
+       2019  |   .4494859   .0507117     8.86   0.000     .3499171    .5490547
+       2020  |   .4252737   .0726238     5.86   0.000     .2826822    .5678653
+             |
+    lnassets |    .948468   .1165163     8.14   0.000     .7196965    1.177239
+         roa |   .0086378    .145508     0.06   0.953    -.2770567    .2943324
+    leverage |  -.1116118   .2080221    -0.54   0.592    -.5200483    .2968246
+multinatio~l |   -.068515   .2404111    -0.28   0.776    -.5405449    .4035149
+       _cons |  -6.140435   .8660349    -7.09   0.000    -7.840832   -4.440038
+------------------------------------------------------------------------------
+
+. 
+. outreg2 using output/did_table2, excel tex(frag) append dec(3) ///
+>     keep(ca_post19 lnassets roa leverage multinational) ///
+>     ctitle("(3) lnmktcap") ///
+>     addtext(Firm FE, Yes, Year FE, Yes, Controls, Yes, Detrended, Yes)
+output/did_table2.tex
+output/did_table2.xml
+dir : seeout
+
+. 
+. 
+. *==============================================================
+. * TABLE 3: FIRST STAGE, REDUCED FORM, AND IV
+. *==============================================================
+. * (1) First stage: One woman
+. 
+. reg onewoman ca post19 ca_post19 ///
+>     lnassets roa leverage multinational, cluster(firm_id)
+
+Linear regression                               Number of obs     =      2,452
+                                                F(7, 935)         =      41.12
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1785
+                                                Root MSE          =     .32889
+
+                              (Std. err. adjusted for 936 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    onewoman | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |   .1099914   .0290747     3.78   0.000     .0529321    .1670506
+      post19 |   .1101044    .020032     5.50   0.000     .0707916    .1494172
+   ca_post19 |    .053338   .0268932     1.98   0.048       .00056     .106116
+    lnassets |   .0532622   .0053429     9.97   0.000     .0427767    .0637477
+         roa |  -.0297719   .0381104    -0.78   0.435    -.1045638    .0450201
+    leverage |   .0637596   .0298423     2.14   0.033      .005194    .1223252
+multinatio~l |   .0243256   .0176365     1.38   0.168    -.0102861    .0589373
+       _cons |   .2713804   .0487625     5.57   0.000     .1756838    .3670769
+------------------------------------------------------------------------------
+
+. 
+. test ca_post19
+
+ ( 1)  ca_post19 = 0
+
+       F(  1,   935) =    3.93
+            Prob > F =    0.0476
+
+. 
+. outreg2 using output/did_table3, excel tex(frag) replace dec(3) ///
+>     keep(ca post19 ca_post19) ///
+>     ctitle("(1) First stage: One woman") ///
+>     addtext(Controls, Yes) ///
+>     addstat(First-stage F, r(F))
+output/did_table3.tex
+output/did_table3.xml
+dir : seeout
+
+. 
+. 
+. * (2) First stage: Share women
+. 
+. reg sharewoman ca post19 ca_post19 ///
+>     lnassets roa leverage multinational, cluster(firm_id)
+
+Linear regression                               Number of obs     =      2,452
+                                                F(7, 935)         =      84.37
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1964
+                                                Root MSE          =     .10989
+
+                              (Std. err. adjusted for 936 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+  sharewoman | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |    .033386   .0078577     4.25   0.000     .0179652    .0488069
+      post19 |   .0399523   .0041684     9.58   0.000     .0317718    .0481327
+   ca_post19 |   .0305435   .0061348     4.98   0.000     .0185039    .0425831
+    lnassets |   .0159176   .0017299     9.20   0.000     .0125226    .0193126
+         roa |  -.0173379   .0160702    -1.08   0.281    -.0488757    .0141999
+    leverage |   .0164143   .0103109     1.59   0.112    -.0038208    .0366494
+multinatio~l |   .0241643    .006826     3.54   0.000     .0107682    .0375604
+       _cons |   -.002143   .0145799    -0.15   0.883    -.0307562    .0264702
+------------------------------------------------------------------------------
+
+. 
+. test ca_post19
+
+ ( 1)  ca_post19 = 0
+
+       F(  1,   935) =   24.79
+            Prob > F =    0.0000
+
+. 
+. outreg2 using output/did_table3, excel tex(frag) append dec(3) ///
+>     keep(ca post19 ca_post19) ///
+>     ctitle("(2) First stage: Share women") ///
+>     addtext(Controls, Yes) ///
+>     addstat(First-stage F, r(F))
+output/did_table3.tex
+output/did_table3.xml
+dir : seeout
+
+. 
+. 
+. * (3) Reduced form
+. 
+. reg lnmktcap ca post19 ca_post19 ///
+>     lnassets roa leverage multinational if onewoman != ., ///
+>     cluster(firm_id)
+
+Linear regression                               Number of obs     =      2,452
+                                                F(7, 935)         =     571.59
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.7700
+                                                Root MSE          =     1.0492
+
+                              (Std. err. adjusted for 936 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |    .517414   .0739889     6.99   0.000     .3722103    .6626176
+      post19 |   .0386069    .033854     1.14   0.254    -.0278317    .1050454
+   ca_post19 |   .1862969   .0459719     4.05   0.000     .0960769     .276517
+    lnassets |   .8844372    .022182    39.87   0.000      .840905    .9279695
+         roa |  -.1398135   .1001229    -1.40   0.163    -.3363051    .0566781
+    leverage |  -.9927819   .2040975    -4.86   0.000    -1.393324   -.5922397
+multinatio~l |   .6140273   .0694061     8.85   0.000     .4778176     .750237
+       _cons |   .7086998   .1268399     5.59   0.000     .4597758    .9576237
+------------------------------------------------------------------------------
+
+. 
+. outreg2 using output/did_table3, excel tex(frag) append dec(3) ///
+>     keep(ca post19 ca_post19) ///
+>     ctitle("(3) Reduced form") ///
+>     addtext(Controls, Yes)
+output/did_table3.tex
+output/did_table3.xml
+dir : seeout
+
+. 
+. 
+. * (4) IV: One woman
+. 
+. ivreg lnmktcap ca post19 ///
+>     lnassets roa leverage multinational ///
+>     (onewoman = ca_post19), cluster(firm_id)
+
+Instrumental variables 2SLS regression          Number of obs     =      2,452
+                                                F(7, 935)         =     245.78
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.5294
+                                                Root MSE          =     1.5008
+
+                              (Std. err. adjusted for 936 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    onewoman |   3.492764   1.874092     1.86   0.063    -.1851504    7.170677
+          ca |   .1332401   .2943141     0.45   0.651    -.4443526    .7108328
+      post19 |  -.3459619   .2681419    -1.29   0.197    -.8721916    .1802677
+    lnassets |   .6984049   .1015034     6.88   0.000      .499204    .8976058
+         roa |  -.0358275   .1890473    -0.19   0.850    -.4068337    .3351787
+    leverage |  -1.215479    .238833    -5.09   0.000     -1.68419   -.7467682
+multinatio~l |   .5290637    .097982     5.40   0.000     .3367736    .7213538
+       _cons |  -.2391677   .5307503    -0.45   0.652    -1.280768    .8024322
+------------------------------------------------------------------------------
+Endogenous: onewoman
+Exogenous:  ca post19 lnassets roa leverage multinational ca_post19
+
+. 
+. outreg2 using output/did_table3, excel tex(frag) append dec(3) ///
+>     keep(onewoman ca post19) ///
+>     ctitle("(4) IV: One woman") ///
+>     addtext(Controls, Yes)
+output/did_table3.tex
+output/did_table3.xml
+dir : seeout
+
+. 
+. 
+. * (5) IV: Share women
+. 
+. ivreg lnmktcap ca post19 ///
+>     lnassets roa leverage multinational ///
+>     (sharewoman = ca_post19), cluster(firm_id)
+
+Instrumental variables 2SLS regression          Number of obs     =      2,452
+                                                F(7, 935)         =     412.52
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.7178
+                                                Root MSE          =     1.1621
+
+                              (Std. err. adjusted for 936 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  sharewoman |   6.099404   1.823412     3.35   0.001      2.52095    9.677857
+          ca |   .3137791   .1188315     2.64   0.008     .0805717    .5469865
+      post19 |  -.2050782   .1072392    -1.91   0.056    -.4155356    .0053793
+    lnassets |   .7873492   .0378763    20.79   0.000     .7130168    .8616816
+         roa |  -.0340628    .150526    -0.23   0.821    -.3294706     .261345
+    leverage |  -1.092899   .1980228    -5.52   0.000     -1.48152   -.7042788
+multinatio~l |   .4666395   .0853021     5.47   0.000     .2992337    .6340453
+       _cons |   .7217709   .1484599     4.86   0.000     .4304177    1.013124
+------------------------------------------------------------------------------
+Endogenous: sharewoman
+Exogenous:  ca post19 lnassets roa leverage multinational ca_post19
+
+. 
+. outreg2 using output/did_table3, excel tex(frag) append dec(3) ///
+>     keep(sharewoman ca post19) ///
+>     ctitle("(5) IV: Share women") ///
+>     addtext(Controls, Yes)
+output/did_table3.tex
+output/did_table3.xml
+dir : seeout
+
+. 
+. * (6) DETRENDED IV: Share women
+. 
+. ivreg lnmktcap_hat ca post19 ///
+>     lnassets roa leverage multinational ///
+>     (sharewoman = ca_post19), cluster(firm_id)
+
+Instrumental variables 2SLS regression          Number of obs     =      2,452
+                                                F(7, 935)         =     689.59
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.7758
+                                                Root MSE          =     1.0447
+
+                              (Std. err. adjusted for 936 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  sharewoman |   2.415154   1.527216     1.58   0.114    -.5820147    5.412322
+          ca |   .4684636   .1023842     4.58   0.000     .2675341     .669393
+      post19 |   .5073588   .0902331     5.62   0.000     .3302759    .6844417
+    lnassets |   .8461741   .0336737    25.13   0.000     .7800893    .9122588
+         roa |  -.1012033   .1141526    -0.89   0.376    -.3252283    .1228217
+    leverage |  -1.032105   .1981836    -5.21   0.000    -1.421041   -.6431683
+multinatio~l |   .5552862   .0777897     7.14   0.000     .4026235    .7079488
+       _cons |  -5.931242   .1287677   -46.06   0.000     -6.18395   -5.678535
+------------------------------------------------------------------------------
+Endogenous: sharewoman
+Exogenous:  ca post19 lnassets roa leverage multinational ca_post19
+
+. 
+. outreg2 using output/did_table3, excel tex(frag) append dec(3) ///
+>     keep(sharewoman ca post19) ///
+>     ctitle("(6) Detrended IV: Share women") ///
+>     addtext(Controls, Yes, Detrended, Yes)
+output/did_table3.tex
+output/did_table3.xml
+dir : seeout
+
+. 
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
+> ect/logs/04_did_tests.log
+  log type:  text
+ closed on:  17 Nov 2026, 20:39:35
+-------------------------------------------------------------------------------

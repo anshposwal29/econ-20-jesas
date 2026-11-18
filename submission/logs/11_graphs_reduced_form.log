@@ -1,9 +1,9 @@
 -------------------------------------------------------------------------------
       name:  <unnamed>
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
-> ect/logs/09_graphs_first_stage_onewm.log
+> ect/logs/11_graphs_reduced_form.log
   log type:  text
- opened on:  17 Nov 2026, 18:15:51
+ opened on:  17 Nov 2026, 20:39:40
 
 . 
 . use "final_data.dta", clear
@@ -12,28 +12,42 @@
 . 
 . *----------------------------------------------------------------------------
 > ---
-. * 0. Build the outcome: OneWm = 1 if the board has at least one woman
-. *    Firms with no BoardEx match have missing board data, so they are dropped
+. * 0. Build the outcome: ln(market cap)
+. *
+. *    >>> CHECK THIS: set the local below to the name of your market cap varia
+> ble
+. *        (e.g. mktcap, mkvalt, me). Run -describe- if you are not sure.
+. *    Logs need strictly positive values, so zero/negative/missing are dropped
 > .
-. *    (Careful: in Stata, missing >= 1 is TRUE, so we must condition on women 
-> < .)
 . *----------------------------------------------------------------------------
 > ---
-. keep if board_matched == 1
+. local mcvar mktcap
+
+. 
+. * Keep the SAME sample as the first stage (firms with a BoardEx match)?
+. * 1 = yes (recommended for 2SLS so both stages use the same firms), 0 = no
+. local samesample 1
+
+. if `samesample' == 1 keep if board_matched == 1
 (2,268 observations deleted)
 
-. gen OneWm = (women >= 1) if women < .
+. 
+. count if `mcvar' <= 0
+  0
 
-. label var OneWm "=1 if at least 1 woman on the board"
+. count if missing(`mcvar')
+  0
 
-. assert OneWm == 1 - zerowomen
+. 
+. label var lnmktcap "ln(market capitalization)"
 
-. assert !missing(OneWm)
+. drop if missing(lnmktcap)
+(0 observations deleted)
 
 . 
 . *----------------------------------------------------------------------------
 > ---
-. * 1. Define the event-time "year" (same as program 2)
+. * 1. Define the event-time "year" (same as programs 2 and 3)
 . *----------------------------------------------------------------------------
 > ---
 . * year = fiscal year (calendar year of the fiscal year end), as in the other 
@@ -91,41 +105,40 @@
 -----------+----------------------+----------
      Total |     3,450      4,456 |     7,906 
 
-. summ OneWm                        // mean should be roughly 0.75
+. summ lnmktcap, detail
 
-    Variable |        Obs        Mean    Std. dev.       Min        Max
--------------+---------------------------------------------------------
-       OneWm |      7,906     .664685    .4721303          0          1
+                  ln(market capitalization)
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%     2.264718       .2352461
+ 5%     3.479916       .6357988
+10%     4.199954       .7433433       Obs               7,906
+25%     5.495137       .8452466       Sum of wgt.       7,906
 
-. tab ca OneWm, row
+50%     6.842698                      Mean           6.863347
+                        Largest       Std. dev.      2.075814
+75%     8.160256       13.81065
+90%     9.548758       13.88633       Variance       4.309003
+95%     10.40942       13.98392       Skewness       .1579094
+99%     12.13747       14.49155       Kurtosis       3.075164
 
-+----------------+
-| Key            |
-|----------------|
-|   frequency    |
-| row percentage |
-+----------------+
+. tabstat lnmktcap, by(ca) stat(mean sd n)
 
-  =1 if HQ |
-        in |
-California |
- on 30 Sep |   =1 if at least 1
- 2018 (0 = |  woman on the board
-    Texas) |         0          1 |     Total
------------+----------------------+----------
-         0 |     1,303      2,147 |     3,450 
-           |     37.77      62.23 |    100.00 
------------+----------------------+----------
-         1 |     1,348      3,108 |     4,456 
-           |     30.25      69.75 |    100.00 
------------+----------------------+----------
-     Total |     2,651      5,255 |     7,906 
-           |     33.53      66.47 |    100.00 
+Summary for variables: lnmktcap
+Group variable: ca (=1 if HQ in California on 30 Sep 2018 (0 = Texas))
+
+      ca |      Mean        SD         N
+---------+------------------------------
+       0 |  6.884205  1.996067      3450
+       1 |  6.847197  2.135595      4456
+---------+------------------------------
+   Total |  6.863347  2.075814      7906
+----------------------------------------
 
 . 
 . *----------------------------------------------------------------------------
 > ---
-. * 2. The first-stage regressions (this is your main result)
+. * 2. The reduced-form regressions (this is your main result)
 . *    areg ..., absorb(gvkey) = firm fixed effects
 . *    Standard errors clustered by firm in every column.
 . *----------------------------------------------------------------------------
@@ -138,164 +151,163 @@ California |
 
 . 
 . * (1) no fixed effects
-. reg OneWm ca post caXpost, vce(cluster gvkey)
+. reg lnmktcap ca post caXpost, vce(cluster gvkey)
 
 Linear regression                               Number of obs     =      7,906
-                                                F(3, 1300)        =     205.42
+                                                F(3, 1300)        =      27.77
                                                 Prob > F          =     0.0000
-                                                R-squared         =     0.0687
-                                                Root MSE          =      .4557
+                                                R-squared         =     0.0072
+                                                Root MSE          =     2.0687
 
                               (Std. err. adjusted for 1,301 clusters in gvkey)
 ------------------------------------------------------------------------------
              |               Robust
-       OneWm | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-          ca |   .0493888   .0267963     1.84   0.066      -.00318    .1019576
-        post |   .2265451   .0225139    10.06   0.000     .1823776    .2707126
-     caXpost |    .101154   .0283249     3.57   0.000     .0455866    .1567215
-       _cons |   .5766158   .0204686    28.17   0.000     .5364607     .616771
+          ca |  -.1994471   .1319697    -1.51   0.131    -.4583441    .0594499
+        post |   -.230524   .0631919    -3.65   0.000    -.3544933   -.1065546
+     caXpost |   .7620045   .0896037     8.50   0.000     .5862208    .9377883
+       _cons |   6.930711   .0968592    71.55   0.000     6.740694    7.120728
 ------------------------------------------------------------------------------
 
-. estimates store m1
+. estimates store r1
 
 . test caXpost
 
  ( 1)  caXpost = 0
 
-       F(  1,  1300) =   12.75
-            Prob > F =    0.0004
+       F(  1,  1300) =   72.32
+            Prob > F =    0.0000
 
 . 
 . * (2) firm fixed effects  <-- your equation
-. areg OneWm post caXpost, absorb(gvkey) vce(cluster gvkey)
+. areg lnmktcap post caXpost, absorb(gvkey) vce(cluster gvkey)
 
 Linear regression, absorbing indicators             Number of obs     =  7,906
 Absorbed variable: gvkey                            No. of categories =  1,301
-                                                    F(2, 1300)        = 152.62
+                                                    F(2, 1300)        =  82.56
                                                     Prob > F          = 0.0000
-                                                    R-squared         = 0.6589
-                                                    Adj R-squared     = 0.5917
-                                                    Root MSE          = 0.3017
+                                                    R-squared         = 0.9246
+                                                    Adj R-squared     = 0.9097
+                                                    Root MSE          = 0.6237
 
                               (Std. err. adjusted for 1,301 clusters in gvkey)
 ------------------------------------------------------------------------------
              |               Robust
-       OneWm | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-        post |   .2353489   .0242078     9.72   0.000     .1878583    .2828395
-     caXpost |    .059671   .0316077     1.89   0.059    -.0023366    .1216787
-       _cons |   .6076951    .003284   185.05   0.000     .6012526    .6141377
+        post |  -.0228901   .0505441    -0.45   0.651     -.122047    .0762668
+     caXpost |   .5998337   .0676256     8.87   0.000     .4671665    .7325009
+       _cons |    6.79443   .0070929   957.92   0.000     6.780515    6.808345
 ------------------------------------------------------------------------------
 
-. estimates store m2
+. estimates store r2
 
 . test caXpost
 
  ( 1)  caXpost = 0
 
-       F(  1,  1300) =    3.56
-            Prob > F =    0.0593
+       F(  1,  1300) =   78.68
+            Prob > F =    0.0000
 
 . 
 . * (3) firm AND year fixed effects (i.pyear absorbs Post)
-. areg OneWm caXpost i.pyear, absorb(gvkey) vce(cluster gvkey)
+. areg lnmktcap caXpost i.pyear, absorb(gvkey) vce(cluster gvkey)
 
 Linear regression, absorbing indicators             Number of obs     =  7,906
 Absorbed variable: gvkey                            No. of categories =  1,301
-                                                    F(10, 1300)       =  35.81
+                                                    F(10, 1300)       =  49.56
                                                     Prob > F          = 0.0000
-                                                    R-squared         = 0.6809
-                                                    Adj R-squared     = 0.6175
-                                                    Root MSE          = 0.2920
+                                                    R-squared         = 0.9294
+                                                    Adj R-squared     = 0.9154
+                                                    Root MSE          = 0.6039
 
                               (Std. err. adjusted for 1,301 clusters in gvkey)
 ------------------------------------------------------------------------------
              |               Robust
-       OneWm | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-     caXpost |   .0660671   .0317437     2.08   0.038     .0037927    .1283416
+     caXpost |   .6104649   .0676832     9.02   0.000     .4776846    .7432452
              |
        pyear |
-       2012  |   .0206732    .010439     1.98   0.048      .000194    .0411523
-       2013  |   .0513818    .014566     3.53   0.000     .0228063    .0799572
-       2014  |   .0957675   .0169218     5.66   0.000     .0625704    .1289646
-       2015  |    .137253   .0196471     6.99   0.000     .0987095    .1757965
-       2016  |   .1502804   .0213181     7.05   0.000     .1084588     .192102
-       2017  |   .2046168   .0222239     9.21   0.000     .1610182    .2482155
-       2018  |   .2729635   .0234149    11.66   0.000     .2270285    .3188986
-       2019  |   .3547154   .0301369    11.77   0.000     .2955931    .4138377
-       2020  |    .393386   .0308543    12.75   0.000     .3328562    .4539158
+       2012  |   .0651423   .0213597     3.05   0.002      .023239    .1070456
+       2013  |   .3783773    .028855    13.11   0.000     .3217699    .4349847
+       2014  |   .4130629   .0350655    11.78   0.000     .3442717     .481854
+       2015  |   .3016505   .0419538     7.19   0.000      .219346    .3839551
+       2016  |   .3587155   .0434392     8.26   0.000     .2734969    .4439341
+       2017  |   .5274146   .0474866    11.11   0.000     .4342559    .6205733
+       2018  |   .4699384    .051627     9.10   0.000      .368657    .5712197
+       2019  |   .2604159   .0672313     3.87   0.000     .1285222    .3923096
+       2020  |   .3911306   .0726724     5.38   0.000     .2485626    .5336986
              |
-       _cons |    .484055   .0147467    32.82   0.000      .455125    .5129849
+       _cons |   6.468344   .0332966   194.26   0.000     6.403024    6.533665
 ------------------------------------------------------------------------------
 
-. estimates store m3
+. estimates store r3
 
 . test caXpost
 
  ( 1)  caXpost = 0
 
-       F(  1,  1300) =    4.33
-            Prob > F =    0.0376
+       F(  1,  1300) =   81.35
+            Prob > F =    0.0000
 
 . 
-. * side-by-side table; with one instrument, first-stage F = t^2 on caXpost
-. estimates table m1 m2 m3, keep(ca post caXpost) b(%9.4f) se(%9.4f) ///
->     stats(N r2) title("First stage: OneWm on CA x Post")
+. * side-by-side table
+. estimates table r1 r2 r3, keep(ca post caXpost) b(%9.4f) se(%9.4f) ///
+>     stats(N r2) title("Reduced form: ln(mktcap) on CA x Post")
 
-First stage: OneWm on CA x Post
+Reduced form: ln(mktcap) on CA x Post
 
 --------------------------------------------------
-    Variable |    m1          m2          m3      
+    Variable |    r1          r2          r3      
 -------------+------------------------------------
-          ca |    0.0494                          
-             |    0.0268                          
-        post |    0.2265      0.2353              
-             |    0.0225      0.0242              
-     caXpost |    0.1012      0.0597      0.0661  
-             |    0.0283      0.0316      0.0317  
+          ca |   -0.1994                          
+             |    0.1320                          
+        post |   -0.2305     -0.0229              
+             |    0.0632      0.0505              
+     caXpost |    0.7620      0.5998      0.6105  
+             |    0.0896      0.0676      0.0677  
 -------------+------------------------------------
            N |      7906        7906        7906  
-          r2 |    0.0687      0.6589      0.6809  
+          r2 |    0.0072      0.9246      0.9294  
 --------------------------------------------------
                                       Legend: b/se
 
 . 
 . *----------------------------------------------------------------------------
 > ---
-. * 3. MAIN GRAPH: share of firms with at least 1 woman on the board,
-. *    by state and year, with 95% CIs
+. * 3. MAIN GRAPH: average ln(market cap), by state and year, with 95% CIs
 . *----------------------------------------------------------------------------
 > ---
 . preserve
 
-. collapse (mean) OneWm (semean) se_y=OneWm, by(ca pyear)
+. collapse (mean) lnmktcap (semean) se_y=lnmktcap, by(ca pyear)
 
-. gen upper = OneWm + 1.96*se_y
+. gen upper = lnmktcap + 1.96*se_y
 
-. gen lower = OneWm - 1.96*se_y
+. gen lower = lnmktcap - 1.96*se_y
 
 . 
-. gr two (line OneWm pyear if ca==1) ///
->        (line OneWm pyear if ca==0, xline(2018.5, lp(dash))) ///
+. gr two (line lnmktcap pyear if ca==1) ///
+>        (line lnmktcap pyear if ca==0, xline(2018.5, lp(dash))) ///
 >        (rcap upper lower pyear if ca==1) ///
 >        (rcap upper lower pyear if ca==0), ///
 >     legend(label(1 "California") label(2 "Texas") order(1 2)) ///
 >     xlabel(`firstyr'(1)`lastyr') ///
 >     xtitle("Fiscal year (calendar year of fiscal year end; 2019 = first year 
 > after SB 826)") ///
->     ytitle("Share of firms with at least 1 woman on board") ///
->     title("Women on Boards Before and After California SB 826", size(medium))
->  ///
+>     ytitle("Average ln(market capitalization)") ///
+>     title("Firm Value Before and After California SB 826", size(medium)) ///
 >     note("Listed firms headquartered in CA (treated) or TX (comparison) on 30
 >  Sep 2018. Bars show 95% confidence intervals.")
 
-. graph export "output/figures/means_onewm.png", replace width(2000)
-file output/figures/means_onewm.png written in PNG format
+. graph export "output/figures/means_lnmktcap_boardsample.png", replace width(2
+> 000)
+file output/figures/means_lnmktcap_boardsample.png written in PNG format
 
-. graph save   "output/figures/means_onewm.gph", replace
-file output/figures/means_onewm.gph saved
+. graph save   "output/figures/means_lnmktcap_boardsample.gph", replace
+file output/figures/means_lnmktcap_boardsample.gph saved
 
 . restore
 
@@ -305,8 +317,9 @@ file output/figures/means_onewm.gph saved
 . * 4. SECONDARY GRAPH: event study (firm fixed effects + year dummies)
 . *    Year dummies are year fixed effects; firm FE absorb CA, so "ca" is omitt
 > ed.
-. *    Each CA x year coefficient = CA-TX gap in that year minus the gap in 201
-> 8.
+. *    Each CA x year coefficient = CA-TX gap in ln(mktcap) in that year minus 
+> the
+. *    gap in 2018.
 . *----------------------------------------------------------------------------
 > ---
 . forvalues t = `firstyr'/`lastyr' {
@@ -317,40 +330,40 @@ file output/figures/means_onewm.gph saved
   6. }
 
 . 
-. areg OneWm yrdum* caXyrdum*, absorb(gvkey) vce(cluster gvkey)
+. areg lnmktcap yrdum* caXyrdum*, absorb(gvkey) vce(cluster gvkey)
 
 Linear regression, absorbing indicators             Number of obs     =  7,906
 Absorbed variable: gvkey                            No. of categories =  1,301
-                                                    F(18, 1300)       =  20.20
+                                                    F(18, 1300)       =  34.99
                                                     Prob > F          = 0.0000
-                                                    R-squared         = 0.6814
-                                                    Adj R-squared     = 0.6176
-                                                    Root MSE          = 0.2919
+                                                    R-squared         = 0.9320
+                                                    Adj R-squared     = 0.9184
+                                                    Root MSE          = 0.5931
 
                               (Std. err. adjusted for 1,301 clusters in gvkey)
 ------------------------------------------------------------------------------
              |               Robust
-       OneWm | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-   yrdum2011 |  -.2609921   .0352605    -7.40   0.000    -.3301658   -.1918184
-   yrdum2012 |  -.2303405   .0343277    -6.71   0.000    -.2976843   -.1629967
-   yrdum2013 |  -.1862823   .0323565    -5.76   0.000    -.2497591   -.1228056
-   yrdum2014 |   -.149524   .0302976    -4.94   0.000    -.2089615   -.0900864
-   yrdum2015 |  -.1159642   .0281025    -4.13   0.000    -.1710954   -.0608331
-   yrdum2016 |  -.1183614    .025228    -4.69   0.000    -.1678535   -.0688694
-   yrdum2017 |  -.0726349   .0198199    -3.66   0.000    -.1115173   -.0337525
-   yrdum2019 |   .0865314   .0205114     4.22   0.000     .0462923    .1267705
-   yrdum2020 |   .1405128   .0251398     5.59   0.000     .0911938    .1898317
-caXyrdum2011 |  -.0227179   .0471724    -0.48   0.630    -.1152602    .0698244
-caXyrdum2012 |  -.0408167   .0457367    -0.89   0.372    -.1305425     .048909
-caXyrdum2013 |   -.064641   .0433177    -1.49   0.136    -.1496213    .0203393
-caXyrdum2014 |  -.0505425   .0403745    -1.25   0.211    -.1297487    .0286638
-caXyrdum2015 |  -.0357751   .0373998    -0.96   0.339    -.1091457    .0375955
-caXyrdum2016 |  -.0077011   .0332263    -0.23   0.817    -.0728842    .0574821
-caXyrdum2017 |   .0082117   .0252665     0.33   0.745    -.0413558    .0577793
-caXyrdum2019 |    .057089   .0287014     1.99   0.047     .0007828    .1133952
-caXyrdum2020 |   .0304456   .0334084     0.91   0.362    -.0350946    .0959859
-       _cons |   .7574546   .0126571    59.84   0.000     .7326241    .7822852
+   yrdum2011 |  -.1317549   .0764292    -1.72   0.085    -.2816928    .0181831
+   yrdum2012 |  -.0329507   .0680172    -0.48   0.628    -.1663862    .1004847
+   yrdum2013 |   .2596904   .0617024     4.21   0.000     .1386432    .3807377
+   yrdum2014 |   .1787215   .0551193     3.24   0.001     .0705889     .286854
+   yrdum2015 |   -.055099   .0491057    -1.12   0.262     -.151434    .0412361
+   yrdum2016 |   .0962785   .0431921     2.23   0.026     .0115447    .1810123
+   yrdum2017 |   .1755896   .0352378     4.98   0.000     .1064604    .2447187
+   yrdum2019 |   .1051499   .0315543     3.33   0.001     .0432471    .1670528
+   yrdum2020 |  -.0262044   .0532981    -0.49   0.623    -.1307641    .0783552
+caXyrdum2011 |  -.6270467   .1004311    -6.24   0.000    -.8240714   -.4300219
+caXyrdum2012 |   -.686348   .0917059    -7.48   0.000    -.8662558   -.5064402
+caXyrdum2013 |  -.6447998   .0827839    -7.79   0.000    -.8072045   -.4823951
+caXyrdum2014 |  -.4326457   .0757785    -5.71   0.000    -.5813073   -.2839841
+caXyrdum2015 |   -.208819   .0695721    -3.00   0.003    -.3453048   -.0723332
+caXyrdum2016 |  -.3723457   .0628162    -5.93   0.000     -.495578   -.2491134
+caXyrdum2017 |  -.2107909   .0495629    -4.25   0.000    -.3080229   -.1135589
+caXyrdum2019 |   .0536615   .0423932     1.27   0.206    -.0295051     .136828
+caXyrdum2020 |   .5106759    .071018     7.19   0.000     .3713534    .6499984
+       _cons |    6.94348   .0233673   297.14   0.000     6.897638    6.989322
 ------------------------------------------------------------------------------
 
 . 
@@ -371,8 +384,8 @@ caXyrdum2020 |   .0304456   .0334084     0.91   0.362    -.0350946    .0959859
  ( 6)  caXyrdum2016 = 0
  ( 7)  caXyrdum2017 = 0
 
-       F(  7,  1300) =    0.73
-            Prob > F =    0.6479
+       F(  7,  1300) =   13.72
+            Prob > F =    0.0000
 
 . 
 . * store coefficients and standard errors by year
@@ -415,16 +428,16 @@ Group variable: pyear (Fiscal year (calendar year of fiscal year end))
 
    pyear |     slope        se
 ---------+--------------------
-    2011 | -.0227179  .0471724
-    2012 | -.0408167  .0457367
-    2013 |  -.064641  .0433177
-    2014 | -.0505425  .0403745
-    2015 | -.0357751  .0373998
-    2016 | -.0077011  .0332263
-    2017 |  .0082117  .0252665
+    2011 | -.6270466  .1004311
+    2012 |  -.686348  .0917059
+    2013 | -.6447998  .0827839
+    2014 | -.4326457  .0757785
+    2015 |  -.208819  .0695721
+    2016 | -.3723457  .0628162
+    2017 | -.2107909  .0495629
     2018 |         0         .
-    2019 |   .057089  .0287014
-    2020 |  .0304456  .0334084
+    2019 |  .0536615  .0423932
+    2020 |  .5106759   .071018
 ------------------------------
 
 . 
@@ -445,20 +458,19 @@ Group variable: pyear (Fiscal year (calendar year of fiscal year end))
 >     xlabel(`firstyr'(1)`lastyr') ///
 >     xtitle("Fiscal year (calendar year of fiscal year end; 2019 = first year 
 > after SB 826)") ///
->     ytitle("CA - TX difference in P(at least 1 woman on board), relative to 2
-> 018") ///
->     title("First Stage Event Study" "California SB 826 (Board Gender Quota)",
->  size(medium)) ///
+>     ytitle("CA - TX difference in ln(market cap), relative to 2018") ///
+>     title("Reduced Form Event Study" "California SB 826 (Board Gender Quota)"
+> , size(medium)) ///
 >     note("Firm-year data, CA vs. TX, firm and year fixed effects. 2018 (last 
 > pre-law year) is the omitted year." ///
 >          "Bars show 95% confidence intervals, standard errors clustered by fi
 > rm. Dashed line = SB 826 signed 30 Sep 2018.")
 
-. graph export "output/figures/first_stage_onewm.png", replace width(2000)
-file output/figures/first_stage_onewm.png written in PNG format
+. graph export "output/figures/reduced_form_lnmktcap.png", replace width(2000)
+file output/figures/reduced_form_lnmktcap.png written in PNG format
 
-. graph save   "output/figures/first_stage_onewm.gph", replace
-file output/figures/first_stage_onewm.gph saved
+. graph save   "output/figures/reduced_form_lnmktcap.gph", replace
+file output/figures/reduced_form_lnmktcap.gph saved
 
 . restore
 
@@ -466,7 +478,7 @@ file output/figures/first_stage_onewm.gph saved
 . log close
       name:  <unnamed>
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
-> ect/logs/09_graphs_first_stage_onewm.log
+> ect/logs/11_graphs_reduced_form.log
   log type:  text
- closed on:  17 Nov 2026, 18:15:54
+ closed on:  17 Nov 2026, 20:39:41
 -------------------------------------------------------------------------------

@@ -3,7 +3,7 @@
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/07_panel_event_study_graphs.log
   log type:  text
- opened on:  17 Nov 2026, 18:17:56
+ opened on:  17 Nov 2026, 20:40:24
 
 . 
 . use "final_data.dta", clear
@@ -14,7 +14,86 @@
 
 . gen fyr = fyeyear
 
-. * the paper uses fiscal years 2011-2020 everywhere
+. 
+. *==============================================================
+. * DETRENDING (ln market cap only), exactly as in Sophia's 04_did_tests.do:
+. * fit a CA-specific linear trend on the pre-law years (all years before 2019)
+. * and keep the residuals. Done before the 2011-2020 cut so that the trend is
+. * the same one used in the tables.
+. *==============================================================
+. tab fyr, gen(yrall)
+
+        fyr |      Freq.     Percent        Cum.
+------------+-----------------------------------
+       2010 |        739        4.94        4.94
+       2011 |        857        5.73       10.68
+       2012 |        867        5.80       16.47
+       2013 |        878        5.87       22.35
+       2014 |        910        6.09       28.43
+       2015 |        914        6.11       34.55
+       2016 |        902        6.03       40.58
+       2017 |        896        5.99       46.58
+       2018 |        891        5.96       52.54
+       2019 |        908        6.07       58.61
+       2020 |        948        6.34       64.95
+       2021 |      1,049        7.02       71.97
+       2022 |      1,056        7.06       79.03
+       2023 |      1,060        7.09       86.12
+       2024 |      1,047        7.00       93.12
+       2025 |      1,028        6.88      100.00
+------------+-----------------------------------
+      Total |     14,950      100.00
+
+. gen ca_year = ca*fyr
+
+. reg lnmktcap ca yrall* ca_year if fyr < 2019, cluster(firm_id)
+note: yrall1 omitted because of collinearity.
+note: yrall10 omitted because of collinearity.
+note: yrall11 omitted because of collinearity.
+note: yrall12 omitted because of collinearity.
+note: yrall13 omitted because of collinearity.
+note: yrall14 omitted because of collinearity.
+note: yrall15 omitted because of collinearity.
+note: yrall16 omitted because of collinearity.
+
+Linear regression                               Number of obs     =      7,854
+                                                F(10, 1340)       =      24.06
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0116
+                                                Root MSE          =      2.127
+
+                            (Std. err. adjusted for 1,341 clusters in firm_id)
+------------------------------------------------------------------------------
+             |               Robust
+    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+          ca |  -151.8164   35.95781    -4.22   0.000    -222.3561   -81.27669
+      yrall1 |          0  (omitted)
+      yrall2 |  -.1260786   .0421951    -2.99   0.003    -.2088543    -.043303
+      yrall3 |  -.1029885   .0527184    -1.95   0.051     -.206408    .0004311
+      yrall4 |   .1836174    .059538     3.08   0.002     .0668196    .3004151
+      yrall5 |   .1293039    .068908     1.88   0.061    -.0058754    .2644831
+      yrall6 |  -.1127896   .0793318    -1.42   0.155    -.2684176    .0428384
+      yrall7 |   -.118896   .0885498    -1.34   0.180    -.2926073    .0548153
+      yrall8 |   -.018756   .0956279    -0.20   0.845    -.2063527    .1688407
+      yrall9 |  -.1489881   .1042491    -1.43   0.153    -.3534974    .0555212
+     yrall10 |          0  (omitted)
+     yrall11 |          0  (omitted)
+     yrall12 |          0  (omitted)
+     yrall13 |          0  (omitted)
+     yrall14 |          0  (omitted)
+     yrall15 |          0  (omitted)
+     yrall16 |          0  (omitted)
+     ca_year |   .0752153   .0178559     4.21   0.000     .0401868    .1102439
+       _cons |   6.792705   .1097535    61.89   0.000     6.577398    7.008013
+------------------------------------------------------------------------------
+
+. predict lnmktcap_hat, resid
+
+. drop yrall*
+
+. 
+. * the event studies use fiscal years 2011-2020
 . keep if fyr >= 2011 & fyr <= 2020
 (5,979 observations deleted)
 
@@ -50,48 +129,6 @@ Panel variable: firm_id (unbalanced)
 . * pre = fiscal years 2011-2018, post = fiscal years 2019-2020
 . replace post = (fyr >= 2019)
 (714 real changes made)
-
-. 
-. *==============================================================
-. * DETRENDING (ln market cap only): fit a CA-specific linear trend on the
-. * pre-law years (2011-2018) and keep the residuals. Same as the detrended
-. * columns of Sophia's panel tables.
-. *==============================================================
-. gen ca_year = ca*fyr
-
-. 
-. reg lnmktcap ca fyeardum* ca_year if post==0, cluster(firm_id)
-note: fyeardum1 omitted because of collinearity.
-note: fyeardum9 omitted because of collinearity.
-note: fyeardum10 omitted because of collinearity.
-
-Linear regression                               Number of obs     =      7,115
-                                                F(9, 1299)        =      27.11
-                                                Prob > F          =     0.0000
-                                                R-squared         =     0.0111
-                                                Root MSE          =     2.1376
-
-                            (Std. err. adjusted for 1,300 clusters in firm_id)
-------------------------------------------------------------------------------
-             |               Robust
-    lnmktcap | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
--------------+----------------------------------------------------------------
-          ca |  -176.9383   38.48194    -4.60   0.000    -252.4319   -101.4448
-   fyeardum1 |          0  (omitted)
-   fyeardum2 |   .0164707   .0328583     0.50   0.616    -.0479905     .080932
-   fyeardum3 |   .2962739   .0450497     6.58   0.000     .2078958     .384652
-   fyeardum4 |   .2350176   .0582252     4.04   0.000     .1207919    .3492433
-   fyeardum5 |  -.0142372   .0696949    -0.20   0.838    -.1509642    .1224897
-   fyeardum6 |  -.0274017   .0798726    -0.34   0.732    -.1840951    .1292917
-   fyeardum7 |   .0657947   .0874266     0.75   0.452     -.105718    .2373074
-   fyeardum8 |  -.0715946   .0970319    -0.74   0.461     -.261951    .1187617
-   fyeardum9 |          0  (omitted)
-  fyeardum10 |          0  (omitted)
-     ca_year |   .0876786   .0191051     4.59   0.000     .0501984    .1251589
-       _cons |   6.698931     .10765    62.23   0.000     6.487744    6.910118
-------------------------------------------------------------------------------
-
-. predict lnmktcap_hat, resid
 
 . 
 . *==============================================================
@@ -307,42 +344,42 @@ Fixed-effects (within) regression               Number of obs     =      7,906
 Group variable: firm_id                         Number of groups  =      1,301
 
 R-squared:                                      Obs per group:
-     Within  = 0.0415                                         min =          1
+     Within  = 0.0388                                         min =          1
      Between = 0.0002                                         avg =        6.1
-     Overall = 0.0004                                         max =         11
+     Overall = 0.0003                                         max =         11
 
-                                                F(18, 1300)       =      10.30
-corr(u_i, Xb) = -0.0469                         Prob > F          =     0.0000
+                                                F(18, 1300)       =      10.53
+corr(u_i, Xb) = -0.0485                         Prob > F          =     0.0000
 
                             (Std. err. adjusted for 1,301 clusters in firm_id)
 ------------------------------------------------------------------------------
              |               Robust
 lnmktcap_hat | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-   caXyr2011 |  -.0132964   .0917817    -0.14   0.885    -.1933529    .1667601
-   caXyr2012 |  -.1602764    .083808    -1.91   0.056      -.32469    .0041373
-   caXyr2013 |  -.2064068   .0756543    -2.73   0.006    -.3548248   -.0579889
-   caXyr2014 |  -.0819313   .0692523    -1.18   0.237    -.2177898    .0539272
-   caXyr2015 |   .0542168   .0635803     0.85   0.394    -.0705145    .1789481
-   caXyr2016 |  -.1969885   .0574063    -3.43   0.001    -.3096077   -.0843693
-   caXyr2017 |  -.1231123   .0452944    -2.72   0.007    -.2119705   -.0342542
-   caXyr2019 |  -.0340172   .0387422    -0.88   0.380    -.1100212    .0419869
-   caXyr2020 |   .3353187   .0649018     5.17   0.000      .207995    .4626424
-   fyeardum1 |  -.1055504   .0838103    -1.26   0.208    -.2699687    .0588679
-   fyeardum2 |   -.023217   .0776166    -0.30   0.765    -.1754845    .1290505
-   fyeardum3 |   -.010379    .071998    -0.14   0.885     -.151624    .1308661
-   fyeardum4 |  -.0300917    .067297    -0.45   0.655    -.1621143    .1019309
-   fyeardum5 |  -.0146572   .0611039    -0.24   0.810    -.1345303    .1052158
-   fyeardum6 |   .1498847   .0609208     2.46   0.014      .030371    .2693985
-   fyeardum7 |   .1359994   .0575812     2.36   0.018     .0230371    .2489617
-   fyeardum8 |   .0977991   .0487079     2.01   0.045     .0022444    .1933538
+   caXyr2011 |  -.1005392   .0917817    -1.10   0.274    -.2805957    .0795173
+   caXyr2012 |  -.2350559    .083808    -2.80   0.005    -.3994695   -.0706422
+   caXyr2013 |   -.268723   .0756543    -3.55   0.000     -.417141   -.1203051
+   caXyr2014 |  -.1317843   .0692523    -1.90   0.057    -.2676428    .0040741
+   caXyr2015 |   .0168271   .0635803     0.26   0.791    -.1079042    .1415584
+   caXyr2016 |   -.221915   .0574063    -3.87   0.000    -.3345342   -.1092958
+   caXyr2017 |  -.1355755   .0452944    -2.99   0.003    -.2244336   -.0467173
+   caXyr2019 |  -.0215539   .0387422    -0.56   0.578    -.0975579    .0544501
+   caXyr2020 |   .3602452   .0649018     5.55   0.000     .2329216    .4875689
+   fyeardum1 |   .0205282   .0838103     0.24   0.807    -.1438901    .1849465
+   fyeardum2 |   .0962421   .0776166     1.24   0.215    -.0560254    .2485096
+   fyeardum3 |   .1022775    .071998     1.42   0.156    -.0389676    .2435225
+   fyeardum4 |   .0756221    .067297     1.12   0.261    -.0564005    .2076446
+   fyeardum5 |    .083895   .0611039     1.37   0.170     -.035978    .2037681
+   fyeardum6 |    .241379   .0609208     3.96   0.000     .1218652    .3608927
+   fyeardum7 |     .22055   .0575812     3.83   0.000     .1075878    .3335123
+   fyeardum8 |   .1751925   .0487079     3.60   0.000     .0796378    .2707472
    fyeardum9 |   .1313544   .0380915     3.45   0.001     .0566268    .2060819
   fyeardum10 |          0  (omitted)
-       _cons |   .2199717   .0494855     4.45   0.000     .1228916    .3170518
+       _cons |   .1425194   .0494855     2.88   0.004     .0454393    .2395995
 -------------+----------------------------------------------------------------
-     sigma_u |  1.8825792
+     sigma_u |  1.8832131
      sigma_e |  .59308898
-         rho |  .90971066   (fraction of variance due to u_i)
+         rho |  .90976595   (fraction of variance due to u_i)
 ------------------------------------------------------------------------------
 
 . * joint test that the pre-law years (2011-2017) are all zero
@@ -471,8 +508,8 @@ file output/figures/es_onewoman.gph saved
 >     ytitle("CA - TX difference in ln(market cap), relative to 2018") ///
 >     title("ln(Market Cap) Event Study" "California SB 826: Original vs. Detre
 > nded", size(medium)) ///
->     note("Detrended: California's linear trend over the pre-law years (2011-2
-> 018) is removed from ln(market cap)." ///
+>     note("Detrended: California's linear pre-law trend (estimated on years be
+> fore 2019) is removed from ln(market cap)." ///
 >          "Pre-law = fiscal years 2011-2018, post-law = 2019-2020. 2018 is the
 >  omitted year." ///
 >          "Bars show 95% CIs, standard errors clustered by firm.")

@@ -3,7 +3,7 @@
        log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
 > ect/logs/01_build_data.log
   log type:  text
- opened on:   1 Nov 2026, 15:30:50
+ opened on:  17 Nov 2026, 20:39:04
 
 . 
 . *----------------------------------------------------------------------------
@@ -127,9 +127,9 @@ file temp/csho.dta saved
 . *----------------------------------------------------------------------------
 > ---
 . * STEP 3. Compustat main file and sample restrictions
-. *   NOTE: exchg and sic are CURRENT values, so a firm that was listed in 2015
->  and
-. *   delisted later (e.g. First Republic, SVB) is dropped from every year.
+. *   exchg and sic are CURRENT values, so firms that delisted later (e.g. Firs
+> t
+. *   Republic, SVB) are dropped from every year.
 . *----------------------------------------------------------------------------
 > ---
 . use "raw/compustat_annual_main.dta", clear
@@ -173,26 +173,21 @@ Duplicates in terms of gvkey fyear
 . drop if substr(sic, 1, 2) == "67"
 (18,621 observations deleted)
 
-. * Mechanics Bancorp is coded Nasdaq from its 2025 merger, but traded over the
-. * counter before that at prices of $10,800-$31,950 a share
+. * Mechanics Bancorp traded over the counter (at $10,800-$31,950 a share) befo
+> re 2025
 . drop if gvkey == "018948"
 (14 observations deleted)
 
 . 
 . *----------------------------------------------------------------------------
 > ---
-. * STEP 4. Treatment state: headquarters on the day SB 826 was signed
-. *   Compustat 'state' is the CURRENT headquarters state, not a history. SB 82
-> 6
-. *   applied to firms based in California when it was signed (30 Sep 2018), so
-. *   firms that left CA afterwards are treated firms and are coded back to CA.
-. *   All ten moves below were announced after the law and verified from press
-. *   releases, SEC filings or news reports (dates = when the move took effect)
-> .
-. *   The list covers large, well-known moves only. Smaller firms that left CA
-. *   after 2018 remain coded by their current state. mover = 1 flags the ten s
-> o
-. *   they can be dropped in a robustness check.
+. * STEP 4. Treatment state: headquarters on the day SB 826 was signed (30 Sep 
+> 2018)
+. *   Compustat 'state' is the CURRENT state. These ten large firms left Califo
+> rnia
+. *   after the law (checked in press releases and SEC filings), so we code the
+> m
+. *   back to CA. mover = 1 flags them for a robustness check.
 . *----------------------------------------------------------------------------
 > ---
 . gen state_2018 = state
@@ -256,10 +251,14 @@ Duplicates in terms of gvkey fyear
 . * STEP 5. Fiscal year-end date and the treatment timing
 . *----------------------------------------------------------------------------
 > ---
-. * apdedate = actual fiscal period end date. If missing (about 2%), rebuild it
-. * from fyear and fyr: Compustat assigns fiscal years ending Jan-May to the
-. * previous year.
-. gen fye_yr  = cond(fyr >= 6, fyear, fyear + 1)
+. * apdedate = fiscal year-end date. If missing (about 2%), rebuild it from fye
+> ar
+. * and fyr (month): Compustat puts fiscal years ending Jan-May in the previous
+>  year.
+. gen fye_yr  = fyear
+
+. replace fye_yr = fyear + 1 if fyr < 6
+(1,565 real changes made)
 
 . gen fye_alt = dofm(ym(fye_yr, fyr) + 1) - 1          // last day of month fyr
 
@@ -276,17 +275,14 @@ Duplicates in terms of gvkey fyear
 . label var fye "Fiscal year-end date"
 
 . 
-. * The raw data start at fiscal year 2010, so fiscal years ending Jan-May 2010
-. * (fiscal 2009) are not available. The first year-end in the data is June 201
-> 0.
+. * The raw data start at fiscal year 2010, so the first year-end is June 2010.
 . keep if fye >= td(01jan2010) & fye <= td(31dec2025)
 (172 observations deleted)
 
 . 
-. * POST = fiscal year ended on or after 1 Oct 2018 (SB 826 signed 30 Sep 2018)
-> .
-. * Market value is measured at fiscal year-end, so for these firm-years the
-. * price already reflects the law.
+. * post = fiscal year ended on or after 1 Oct 2018 (SB 826 signed 30 Sep 2018)
+> ,
+. * so the year-end price already reflects the law.
 . gen post = (fye >= td(01oct2018)) if fye < .
 
 . label var post "=1 if fiscal year ended on/after 1 Oct 2018"
@@ -306,11 +302,8 @@ Duplicates in terms of gvkey fyear
 . * STEP 6. Outcome and control variables
 . *----------------------------------------------------------------------------
 > ---
-. * Outcome: market cap in $ millions = fiscal-year-end price x shares outstand
-> ing
-. * (millions). Unlike the share price, it is not changed by stock splits.
-. * Keep only firm-years with a market cap, since the rest (mostly years before
-. * the IPO) are not traded firms.
+. * Outcome: market cap ($ millions) = year-end price x shares outstanding.
+. * Firm-years without a market cap (mostly before the IPO) are dropped.
 . gen mktcap = prcc_f * csho
 (2,132 missing values generated)
 
@@ -324,11 +317,9 @@ Duplicates in terms of gvkey fyear
 . label var lnmktcap "ln(market cap)"
 
 . 
-. * Drop firm-years with less than $1 million of total assets. Ratios to assets
-. * are meaningless for these (one firm-year had $54,000 of assets and a $21
-. * million loss, so net income / assets = -397). They are 72 rows, mostly
-. * shell-sized firms. We drop them rather than winsorize so that every
-. * remaining value is the firm's actual ratio.
+. * Drop the 72 firm-years with less than $1 million of assets: ratios to asset
+> s
+. * make no sense for them (one had net income / assets = -397).
 . drop if at < 1
 (72 observations deleted)
 
@@ -348,10 +339,9 @@ Duplicates in terms of gvkey fyear
 . label var leverage "Total liabilities / assets"
 
 . 
-. * Multinational: reports nonzero foreign pretax income. Compustat leaves
-. * pifo blank for 48% of firm-years. We follow the usual shortcut of treating
-. * blank as no foreign income, and keep pifo_missing so the balance test can
-. * show how often this imputation happens in each state.
+. * Multinational = reports nonzero foreign pretax income (pifo). pifo is blank
+>  for
+. * 48% of firm-years; blank counts as 0, and pifo_missing shows how often.
 . gen multinational = (pifo != 0 & pifo < .)
 
 . gen pifo_missing  = (pifo == .)
@@ -363,9 +353,7 @@ Duplicates in terms of gvkey fyear
 > stat"
 
 . 
-. * Firm age since IPO (Compustat ipodate). Missing mostly for old, established
-. * firms (e.g. AT&T, Intel, Disney), so age_missing is kept for the balance te
-> st.
+. * Years since IPO. Missing mostly for old firms (e.g. AT&T, Intel, Disney).
 . gen age = year(fye) - year(ipodate)
 (5,168 missing values generated)
 
@@ -394,9 +382,8 @@ Duplicates in terms of gvkey fyear
 . label var sic2 "2-digit SIC industry"
 
 . 
-. * Industries that differ most between the two states. energy is in the
-. * balance test (Texas is a quarter oil and gas); pharma is kept as a
-. * descriptive flag only.
+. * Industries that differ most between the states: energy is in the balance
+. * test (a quarter of Texas firms); pharma is a descriptive flag only.
 . gen energy = inlist(sic2, "13", "29")
 
 . gen pharma = inlist(sic, "2833", "2834", "2835", "2836")
@@ -506,9 +493,7 @@ file temp/balance_candidates.dta saved
 . restore
 
 . 
-. * Final variable list. Balance test: lnassets roa leverage multinational age
-. * nyse tech energy boardsize (see 01b_collinearity_tests.do), with
-. * age_missing and pifo_missing reported alongside.
+. * Final variable list
 . keep gvkey fyear conm tic fye fyeyear state_2018 mover ca post ca_post mainwi
 > ndow ///
 >      mktcap lnmktcap ///
@@ -557,7 +542,7 @@ file final_data.dta saved
 
 Contains data from final_data.dta
  Observations:        14,950                  (null)
-    Variables:            31                  1 Nov 2026 15:30
+    Variables:            31                  17 Nov 2026 20:39
 -------------------------------------------------------------------------------
 Variable      Storage   Display    Value
     name         type    format    label      Variable label
@@ -651,10 +636,4 @@ board_matc~d |     14,950    .8482943    .3587474          0          1
         sic2 |          0
 
 . 
-. log close
-      name:  <unnamed>
-       log:  /Users/anshoswal11/Desktop/Dartmouth Classes/Economics/ECON20/proj
-> ect/logs/01_build_data.log
-  log type:  text
- closed on:   1 Nov 2026, 15:30:53
--------------------------------------------------------------------------------
+. cap log close

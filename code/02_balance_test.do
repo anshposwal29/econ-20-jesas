@@ -1,7 +1,7 @@
 *==============================================================================
 * 02_balance_test.do -- Table 1: means and balance test, California vs Texas
 * Author: Ansh
-* Sample: fiscal years 2011-2020 (same years as every other script). SEs clustered by firm.
+* Sample: main window (fiscal year-ends Jun 2010 - Dec 2019). SEs clustered by firm.
 * Input:  final_data.dta
 * Output: output/table1_means.csv (outsum), output/balance_prelaw.xml and
 *         output/balance_did.xml (outreg2), output/table1_balance.csv (all
@@ -24,11 +24,7 @@ capture mkdir "output/figures"
 log using "logs/02_balance_test.log", replace text
 
 use "final_data.dta", clear
-* the paper uses fiscal years 2011-2020 everywhere
-keep if fyeyear >= 2011 & fyeyear <= 2020
-* pre = fiscal years 2011-2018, post = fiscal years 2019-2020
-replace post = (fyeyear >= 2019)
-replace ca_post = ca*post
+keep if mainwindow == 1
 
 * Balance test variables (chosen in 01b_collinearity_tests.do).
 * age_missing and pifo_missing show how often age and foreign income are blank.

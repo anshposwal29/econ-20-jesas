@@ -3,7 +3,6 @@
 * Author: Ansh
 * Run: open Stata, then  do "<your project folder>/code/00_master.do"
 * Each script also runs on its own and writes its log to logs/<script name>.log.
-* Afterwards, on a Mac, run  bash code/run_check.sh  to check figures vs tables.
 *==============================================================================
 cap log close
 clear
@@ -35,19 +34,14 @@ else {
     shell python3 "code/03_table1_format.py"
 }
 
-* 04 and 05: Sophia's two-period DiD tables and Seohee's figures for them
+* 04: Sophia's main results (pre-trends, DiD, placebo, first stage / reduced form / IV)
 do "code/04_did_tests.do"
-do "code/05_did_graphs.do"
 
-* 06 and 07: Sophia's panel tables and Seohee's panel event studies
-do "code/06_panel_tables.do"
+* 07: event study of ln(market cap), original vs detrended (Figure 1)
 do "code/07_panel_event_study_graphs.do"
 
-* 08 to 12: Eloise's graphs (means by state and year, first stages, reduced forms)
-do "code/08_graphs_event_study.do"
-do "code/09_graphs_first_stage_onewm.do"
+* 10 and 11: Eloise's graphs of yearly means (Figures 2 and 3)
 do "code/10_graphs_first_stage_sharewm.do"
 do "code/11_graphs_reduced_form.do"
-do "code/12_graphs_rf_by_year.do"
 
 display "00_master.do finished: tables in output/, figures in output/figures/, logs in logs/"

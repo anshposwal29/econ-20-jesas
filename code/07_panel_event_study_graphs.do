@@ -28,7 +28,20 @@ use "final_data.dta", clear
 
 encode gvkey, gen(firm_id)
 gen fyr = fyeyear
-* the paper uses fiscal years 2011-2020 everywhere
+
+*==============================================================
+* DETRENDING (ln market cap only), exactly as in Sophia's 04_did_tests.do:
+* fit a CA-specific linear trend on the pre-law years (all years before 2019)
+* and keep the residuals. Done before the 2011-2020 cut so that the trend is
+* the same one used in the tables.
+*==============================================================
+tab fyr, gen(yrall)
+gen ca_year = ca*fyr
+reg lnmktcap ca yrall* ca_year if fyr < 2019, cluster(firm_id)
+predict lnmktcap_hat, resid
+drop yrall*
+
+* the event studies use fiscal years 2011-2020
 keep if fyr >= 2011 & fyr <= 2020
 
 * year dummies (2011-2020). xtset on firm only: some firms have two
@@ -40,16 +53,6 @@ gen onewoman = (women >= 1) if women ~= .
 
 * pre = fiscal years 2011-2018, post = fiscal years 2019-2020
 replace post = (fyr >= 2019)
-
-*==============================================================
-* DETRENDING (ln market cap only): fit a CA-specific linear trend on the
-* pre-law years (2011-2018) and keep the residuals. Same as the detrended
-* columns of Sophia's panel tables.
-*==============================================================
-gen ca_year = ca*fyr
-
-reg lnmktcap ca fyeardum* ca_year if post==0, cluster(firm_id)
-predict lnmktcap_hat, resid
 
 *==============================================================
 * EVENT STUDIES (2011-2020, 2018 = reference year)
@@ -149,7 +152,7 @@ gr two (rcap upper lower x, lc(gs11)) (scatter b_lnmktcap x, mc(gs8) ms(Oh)) ///
     xtitle("Fiscal year (calendar year of fiscal year end)") ///
     ytitle("CA - TX difference in ln(market cap), relative to 2018") ///
     title("ln(Market Cap) Event Study" "California SB 826: Original vs. Detrended", size(medium)) ///
-    note("Detrended: California's linear trend over the pre-law years (2011-2018) is removed from ln(market cap)." ///
+    note("Detrended: California's linear pre-law trend (estimated on years before 2019) is removed from ln(market cap)." ///
          "Pre-law = fiscal years 2011-2018, post-law = 2019-2020. 2018 is the omitted year." ///
          "Bars show 95% CIs, standard errors clustered by firm.")
 graph export "output/figures/es_lnmktcap_overlay.png", replace width(2000)
